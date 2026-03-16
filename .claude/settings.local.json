@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --no-src-dir --eslint --no-import-alias --yes 2>&1)",
+      "Read(//c/Users/ivanm/OneDrive/Escritorio/Development/**)",
+      "Bash(npx create-next-app@latest notification-airport --typescript --tailwind --app --no-src-dir --eslint --no-import-alias --yes)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --app --no-src-dir --eslint --no-import-alias --skip-install 2>&1 << 'EOF'\nnotification-airport\nEOF)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s \"https://nasstatus.faa.gov/api/airport-status-information\" 2>&1 | head -50)",
+      "WebSearch",
+      "WebFetch(domain:www.flightaware.com)",
+      "WebFetch(domain:webcache.googleusercontent.com)",
+      "WebFetch(domain:discussions.flightaware.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:go.flightaware.com)",
+      "WebFetch(domain:www.federalregister.gov)",
+      "WebFetch(domain:blog.flightaware.com)",
+      "WebFetch(domain:www.airliners.net)",
+      "mcp__ide__getDiagnostics",
+      "Bash(curl -s http://localhost:3000 2>&1 | head -30)",
+      "Bash(curl -s http://localhost:3001 2>&1 | head -5\ncurl -s http://localhost:3002 2>&1 | head -5)",
+      "Bash(curl -s \"https://nasstatus.faa.gov/api/airport-status-information\" 2>&1 | grep -o '<ARPT>[^<]*</ARPT>' | head -20)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

@@ -1,0 +1,187 @@
+{
+  "name": "Airport Monitor — WhatsApp cada 12hs",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      },
+      "id": "node-schedule",
+      "name": "Cada 12 horas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://nasstatus.faa.gov/api/airport-status-information",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-airport-monitor/1.0"
+            },
+            {
+              "name": "Accept",
+              "value": "application/xml"
+            }
+          ]
+        }
+      },
+      "id": "node-faa",
+      "name": "FAA Airport Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Airport Monitor — Parseo FAA XML + Generación mensaje WhatsApp\n// ============================================================\n\nconst xml = $input.first().json.data || $input.first().json.body || $input.first().json || '';\n\n// Aeropuertos a monitorear\nconst WATCHED = ['MIA', 'JFK', 'EWR', 'EZE', 'GCM'];\n\n// Mis vuelos\nconst MY_FLIGHTS = [\n  { date: '29 Mar', flight: 'AA 900',   from: 'EZE', to: 'MIA', time: '20:30' },\n  { date: '31 Mar', flight: 'AA 956',   from: 'MIA', to: 'GCM', time: '12:55' },\n  { date: '05 Abr', flight: 'B6 766',   from: 'GCM', to: 'JFK', time: '15:40' },\n  { date: '11 Abr', flight: 'DL 1514',  from: 'JFK', to: 'MIA', time: '11:10' },\n  { date: '11 Abr', flight: 'AA 931',   from: 'MIA', to: 'EZE', time: '21:15' },\n];\n\n// Helper: extraer texto entre tags XML\nfunction getTag(xml, tag) {\n  const match = xml.match(new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)<\\/${tag}>`, 'i'));\n  return match ? match[1].trim() : null;\n}\n\nfunction getAllBlocks(xml, tag) {\n  const blocks = [];\n  const regex = new RegExp(`<${tag}[^>]*>[\\\\s\\\\S]*?<\\/${tag}>`, 'gi');\n  let match;\n  while ((match = regex.exec(xml)) !== null) {\n    blocks.push(match[0]);\n  }\n  return blocks;\n}\n\nconst problems = {};\n\n// Delays normales\ngetAllBlocks(xml, 'Delay').forEach(block => {\n  const arpt = getTag(block, 'ARPT');\n  if (!arpt) return;\n  const depMin = parseInt(getTag(block, 'Min') || '0');\n  const depMax = parseInt(getTag(block, 'Max') || '0');\n  const reason = getTag(block, 'Reason') || 'Unknown';\n  const trend  = getTag(block, 'Trend')  || '';\n  const avg    = (depMin + depMax) / 2;\n  problems[arpt] = {\n    type:     'delay',\n    severity: avg <= 15 ? 'minor' : avg <= 45 ? 'moderate' : 'severe',\n    reason, min: depMin, max: depMax, trend\n  };\n});\n\n// Ground Stops\ngetAllBlocks(xml, 'GroundStop').forEach(block => {\n  const arpt = getTag(block, 'ARPT');\n  if (!arpt) return;\n  problems[arpt] = {\n    type: 'ground_stop', severity: 'critical',\n    reason:  getTag(block, 'Reason')  || 'Unknown',\n    endTime: getTag(block, 'EndTime') || 'indefinido'\n  };\n});\n\n// Ground Delays\ngetAllBlocks(xml, 'GroundDelay').forEach(block => {\n  const arpt = getTag(block, 'ARPT');\n  if (!arpt) return;\n  problems[arpt] = {\n    type: 'ground_delay', severity: 'critical',\n    reason: getTag(block, 'Reason') || 'Unknown',\n    avg:    getTag(block, 'Avg')    || '?',\n    max:    getTag(block, 'Max')    || '?'\n  };\n});\n\n// Closures\ngetAllBlocks(xml, 'AirportClosure').forEach(block => {\n  const arpt = getTag(block, 'ARPT');\n  if (!arpt) return;\n  problems[arpt] = {\n    type: 'closure', severity: 'critical',\n    reason: getTag(block, 'Reason') || 'Unknown'\n  };\n});\n\n// Generar mensaje WhatsApp\nconst now = new Date().toLocaleString('es-AR', {\n  timeZone: 'America/Argentina/Buenos_Aires',\n  day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'\n});\n\nlet msg = `✈️ *Airport Monitor — ${now} (ARG)*\\n\\n`;\n\nconst watchedProblems = WATCHED.filter(a => problems[a]);\nconst watchedOk       = WATCHED.filter(a => !problems[a]);\n\nif (watchedProblems.length === 0) {\n  msg += `✅ *Todo normal*\\nSin demoras en tus aeropuertos\\n\\n`;\n} else {\n  msg += `⚠️ *${watchedProblems.length} aeropuerto(s) con problemas:*\\n\\n`;\n  watchedProblems.forEach(iata => {\n    const p = problems[iata];\n    const emoji = p.type === 'closure'    ? '⛔'\n                : p.type === 'ground_stop' ? '🛑'\n                : p.severity === 'critical'  ? '🔴'\n                : p.severity === 'severe'    ? '🔴'\n                : p.severity === 'moderate'  ? '🟠' : '🟡';\n    msg += `${emoji} *${iata}*\\n`;\n    if (p.type === 'delay') {\n      msg += `   Demora: ${p.min}-${p.max} min\\n`;\n      msg += `   Causa: ${p.reason}\\n`;\n      if (p.trend) msg += `   Tendencia: ${p.trend}\\n`;\n    } else if (p.type === 'ground_stop') {\n      msg += `   🛑 Ground Stop hasta ${p.endTime}\\n`;\n      msg += `   Causa: ${p.reason}\\n`;\n    } else if (p.type === 'ground_delay') {\n      msg += `   🔴 Ground Delay: avg ${p.avg} min\\n`;\n      msg += `   Causa: ${p.reason}\\n`;\n    } else if (p.type === 'closure') {\n      msg += `   ⛔ CERRADO — ${p.reason}\\n`;\n    }\n    msg += '\\n';\n  });\n}\n\nif (watchedOk.length > 0) {\n  msg += `✅ *OK:* ${watchedOk.join(' · ')}\\n\\n`;\n}\n\n// Estado de mis vuelos\nmsg += `─────────────────\\n🗓️ *Mis vuelos:*\\n\\n`;\nMY_FLIGHTS.forEach(f => {\n  const originStatus = problems[f.from];\n  const emoji = !originStatus            ? '🟢'\n              : originStatus.type === 'closure'     ? '⛔'\n              : originStatus.severity === 'critical' ? '🔴'\n              : originStatus.severity === 'severe'   ? '🔴'\n              : originStatus.severity === 'moderate' ? '🟠' : '🟡';\n  msg += `${emoji} ${f.date} · ${f.flight}\\n`;\n  msg += `   ${f.from} → ${f.to} · Sale ${f.time}\\n`;\n  if (originStatus) {\n    if (originStatus.type === 'delay') {\n      msg += `   ⚠️ Demora en ${f.from}: ${originStatus.min}-${originStatus.max} min\\n`;\n    } else if (originStatus.type === 'ground_stop') {\n      msg += `   🛑 Ground Stop en ${f.from} hasta ${originStatus.endTime}\\n`;\n    } else if (originStatus.type === 'ground_delay') {\n      msg += `   🔴 Ground Delay en ${f.from}: avg ${originStatus.avg} min\\n`;\n    } else if (originStatus.type === 'closure') {\n      msg += `   ⛔ ${f.from} CERRADO — ${originStatus.reason}\\n`;\n    }\n  }\n  msg += '\\n';\n});\n\nmsg += `_Fuente: FAA · próxima actualización en 12hs_`;\n\nreturn [{ json: { message: msg, hasProblems: watchedProblems.length > 0 } }];"
+      },
+      "id": "node-code",
+      "name": "Parsear XML y generar mensaje",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.hasProblems }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if",
+      "name": "¿Hay problemas?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v18.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $env.WHATSAPP_RECIPIENT_NUMBER }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": {{ JSON.stringify($json.message) }},\n    \"preview_url\": false\n  }\n}"
+      },
+      "id": "node-whatsapp-problems",
+      "name": "Enviar WhatsApp (con problemas)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "whatsapp-auth",
+          "name": "WhatsApp Meta API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v18.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $env.WHATSAPP_RECIPIENT_NUMBER }}\",\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": {{ JSON.stringify($json.message) }},\n    \"preview_url\": false\n  }\n}"
+      },
+      "id": "node-whatsapp-ok",
+      "name": "Enviar WhatsApp (todo OK)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 420],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "whatsapp-auth",
+          "name": "WhatsApp Meta API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cada 12 horas": {
+      "main": [
+        [{ "node": "FAA Airport Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "FAA Airport Status": {
+      "main": [
+        [{ "node": "Parsear XML y generar mensaje", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parsear XML y generar mensaje": {
+      "main": [
+        [{ "node": "¿Hay problemas?", "type": "main", "index": 0 }]
+      ]
+    },
+    "¿Hay problemas?": {
+      "main": [
+        [{ "node": "Enviar WhatsApp (con problemas)", "type": "main", "index": 0 }],
+        [{ "node": "Enviar WhatsApp (todo OK)", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-03-16T00:00:00.000Z",
+  "versionId": "1"
+}
