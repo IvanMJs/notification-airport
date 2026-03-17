@@ -328,7 +328,7 @@ export function TripTimeline({
           })}
         </div>
 
-        <p className="text-[10px] text-gray-700 mt-3">
+        <p className="text-[10px] text-white/50 mt-3 text-center">
           {locale === "en" ? "Hover or tap a dot for details" : "Hover o tocá un punto para ver detalles"}
         </p>
       </div>
