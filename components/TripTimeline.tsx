@@ -267,13 +267,13 @@ export function TripTimeline({
                     </span>
                   )}
                   {node.isOrigin && node.flightCode && (
-                    <span className="text-[10px] text-gray-600 max-w-[60px] text-center leading-tight">
+                    <span className="text-[10px] text-blue-300/70 max-w-[60px] text-center leading-tight">
                       {node.flightCode}
                     </span>
                   )}
                   {node.isOrigin && daysUntil !== null && (
                     <span className={`text-[10px] font-semibold ${
-                      daysUntil < 0   ? "text-gray-600"   :
+                      daysUntil < 0   ? "text-white/35"   :
                       daysUntil === 0 ? "text-red-400 animate-pulse" :
                       daysUntil <= 7  ? "text-yellow-400" :
                       "text-emerald-400"
@@ -300,17 +300,17 @@ export function TripTimeline({
                       <div className={`h-px w-8 sm:w-10 transition-colors ${
                         nextConn && nextConn.risk !== "safe"
                           ? CONN_COLORS[nextConn.risk].line
-                          : "bg-gray-800"
+                          : "bg-white/[0.10]"
                       }`} />
                       <Plane className={`h-3 w-3 -mx-0.5 transition-colors ${
                         nextConn && nextConn.risk !== "safe"
                           ? CONN_COLORS[nextConn.risk].icon
-                          : "text-gray-700"
+                          : "text-blue-400/50"
                       }`} />
                       <div className={`h-px w-8 sm:w-10 transition-colors ${
                         nextConn && nextConn.risk !== "safe"
                           ? CONN_COLORS[nextConn.risk].line
-                          : "bg-gray-800"
+                          : "bg-white/[0.10]"
                       }`} />
                     </div>
                     {/* Connection risk label on the line */}
