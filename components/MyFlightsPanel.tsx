@@ -193,8 +193,10 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData }: Flig
 
   return (
     <div
-      className={`rounded-xl border-2 overflow-hidden transition-all ${
-        hasIssue ? "border-orange-600/50" : "border-gray-800"
+      className={`rounded-xl border overflow-hidden transition-shadow ${
+        hasIssue
+          ? "border-orange-500/40 shadow-[0_1px_3px_rgba(0,0,0,0.5),0_4px_20px_rgba(0,0,0,0.35)]"
+          : "border-white/[0.07] bg-white/[0.03] shadow-[0_1px_3px_rgba(0,0,0,0.5),0_4px_20px_rgba(0,0,0,0.35)]"
       }`}
     >
       {/* Check-in banner */}
@@ -228,7 +230,7 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData }: Flig
       )}
 
       {/* SECCIÓN 1: AEROPUERTO */}
-      <div className={`px-4 py-3 ${hasIssue ? "bg-orange-950/30" : "bg-gray-900/60"}`}>
+      <div className={`px-4 py-3 ${hasIssue ? "bg-orange-950/20" : "bg-white/[0.025]"}`}>
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -322,7 +324,7 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData }: Flig
       </div>
 
       {/* SECCIÓN 2: RUTA */}
-      <div className="px-4 py-3 border-t border-gray-800 bg-gray-900/30">
+      <div className="px-4 py-3 border-t border-white/[0.06]">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <p className="text-xs text-gray-400 mb-1 font-medium uppercase tracking-wider">
@@ -343,7 +345,7 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData }: Flig
       </div>
 
       {/* SECCIÓN 3: MI VUELO */}
-      <div className="px-4 py-3 border-t border-gray-800 bg-gray-950/40">
+      <div className="px-4 py-3 border-t border-white/[0.06]">
         <p className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wider">
           {locale === "en" ? "My Flight" : "Mi vuelo"}
         </p>
@@ -383,7 +385,7 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData }: Flig
         const airlineAppUrl = AIRLINE_APP_URLS[airlineCode] ?? null;
         const isToday = daysUntil === 0;
         return (
-          <div className={`px-4 py-3 border-t border-gray-800 ${isToday ? "bg-yellow-950/15" : ""}`}>
+          <div className={`px-4 py-3 border-t border-white/[0.06] ${isToday ? "bg-yellow-950/15" : ""}`}>
             <p className="text-xs text-gray-400 mb-2 font-medium uppercase tracking-wider flex items-center gap-1.5">
               <DoorOpen className="h-3 w-3" />
               {locale === "en" ? "Gate / Terminal" : "Puerta / Terminal"}
@@ -582,7 +584,7 @@ export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
       />
 
       {/* Vuelos */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         {MY_FLIGHTS.map((flight, idx) => (
           <div
             key={`${flight.flightNum}-${flight.isoDate}`}
