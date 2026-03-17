@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const FAA_URL =
     "https://nasstatus.faa.gov/api/airport-status-information";
@@ -11,6 +13,7 @@ export async function GET() {
         Accept: "application/xml, text/xml",
       },
       signal: controller.signal,
+      cache: "no-store",
     });
     clearTimeout(timeout);
     if (!response.ok) throw new Error(`FAA error: ${response.status}`);
@@ -18,7 +21,7 @@ export async function GET() {
     return new Response(xml, {
       headers: {
         "Content-Type": "application/xml",
-        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+        "Cache-Control": "no-store",
       },
     });
   } catch (error) {

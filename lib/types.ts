@@ -42,3 +42,23 @@ export interface MyFlight {
   departureTime: string;
   trackingUrl: string;
 }
+
+export interface TripFlight {
+  id: string;
+  flightCode: string;       // raw input uppercase, e.g. "AA900"
+  airlineCode: string;      // "AA"
+  airlineName: string;      // "American Airlines"
+  airlineIcao: string;      // "AAL"
+  flightNumber: string;     // "900"
+  originCode: string;       // "EZE"
+  destinationCode: string;  // "MIA"
+  isoDate: string;          // "2026-03-29"
+  departureTime: string;    // "20:30"
+  arrivalBuffer: number;    // hours: 1, 1.5, 2, 2.5, 3
+}
+
+export interface TripTab {
+  id: string;
+  name: string;
+  flights: TripFlight[];
+}

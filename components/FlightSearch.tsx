@@ -1,70 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, X, ExternalLink, Plane, Info } from "lucide-react";
 import { AirportStatusMap } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 import { useLanguage } from "@/contexts/LanguageContext";
-
-// Base de aerolíneas para parsear código IATA → nombre + ICAO
-const AIRLINES: Record<string, { name: string; icao: string }> = {
-  AA: { name: "American Airlines",   icao: "AAL" },
-  DL: { name: "Delta Air Lines",     icao: "DAL" },
-  UA: { name: "United Airlines",     icao: "UAL" },
-  B6: { name: "JetBlue Airways",     icao: "JBU" },
-  WN: { name: "Southwest Airlines",  icao: "SWA" },
-  AS: { name: "Alaska Airlines",     icao: "ASA" },
-  NK: { name: "Spirit Airlines",     icao: "NKS" },
-  F9: { name: "Frontier Airlines",   icao: "FFT" },
-  HA: { name: "Hawaiian Airlines",   icao: "HAL" },
-  G4: { name: "Allegiant Air",       icao: "AAY" },
-  AC: { name: "Air Canada",          icao: "ACA" },
-  AM: { name: "Aeroméxico",          icao: "AMX" },
-  AR: { name: "Aerolíneas Argentinas", icao: "ARG" },
-  LA: { name: "LATAM Airlines",      icao: "LAN" },
-  IB: { name: "Iberia",             icao: "IBE" },
-  BA: { name: "British Airways",     icao: "BAW" },
-  LH: { name: "Lufthansa",           icao: "DLH" },
-  AF: { name: "Air France",          icao: "AFR" },
-  KL: { name: "KLM",                icao: "KLM" },
-  EK: { name: "Emirates",            icao: "UAE" },
-  QR: { name: "Qatar Airways",       icao: "QTR" },
-};
-
-interface ParsedFlight {
-  airlineCode: string;
-  airlineName: string;
-  airlineIcao: string;
-  flightNumber: string;
-  fullCode: string;
-  flightAwareUrl: string;
-}
-
-function parseFlightCode(input: string): ParsedFlight | null {
-  const clean = input.trim().toUpperCase().replace(/\s+/g, "");
-  // Acepta formatos: AA900, AA 900, B6766, DL1514
-  const match = clean.match(/^([A-Z]{2})(\d{1,4})$/);
-  if (!match) return null;
-
-  const [, airlineCode, num] = match;
-  const airline = AIRLINES[airlineCode];
-  if (!airline) return null;
-
-  const icaoNum = `${airline.icao}${num}`;
-
-  return {
-    airlineCode,
-    airlineName: airline.name,
-    airlineIcao: airline.icao,
-    flightNumber: num,
-    fullCode: `${airlineCode} ${num}`,
-    flightAwareUrl: `https://www.flightaware.com/live/flight/${icaoNum}`,
-  };
-}
+import { AIRPORTS } from "@/lib/airports";
+import { AIRLINES, ParsedFlight, parseFlightCode } from "@/lib/flightUtils";
 
 interface TrackedFlight {
   parsed: ParsedFlight;
   airportCode: string;
+}
+
+const TRACKED_KEY = "airport-monitor-tracked-flights";
+
+interface StoredFlight { airlineCode: string; flightNumber: string; airportCode: string; }
+
+function loadTracked(): TrackedFlight[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(TRACKED_KEY);
+    if (!stored) return [];
+    const raw: StoredFlight[] = JSON.parse(stored);
+    return raw.flatMap(({ airlineCode, flightNumber, airportCode }) => {
+      const parsed = parseFlightCode(`${airlineCode}${flightNumber}`);
+      return parsed ? [{ parsed, airportCode }] : [];
+    });
+  } catch {
+    return [];
+  }
 }
 
 interface FlightSearchProps {
@@ -74,7 +39,7 @@ interface FlightSearchProps {
 const LABELS = {
   es: {
     title: "Buscar vuelo por código",
-    placeholder: "Ej: AA900, B6766, DL1514",
+    placeholder: "Ej: AA900, B6766, EDV5068",
     add: "Agregar",
     track: "Rastrear en FlightAware",
     airportStatus: "Estado del aeropuerto de salida",
@@ -83,15 +48,16 @@ const LABELS = {
     remove: "Quitar",
     noAirport: "Sin aeropuerto asignado — ingresá el código IATA para ver demoras FAA",
     faaNote: "El estado por vuelo individual requiere una API paga. Acá mostramos el estado del aeropuerto de salida.",
-    invalidCode: "Código inválido. Usá formato: AA900 o B6766",
+    invalidCode: "Código inválido. Usá formato: AA900, B6766 o EDV5068",
     unknownAirline: "Aerolínea no reconocida. Intentá con FlightAware directamente.",
     trackedFlights: "Vuelos rastreados",
     empty: "Ingresá un código de vuelo arriba para rastrearlo.",
     airportLabel: "Aeropuerto:",
+    unknownAirport: "Aeropuerto no reconocido. Verificá el código IATA.",
   },
   en: {
     title: "Search flight by code",
-    placeholder: "E.g.: AA900, B6766, DL1514",
+    placeholder: "E.g.: AA900, B6766, EDV5068",
     add: "Add",
     track: "Track on FlightAware",
     airportStatus: "Departure airport status",
@@ -100,11 +66,12 @@ const LABELS = {
     remove: "Remove",
     noAirport: "No airport assigned — enter IATA code to see FAA delays",
     faaNote: "Per-flight status requires a paid API. Here we show the departure airport status.",
-    invalidCode: "Invalid code. Use format: AA900 or B6766",
+    invalidCode: "Invalid code. Use format: AA900, B6766 or EDV5068",
     unknownAirline: "Airline not recognized. Try FlightAware directly.",
     trackedFlights: "Tracked flights",
     empty: "Enter a flight code above to track it.",
     airportLabel: "Airport:",
+    unknownAirport: "Airport not recognized. Check the IATA code.",
   },
 };
 
@@ -117,16 +84,34 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
   const [error, setError] = useState("");
   const [tracked, setTracked] = useState<TrackedFlight[]>([]);
 
+  useEffect(() => { setTracked(loadTracked()); }, []);
+
+  useEffect(() => {
+    const toStore: StoredFlight[] = tracked.map(({ parsed, airportCode }) => ({
+      airlineCode: parsed.airlineCode,
+      flightNumber: parsed.flightNumber,
+      airportCode,
+    }));
+    localStorage.setItem(TRACKED_KEY, JSON.stringify(toStore));
+  }, [tracked]);
+
   function handleAdd() {
     setError("");
     const parsed = parseFlightCode(input);
     if (!parsed) {
-      const match = input.trim().toUpperCase().replace(/\s+/g, "").match(/^([A-Z]{2})\d+$/);
-      if (match && !AIRLINES[match[1]]) {
+      const clean = input.trim().toUpperCase().replace(/\s+/g, "");
+      const codeMatch = clean.match(/^([A-Z]{2,3}|[A-Z0-9]{2})\d+$/);
+      if (codeMatch && !AIRLINES[codeMatch[1]]) {
         setError(L.unknownAirline);
       } else {
         setError(L.invalidCode);
       }
+      return;
+    }
+
+    const airportCode = airportInput.trim().toUpperCase();
+    if (airportCode && !AIRPORTS[airportCode]) {
+      setError(L.unknownAirport);
       return;
     }
 
@@ -137,7 +122,7 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
 
     setTracked((prev) => [
       ...prev,
-      { parsed, airportCode: airportInput.trim().toUpperCase() },
+      { parsed, airportCode },
     ]);
     setInput("");
     setAirportInput("");

@@ -30,7 +30,7 @@ function classifyDelay(minutes: number): DelayStatus {
   return "delay_severe";
 }
 
-export function parseXML(xml: string): AirportStatusMap {
+export function parseXML(xml: string, locale: "es" | "en" = "es"): AirportStatusMap {
   const result: AirportStatusMap = {};
 
   try {
@@ -61,7 +61,7 @@ export function parseXML(xml: string): AirportStatusMap {
             state: AIRPORTS[iata]?.state || "",
             status: "ground_delay",
             groundDelay: {
-              reason: translateReason(gd.Reason || "Unknown"),
+              reason: translateReason(gd.Reason || "Unknown", locale),
               avgMinutes: avgMin,
               maxTime: maxStr,
             },
@@ -86,7 +86,7 @@ export function parseXML(xml: string): AirportStatusMap {
             state: AIRPORTS[iata]?.state || "",
             status: "ground_stop",
             groundStop: {
-              reason: translateReason(gs.Reason || "Unknown"),
+              reason: translateReason(gs.Reason || "Unknown", locale),
               endTime: gs.Stop_End_Time || gs.EndTime,
             },
             lastChecked: new Date(),
@@ -110,7 +110,7 @@ export function parseXML(xml: string): AirportStatusMap {
 
           let minMin = 9999;
           let maxMax = 0;
-          let reason = translateReason(d.Reason || "Unknown");
+          let reason = translateReason(d.Reason || "Unknown", locale);
           let trend: string | undefined;
           let type: "departure" | "arrival" | "both" = "both";
           const types: string[] = [];
@@ -120,7 +120,7 @@ export function parseXML(xml: string): AirportStatusMap {
             const adMax = parseTimeToMinutes(ad.Max);
             if (adMin < minMin) minMin = adMin;
             if (adMax > maxMax) maxMax = adMax;
-            if (ad.Trend) trend = translateTrend(ad.Trend);
+            if (ad.Trend) trend = translateTrend(ad.Trend, locale);
             const t = (ad["@_Type"] || "").toLowerCase();
             if (t) types.push(t);
           });
@@ -165,7 +165,7 @@ export function parseXML(xml: string): AirportStatusMap {
             city: AIRPORTS[iata]?.city || "",
             state: AIRPORTS[iata]?.state || "",
             status: "closure",
-            closure: { reason: translateReason(cl.Reason || "Unknown") },
+            closure: { reason: translateReason(cl.Reason || "Unknown", locale) },
             lastChecked: new Date(),
           };
         });

@@ -1,13 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { AirportStatusMap } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
-import { ExternalLink, Clock, MapPin, Plane, AlertTriangle } from "lucide-react";
+import { ExternalLink, Clock, MapPin, Plane, AlertTriangle, Calendar, Share2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { WeatherData } from "@/hooks/useWeather";
+import { TripTimeline } from "./TripTimeline";
+import { CalendarFlight, generateICS, downloadICS, buildGoogleCalendarURL } from "@/lib/calendarExport";
+import { buildWhatsAppMessage, buildWhatsAppURL, WhatsAppFlight } from "@/lib/tripShare";
 
 interface FlightData {
   date: string;
   dateEn: string;
+  isoDate: string;
   flightNum: string;
   airline: string;
   originCode: string;
@@ -26,9 +32,47 @@ interface FlightData {
   routeUrl: string;
 }
 
+function getDaysUntil(isoDate: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const flight = new Date(isoDate + "T00:00:00");
+  return Math.ceil((flight.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function DaysCountdown({ days, locale }: { days: number; locale: "es" | "en" }) {
+  if (days < 0) {
+    return (
+      <span className="text-xs font-medium bg-gray-800 text-gray-500 px-2 py-0.5 rounded">
+        {locale === "en" ? "Completed" : "Completado"}
+      </span>
+    );
+  }
+  if (days === 0) {
+    return (
+      <span className="text-xs font-bold bg-red-900/60 text-red-300 px-2 py-0.5 rounded animate-pulse">
+        {locale === "en" ? "TODAY" : "HOY"}
+      </span>
+    );
+  }
+
+  const colorClass = days <= 7
+    ? "bg-yellow-900/50 text-yellow-300"
+    : "bg-green-900/40 text-green-300";
+
+  const label = locale === "en"
+    ? `${days} day${days > 1 ? "s" : ""} left`
+    : `${days} día${days > 1 ? "s" : ""}`;
+
+  return (
+    <span className={`text-xs font-medium px-2 py-0.5 rounded ${colorClass}`}>
+      {label}
+    </span>
+  );
+}
+
 const MY_FLIGHTS: FlightData[] = [
   {
-    date: "29 Mar", dateEn: "Mar 29",
+    date: "29 Mar", dateEn: "Mar 29", isoDate: "2026-03-29",
     flightNum: "AA 900", airline: "American Airlines",
     originCode: "EZE", originName: "Buenos Aires", originNameEn: "Buenos Aires", originICAO: "SAEZ",
     destinationCode: "MIA", destinationName: "Miami", destinationNameEn: "Miami", destinationICAO: "KMIA",
@@ -37,10 +81,10 @@ const MY_FLIGHTS: FlightData[] = [
     arrivalNoteEs: "3 hs antes — internacional + migraciones EZE",
     arrivalNoteEn: "3 hrs before — international + EZE immigration",
     flightUrl: "https://www.flightaware.com/live/flight/AAL900",
-    routeUrl: "https://www.flightaware.com/live/flights/route/SAEZ/KMIA",
+    routeUrl: "https://www.google.com/travel/flights?q=flights+from+EZE+to+MIA",
   },
   {
-    date: "31 Mar", dateEn: "Mar 31",
+    date: "31 Mar", dateEn: "Mar 31", isoDate: "2026-03-31",
     flightNum: "AA 956", airline: "American Airlines",
     originCode: "MIA", originName: "Miami", originNameEn: "Miami", originICAO: "KMIA",
     destinationCode: "GCM", destinationName: "Grand Cayman", destinationNameEn: "Grand Cayman", destinationICAO: "MWCR",
@@ -49,10 +93,10 @@ const MY_FLIGHTS: FlightData[] = [
     arrivalNoteEs: "2 hs antes — internacional desde MIA",
     arrivalNoteEn: "2 hrs before — international from MIA",
     flightUrl: "https://www.flightaware.com/live/flight/AAL956",
-    routeUrl: "https://www.flightaware.com/live/flights/route/KMIA/MWCR",
+    routeUrl: "https://www.google.com/travel/flights?q=flights+from+MIA+to+GCM",
   },
   {
-    date: "05 Abr", dateEn: "Apr 5",
+    date: "05 Abr", dateEn: "Apr 5", isoDate: "2026-04-05",
     flightNum: "B6 766", airline: "JetBlue Airways",
     originCode: "GCM", originName: "Grand Cayman", originNameEn: "Grand Cayman", originICAO: "MWCR",
     destinationCode: "JFK", destinationName: "New York", destinationNameEn: "New York", destinationICAO: "KJFK",
@@ -61,10 +105,10 @@ const MY_FLIGHTS: FlightData[] = [
     arrivalNoteEs: "2.5 hs antes — GCM pequeño, vuelo internacional",
     arrivalNoteEn: "2.5 hrs before — GCM small airport, international flight",
     flightUrl: "https://www.flightaware.com/live/flight/JBU766",
-    routeUrl: "https://www.flightaware.com/live/flights/route/MWCR/KJFK",
+    routeUrl: "https://www.google.com/travel/flights?q=flights+from+GCM+to+JFK",
   },
   {
-    date: "11 Abr", dateEn: "Apr 11",
+    date: "11 Abr", dateEn: "Apr 11", isoDate: "2026-04-11",
     flightNum: "DL 1514", airline: "Delta Air Lines",
     originCode: "JFK", originName: "New York", originNameEn: "New York", originICAO: "KJFK",
     destinationCode: "MIA", destinationName: "Miami", destinationNameEn: "Miami", destinationICAO: "KMIA",
@@ -73,10 +117,10 @@ const MY_FLIGHTS: FlightData[] = [
     arrivalNoteEs: "2 hs antes — doméstico USA, JFK es grande",
     arrivalNoteEn: "2 hrs before — domestic US, JFK is large",
     flightUrl: "https://www.flightaware.com/live/flight/DAL1514",
-    routeUrl: "https://www.flightaware.com/live/flights/route/KJFK/KMIA",
+    routeUrl: "https://www.google.com/travel/flights?q=flights+from+JFK+to+MIA",
   },
   {
-    date: "11 Abr", dateEn: "Apr 11",
+    date: "11 Abr", dateEn: "Apr 11", isoDate: "2026-04-11",
     flightNum: "AA 931", airline: "American Airlines",
     originCode: "MIA", originName: "Miami", originNameEn: "Miami", originICAO: "KMIA",
     destinationCode: "EZE", destinationName: "Buenos Aires", destinationNameEn: "Buenos Aires", destinationICAO: "SAEZ",
@@ -85,7 +129,7 @@ const MY_FLIGHTS: FlightData[] = [
     arrivalNoteEs: "3 hs antes — internacional largo + migraciones USA",
     arrivalNoteEn: "3 hrs before — long international + US immigration",
     flightUrl: "https://www.flightaware.com/live/flight/AAL931",
-    routeUrl: "https://www.flightaware.com/live/flights/route/KMIA/SAEZ",
+    routeUrl: "https://www.google.com/travel/flights?q=flights+from+MIA+to+EZE",
   },
 ];
 
@@ -118,10 +162,52 @@ function LinkButton({
 
 interface MyFlightsPanelProps {
   statusMap: AirportStatusMap;
+  weatherMap?: Record<string, WeatherData>;
 }
 
-export function MyFlightsPanel({ statusMap }: MyFlightsPanelProps) {
+export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
   const { t, locale } = useLanguage();
+  const [showGcal, setShowGcal] = useState(false);
+  const [waCopied, setWaCopied] = useState(false);
+
+  const calFlights: CalendarFlight[] = MY_FLIGHTS.map((f) => ({
+    flightCode:      f.flightNum,
+    originCode:      f.originCode,
+    originCity:      locale === "en" ? f.originNameEn : f.originName,
+    destinationCode: f.destinationCode,
+    destinationCity: locale === "en" ? f.destinationNameEn : f.destinationName,
+    isoDate:         f.isoDate,
+    departureTime:   f.departureTime,
+    airlineName:     f.airline,
+    flightAwareUrl:  f.flightUrl,
+  }));
+
+  function handleExportICS() {
+    downloadICS("mis-vuelos-2026.ics", generateICS(calFlights));
+  }
+
+  async function handleShareWhatsApp() {
+    const waFlights: WhatsAppFlight[] = MY_FLIGHTS.map((f) => ({
+      flightCode:      f.flightNum,
+      airlineName:     f.airline,
+      originCode:      f.originCode,
+      originCity:      locale === "en" ? f.originNameEn : f.originName,
+      destinationCode: f.destinationCode,
+      destinationCity: locale === "en" ? f.destinationNameEn : f.destinationName,
+      isoDate:         f.isoDate,
+      departureTime:   f.departureTime,
+      arrivalRec:      f.arrivalRecommendation,
+    }));
+    const tripName = locale === "en" ? "My Flights 2026" : "Mis Vuelos 2026";
+    const msg = buildWhatsAppMessage(tripName, waFlights, locale);
+    try {
+      await navigator.clipboard.writeText(msg);
+      setWaCopied(true);
+      setTimeout(() => setWaCopied(false), 2500);
+    } catch {
+      window.open(buildWhatsAppURL(msg), "_blank", "noopener,noreferrer");
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -129,11 +215,75 @@ export function MyFlightsPanel({ statusMap }: MyFlightsPanelProps) {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <p className="text-sm text-gray-500">{t.trip}</p>
-        <LinkButton href="https://nasstatus.faa.gov" variant="blue">
-          <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
-          {t.faaButton}
-        </LinkButton>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* ICS */}
+          <button
+            onClick={handleExportICS}
+            className="flex items-center gap-1.5 rounded-lg border border-gray-700 bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 hover:text-white px-3 py-1.5 text-xs font-medium transition-all"
+          >
+            <Calendar className="h-3.5 w-3.5" />
+            {locale === "en" ? "Export .ics" : "Exportar .ics"}
+          </button>
+          {/* Google Calendar dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowGcal((v) => !v)}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-700 bg-gray-800/60 text-gray-300 hover:bg-gray-700/60 hover:text-white px-3 py-1.5 text-xs font-medium transition-all"
+            >
+              <Calendar className="h-3.5 w-3.5 text-blue-400" />
+              Google Cal
+            </button>
+            {showGcal && (
+              <div className="absolute top-full mt-1 right-0 z-20 min-w-[220px] rounded-lg border border-gray-700 bg-gray-900 shadow-xl py-1">
+                {calFlights.map((cf, i) => (
+                  <a
+                    key={i}
+                    href={buildGoogleCalendarURL(cf)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowGcal(false)}
+                    className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-gray-800 hover:text-white transition-colors"
+                  >
+                    <span>
+                      <span className="font-semibold">{cf.flightCode}</span>
+                      <span className="text-gray-500 ml-1">{cf.originCode}→{cf.destinationCode}</span>
+                    </span>
+                    <span className="text-gray-600 shrink-0">
+                      {new Date(cf.isoDate + "T00:00:00").toLocaleDateString(locale === "en" ? "en-US" : "es-AR", { day: "numeric", month: "short" })}
+                    </span>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* WhatsApp */}
+          <button
+            onClick={handleShareWhatsApp}
+            className="flex items-center gap-1.5 rounded-lg border border-green-800/60 bg-green-900/20 text-green-400 hover:bg-green-900/40 hover:text-green-300 px-3 py-1.5 text-xs font-medium transition-all"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            {waCopied
+              ? (locale === "en" ? "Copied! Paste in WhatsApp" : "¡Copiado! Pegalo en WhatsApp")
+              : "WhatsApp"}
+          </button>
+          <LinkButton href="https://nasstatus.faa.gov" variant="blue">
+            <span className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
+            {t.faaButton}
+          </LinkButton>
+        </div>
       </div>
+
+      {/* Timeline */}
+      <TripTimeline
+        flights={MY_FLIGHTS.map((f) => ({
+          originCode: f.originCode,
+          destinationCode: f.destinationCode,
+          isoDate: f.isoDate,
+          flightCode: f.flightNum,
+          departureTime: f.departureTime,
+        }))}
+        statusMap={statusMap}
+      />
 
       {/* Vuelos */}
       <div className="space-y-4">
@@ -145,13 +295,16 @@ export function MyFlightsPanel({ statusMap }: MyFlightsPanelProps) {
           const originName = locale === "en" ? flight.originNameEn : flight.originName;
           const destName   = locale === "en" ? flight.destinationNameEn : flight.destinationName;
           const arrivalNote = locale === "en" ? flight.arrivalNoteEn : flight.arrivalNoteEs;
+          const daysUntil = getDaysUntil(flight.isoDate);
 
           return (
             <div
-              key={idx}
-              className={`rounded-xl border-2 overflow-hidden transition-all ${
+              key={`${flight.flightNum}-${flight.isoDate}`}
+              id={`flight-card-${idx}`}
+              className={`rounded-xl border-2 overflow-hidden transition-all animate-fade-in-up ${
                 hasIssue ? "border-orange-600/50" : "border-gray-800"
               }`}
+              style={{ animationDelay: `${idx * 0.08}s` }}
             >
               {/* SECCIÓN 1: AEROPUERTO */}
               <div className={`px-4 py-3 ${hasIssue ? "bg-orange-950/30" : "bg-gray-900/60"}`}>
@@ -167,6 +320,13 @@ export function MyFlightsPanel({ statusMap }: MyFlightsPanelProps) {
                       <span className="text-3xl font-black text-white">{flight.originCode}</span>
                       <span className="text-sm text-gray-400">{originName}</span>
                     </div>
+                    {weatherMap?.[flight.originCode] && (
+                      <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400">
+                        <span className="text-sm leading-none">{weatherMap[flight.originCode].icon}</span>
+                        <span className="font-medium text-gray-300">{weatherMap[flight.originCode].temperature}°C</span>
+                        <span>{weatherMap[flight.originCode].description}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <StatusBadge status={status} className="text-sm px-3 py-1" />
@@ -181,6 +341,19 @@ export function MyFlightsPanel({ statusMap }: MyFlightsPanelProps) {
 
                 {hasIssue && (
                   <div className="mt-2 rounded-lg bg-orange-950/40 border border-orange-800/40 px-3 py-2 text-xs">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400">
+                        {locale === "en" ? "FAA Live Alert" : "Alerta FAA en vivo"}
+                      </span>
+                      <a
+                        href={`https://www.flightaware.com/live/airport/${flight.originICAO}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-[10px] text-orange-500 hover:text-orange-300 transition-colors"
+                      >
+                        {locale === "en" ? "See on FlightAware ↗" : "Ver en FlightAware ↗"}
+                      </a>
+                    </div>
                     {originStatus?.delays && (
                       <p className="text-orange-200">
                         <span className="font-bold">⚠️ {t.delay}:</span>{" "}
@@ -249,6 +422,7 @@ export function MyFlightsPanel({ statusMap }: MyFlightsPanelProps) {
                       <span className="text-xs font-medium bg-gray-800 text-gray-300 px-2 py-0.5 rounded">
                         {date}
                       </span>
+                      <DaysCountdown days={daysUntil} locale={locale} />
                       <span className="font-bold text-white">{flight.flightNum}</span>
                       <span className="text-xs text-gray-500">{flight.airline}</span>
                     </div>

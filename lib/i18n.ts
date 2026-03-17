@@ -18,6 +18,7 @@ export const translations = {
     // Tabs
     tabAirports: "✈ Mis aeropuertos",
     tabFlights: "🗓 Mis vuelos",
+    tabSearch: "🔍 Buscar vuelo",
 
     // Airport card
     noDelaysReported: "Sin demoras reportadas",
@@ -70,15 +71,31 @@ export const translations = {
     trip: "EZE → MIA → GCM → JFK → MIA → EZE · 29 Mar – 12 Abr 2026",
     faaButton: "Estado de demoras en tiempo real — FAA NAS Status",
     sectionAirport: "Aeropuerto de salida",
-    seeAllFlightsFrom: (code: string) => `Ver todos los vuelos de ${code}`,
+    seeAllFlightsFrom: (code: string) => `FlightAware · Vuelos de ${code}`,
     sectionRoute: "Ruta",
-    seeOtherFlights: (o: string, d: string) => `Ver otros vuelos ${o}→${d}`,
+    seeOtherFlights: (o: string, d: string) => `Vuelos alternativos ${o}→${d}`,
     sectionMyFlight: "Mi vuelo",
     departs: "Sale:",
     arriveAt: "Llegar al aeropuerto:",
     trackFlight: (num: string) => `Tracking vuelo ${num}`,
     flightLinkNote:
       "* Los links de vuelo abren FlightAware. El día del vuelo muestran el avión en tiempo real. Antes de la fecha, muestran instancias anteriores del mismo número de vuelo.",
+
+    // Calendar export
+    exportCalendar: "Exportar a calendario",
+    calendarExported: "Calendario exportado",
+    // Share trip
+    shareTrip: "Compartir viaje",
+    shareCopied: "¡Link copiado!",
+    shareFailed: "No se pudo copiar",
+    // Notifications
+    enableNotifications: "Activar notificaciones push",
+    notificationsEnabled: "Notificaciones activas",
+    notificationsBlocked: "Notificaciones bloqueadas",
+    // Stale data
+    dataStale: "Datos pueden estar desactualizados",
+    // Timeline
+    timelineTitle: "Cronograma del viaje",
 
     // Footer
     footer:
@@ -102,6 +119,7 @@ export const translations = {
     // Tabs
     tabAirports: "✈ My airports",
     tabFlights: "🗓 My flights",
+    tabSearch: "🔍 Flight search",
 
     // Airport card
     noDelaysReported: "No delays reported",
@@ -154,9 +172,9 @@ export const translations = {
     trip: "EZE → MIA → GCM → JFK → MIA → EZE · Mar 29 – Apr 12, 2026",
     faaButton: "Real-time delay status — FAA NAS Status",
     sectionAirport: "Departure airport",
-    seeAllFlightsFrom: (code: string) => `See all flights from ${code}`,
+    seeAllFlightsFrom: (code: string) => `FlightAware · Flights from ${code}`,
     sectionRoute: "Route",
-    seeOtherFlights: (o: string, d: string) => `See other flights ${o}→${d}`,
+    seeOtherFlights: (o: string, d: string) => `Alternative flights ${o}→${d}`,
     sectionMyFlight: "My flight",
     departs: "Departs:",
     arriveAt: "Arrive at airport by:",
@@ -164,11 +182,26 @@ export const translations = {
     flightLinkNote:
       "* Flight links open FlightAware. On the day of travel they show the aircraft in real time. Before the date, they show previous instances of the same flight number.",
 
+    // Calendar export
+    exportCalendar: "Export to calendar",
+    calendarExported: "Calendar exported",
+    // Share trip
+    shareTrip: "Share trip",
+    shareCopied: "Link copied!",
+    shareFailed: "Could not copy",
+    // Notifications
+    enableNotifications: "Enable push notifications",
+    notificationsEnabled: "Notifications enabled",
+    notificationsBlocked: "Notifications blocked",
+    // Stale data
+    dataStale: "Data may be outdated",
+    // Timeline
+    timelineTitle: "Trip timeline",
+
     // Footer
     footer:
       "Data source: FAA ASWS API (nasstatus.faa.gov) · Only shows airports with active issues",
   },
 } as const;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Translations = any;
+export type Translations = (typeof translations)[Locale];

@@ -6,11 +6,14 @@ import { cn } from "@/lib/utils";
 import { X, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { AIRPORTS } from "@/lib/airports";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { WeatherData } from "@/hooks/useWeather";
 
 interface AirportCardProps {
   iata: string;
   status?: AirportStatus;
   onRemove?: () => void;
+  weather?: WeatherData;
+  highlight?: boolean;
 }
 
 const BORDER_COLOR: Record<string, string> = {
@@ -35,15 +38,19 @@ const BG_COLOR: Record<string, string> = {
   unknown:        "bg-gray-900/20",
 };
 
+// All translations of "increasing/worsening" and "decreasing/improving" trends
+const TREND_UP   = new Set(["Increasing", "Aumentando", "Worsening", "Empeorando"]);
+const TREND_DOWN = new Set(["Decreasing", "Disminuyendo", "Improving", "Mejorando"]);
+
 function TrendIcon({ trend }: { trend?: string }) {
   if (!trend) return null;
-  if (trend === "Increasing") return <TrendingUp className="h-3.5 w-3.5 text-red-400 inline" />;
-  if (trend === "Decreasing") return <TrendingDown className="h-3.5 w-3.5 text-green-400 inline" />;
+  if (TREND_UP.has(trend))   return <TrendingUp className="h-3.5 w-3.5 text-red-400 inline" />;
+  if (TREND_DOWN.has(trend)) return <TrendingDown className="h-3.5 w-3.5 text-green-400 inline" />;
   return <Minus className="h-3.5 w-3.5 text-yellow-400 inline" />;
 }
 
-export function AirportCard({ iata, status, onRemove }: AirportCardProps) {
-  const { t } = useLanguage();
+export function AirportCard({ iata, status, onRemove, weather, highlight }: AirportCardProps) {
+  const { t, locale } = useLanguage();
   const s = status?.status ?? "ok";
   const info = AIRPORTS[iata];
   const name  = status?.name  || info?.name  || iata;
@@ -55,7 +62,8 @@ export function AirportCard({ iata, status, onRemove }: AirportCardProps) {
       className={cn(
         "relative rounded-xl border-2 p-4 transition-all duration-300",
         BORDER_COLOR[s] ?? BORDER_COLOR.unknown,
-        BG_COLOR[s]     ?? BG_COLOR.unknown
+        BG_COLOR[s]     ?? BG_COLOR.unknown,
+        highlight && "animate-highlight-flash"
       )}
     >
       {onRemove && (
@@ -80,6 +88,14 @@ export function AirportCard({ iata, status, onRemove }: AirportCardProps) {
 
       {s === "ok" && (
         <p className="text-xs text-green-400/80">{t.noDelaysReported}</p>
+      )}
+
+      {weather && (
+        <div className="mt-2 flex items-center gap-2 text-xs text-gray-300">
+          <span className="text-base leading-none">{weather.icon}</span>
+          <span className="font-medium">{weather.temperature}°C</span>
+          <span className="text-gray-500">{weather.description}</span>
+        </div>
       )}
 
       {status?.delays && (
@@ -135,7 +151,7 @@ export function AirportCard({ iata, status, onRemove }: AirportCardProps) {
       {status?.lastChecked && (
         <p className="mt-3 text-[10px] text-gray-600">
           {t.updated}:{" "}
-          {status.lastChecked.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+          {status.lastChecked.toLocaleTimeString(locale === "en" ? "en-US" : "es-AR", { hour: "2-digit", minute: "2-digit" })}
         </p>
       )}
     </div>
