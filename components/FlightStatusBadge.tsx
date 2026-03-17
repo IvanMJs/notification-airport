@@ -19,10 +19,19 @@ interface Props {
   locale:     "es" | "en";
 }
 
+function daysUntilFlight(isoDate: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const flight = new Date(isoDate + "T00:00:00");
+  return Math.ceil((flight.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 export function FlightStatusBadge({ flightIata, isoDate, locale }: Props) {
   const { data, loading, error, notConfigured, refresh } = useFlightStatus(flightIata, isoDate);
 
+  // Hide completely when no API key or flight is too far away to fetch
   if (notConfigured) return null;
+  if (daysUntilFlight(isoDate) > 3) return null;
 
   const cfg = STATUS_CFG[(data?.status ?? "unknown") as keyof typeof STATUS_CFG];
 

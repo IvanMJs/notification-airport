@@ -474,6 +474,15 @@ export default function HomePage() {
           <ErrorBoundary>
             {activeTab === "airports" && (
               <div>
+                {/* Legend — shown before cards so users understand the scale */}
+                <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
+                  {t.legendTitle && (
+                    <span className="text-gray-500 font-medium mr-1">{t.legendTitle}</span>
+                  )}
+                  {t.legend.map((item) => (
+                    <span key={item}>{item}</span>
+                  ))}
+                </div>
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {sortedAirports.map((iata, idx) => (
                     <div key={iata} className="animate-fade-in-up" style={{ animationDelay: `${idx * 0.05}s` }}>
@@ -491,11 +500,6 @@ export default function HomePage() {
                     watchedAirports={watchedAirports}
                     onAdd={addAirport}
                   />
-                </div>
-                <div className="mt-6 flex flex-wrap gap-3 text-xs text-gray-600">
-                  {t.legend.map((item) => (
-                    <span key={item}>{item}</span>
-                  ))}
                 </div>
               </div>
             )}

@@ -4,16 +4,18 @@ export const translations = {
   es: {
     // Header
     appTitle: "Airport Monitor",
-    appSubtitle: "Estado en tiempo real · FAA ASWS API",
+    appSubtitle: "Sabé si tu aeropuerto está en riesgo antes de salir · Datos FAA en tiempo real",
     autoRefresh: "Auto-refresh:",
     updating: "Actualizando...",
     update: "Actualizar",
-    nextRefresh: "Próximo en",
+    nextRefresh: "Próximo chequeo en",
 
     // Global status bar
-    noDelays: "Sin demoras activas en aeropuertos monitoreados",
+    noDelays: "Todo en orden — sin demoras en tus aeropuertos seguidos",
     airportsWithIssues: (n: number) =>
-      `${n} aeropuerto${n > 1 ? "s" : ""} con problemas:`,
+      `${n} aeropuerto${n > 1 ? "s" : ""} con demoras activas:`,
+    airportsCritical: (n: number) =>
+      `🚨 Situación crítica en ${n} aeropuerto${n > 1 ? "s" : ""}:`,
 
     // Tabs
     tabAirports: "✈ Mis aeropuertos",
@@ -22,7 +24,7 @@ export const translations = {
     tabHelp: "❓ Ayuda",
 
     // Airport card
-    noDelaysReported: "Sin demoras reportadas",
+    noDelaysReported: "Sin incidentes activos",
     delay: "Demora",
     cause: "Causa",
     affects: "Afecta",
@@ -39,7 +41,7 @@ export const translations = {
     trend: "Tendencia",
 
     // Airport search
-    addAirport: "Agregar aeropuerto",
+    addAirport: "Seguir aeropuerto",
     searchPlaceholder: "Buscar por código, ciudad...",
     noResults: "Sin resultados",
 
@@ -54,7 +56,7 @@ export const translations = {
     statusUnknown: "Desconocido",
 
     // Legend
-    legendTitle: "",
+    legendTitle: "Escala de demoras:",
     legend: [
       "🟢 Normal",
       "🟡 ≤15 min",
@@ -100,22 +102,24 @@ export const translations = {
 
     // Footer
     footer:
-      "Datos: FAA ASWS API (nasstatus.faa.gov) · Solo muestra aeropuertos con problemas activos",
+      "Datos oficiales FAA · Solo se reportan aeropuertos con incidentes activos · Aeropuertos en verde = sin problemas reportados",
   },
 
   en: {
     // Header
     appTitle: "Airport Monitor",
-    appSubtitle: "Real-time status · FAA ASWS API",
+    appSubtitle: "Know your airport's status before you leave · Real-time FAA data",
     autoRefresh: "Auto-refresh:",
     updating: "Updating...",
     update: "Refresh",
-    nextRefresh: "Next in",
+    nextRefresh: "Next check in",
 
     // Global status bar
-    noDelays: "No active delays at monitored airports",
+    noDelays: "All clear — no delays at your tracked airports",
     airportsWithIssues: (n: number) =>
-      `${n} airport${n > 1 ? "s" : ""} with issues:`,
+      `${n} airport${n > 1 ? "s" : ""} with active delays:`,
+    airportsCritical: (n: number) =>
+      `🚨 Critical situation at ${n} airport${n > 1 ? "s" : ""}:`,
 
     // Tabs
     tabAirports: "✈ My airports",
@@ -124,7 +128,7 @@ export const translations = {
     tabHelp: "❓ Help",
 
     // Airport card
-    noDelaysReported: "No delays reported",
+    noDelaysReported: "No active incidents",
     delay: "Delay",
     cause: "Reason",
     affects: "Affects",
@@ -141,7 +145,7 @@ export const translations = {
     trend: "Trend",
 
     // Airport search
-    addAirport: "Add airport",
+    addAirport: "Follow airport",
     searchPlaceholder: "Search by code, city...",
     noResults: "No results",
 
@@ -156,7 +160,7 @@ export const translations = {
     statusUnknown: "Unknown",
 
     // Legend
-    legendTitle: "",
+    legendTitle: "Delay scale:",
     legend: [
       "🟢 Normal",
       "🟡 ≤15 min",
@@ -202,7 +206,7 @@ export const translations = {
 
     // Footer
     footer:
-      "Data source: FAA ASWS API (nasstatus.faa.gov) · Only shows airports with active issues",
+      "Official FAA data · Only airports with active incidents are reported · Green airports = no issues reported",
   },
 } as const;
 
