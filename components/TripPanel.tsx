@@ -22,6 +22,8 @@ import { calculateTripRiskScore } from "@/lib/tripRiskScore";
 import { TripRiskBadge } from "./TripRiskBadge";
 import { ImportFlightsModal } from "./ImportFlightsModal";
 import { ParsedFlight } from "@/lib/importFlights";
+import { FlightStatusBadge } from "@/components/FlightStatusBadge";
+import { useTsaWait, TsaAirportData } from "@/hooks/useTsaWait";
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 
@@ -480,6 +482,8 @@ interface FlightCardProps {
   tafData?: TafData;
   /** Active SIGMETs intersecting this flight's route */
   activeSigmets?: SigmetFeature[];
+  /** TSA wait time data for the origin airport */
+  tsaData?: TsaAirportData;
 }
 
 function FlightCard({
@@ -494,6 +498,7 @@ function FlightCard({
   nextDate,
   tafData,
   activeSigmets,
+  tsaData,
 }: FlightCardProps) {
   const L = LABELS[locale];
 
@@ -550,6 +555,35 @@ function FlightCard({
       }`}
       style={{ animationDelay: `${idx * 0.08}s` }}
     >
+      {daysUntil === 1 && (
+        <div className="px-4 py-2.5 bg-emerald-950/30 border-b border-emerald-800/40 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">✈️</span>
+            <div>
+              <p className="text-xs font-bold text-emerald-300">
+                {locale === "en" ? "Check-in is open!" : "¡Check-in disponible!"}
+              </p>
+              <p className="text-[11px] text-emerald-400/70">
+                {locale === "en"
+                  ? `Your flight ${flight.flightCode} departs tomorrow`
+                  : `Tu vuelo ${flight.flightCode} sale mañana`}
+              </p>
+            </div>
+          </div>
+          {AIRLINE_APP_URLS[flight.airlineCode] && (
+            <a
+              href={AIRLINE_APP_URLS[flight.airlineCode]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-300 border border-emerald-700/50 bg-emerald-900/20 rounded-lg px-3 py-1.5 hover:bg-emerald-900/40 transition-colors"
+            >
+              {locale === "en" ? "Check in now" : "Hacer check-in"}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      )}
+
       {/* SECTION 1: Airport */}
       <div className={`px-4 py-3 ${
         hasIssue ? "bg-orange-950/20" : "bg-white/[0.02]"
@@ -575,6 +609,16 @@ function FlightCard({
                 <span className="text-sm leading-none">{weather.icon}</span>
                 <span className="font-semibold text-gray-300">{weather.temperature}°C</span>
                 <span>{weather.description}</span>
+              </div>
+            )}
+            {tsaData && tsaData.avgWaitTime > 0 && (
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-500">
+                <span>🛡️</span>
+                <span>{locale === "en" ? "TSA avg wait:" : "Espera TSA prom:"}</span>
+                <span className={`font-semibold ${
+                  tsaData.avgWaitTime <= 15 ? "text-emerald-400" :
+                  tsaData.avgWaitTime <= 30 ? "text-yellow-400" : "text-orange-400"
+                }`}>{tsaData.avgWaitTime} min</span>
               </div>
             )}
           </div>
@@ -752,6 +796,13 @@ function FlightCard({
         );
       })()}
 
+      {/* SECTION 3d: Live flight status (AviationStack) */}
+      <FlightStatusBadge
+        flightIata={flight.flightCode.replace(/\s+/g, "")}
+        isoDate={flight.isoDate}
+        locale={locale}
+      />
+
       {/* SECTION 3b: TAF Forecast at departure */}
       {relevantTafPeriod && (() => {
         const p = relevantTafPeriod;
@@ -924,6 +975,9 @@ export function TripPanel({
     }),
     [trip.flights],
   );
+
+  // ── TSA data ─────────────────────────────────────────────────────────────────
+  const tsaData = useTsaWait();
 
   // ── TAF data ────────────────────────────────────────────────────────────────
   const tafMap = useTaf(sorted.map((f) => f.originCode));
@@ -1150,6 +1204,7 @@ export function TripPanel({
               nextDate={sorted[idx + 1]?.isoDate}
               tafData={tafMap[flight.originCode]}
               activeSigmets={sigmetsByFlight.get(flight.id)}
+              tsaData={tsaData[flight.originCode]}
             />
           ))}
         </div>

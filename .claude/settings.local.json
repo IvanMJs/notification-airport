@@ -21,7 +21,22 @@
       "Bash(curl -s http://localhost:3000 2>&1 | head -30)",
       "Bash(curl -s http://localhost:3001 2>&1 | head -5\ncurl -s http://localhost:3002 2>&1 | head -5)",
       "Bash(curl -s \"https://nasstatus.faa.gov/api/airport-status-information\" 2>&1 | grep -o '<ARPT>[^<]*</ARPT>' | head -20)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(cd:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl:*)",
+      "WebFetch(domain:flighty.com)",
+      "WebFetch(domain:app.swaggerhub.com)",
+      "WebFetch(domain:www.flightradar24.com)",
+      "WebFetch(domain:nasstatus.faa.gov)",
+      "WebFetch(domain:byairapp.com)",
+      "WebFetch(domain:www.tripit.com)",
+      "WebFetch(domain:tnmt.com)",
+      "WebFetch(domain:www.mightytravels.com)",
+      "WebFetch(domain:avgeekery.com)",
+      "WebFetch(domain:www.joinkudos.com)",
+      "WebFetch(domain:www.pilotplans.com)",
+      "Bash(npx next:*)"
     ]
   }
 }

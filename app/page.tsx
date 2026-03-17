@@ -87,6 +87,53 @@ export default function HomePage() {
     }
   }, [watchedAirports, mounted]);
 
+  // Check-in push notifications
+  useEffect(() => {
+    if (!mounted) return;
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+
+    const MY_FLIGHT_DATES = [
+      { code: "AA 900",  isoDate: "2026-03-29", route: "EZE→MIA",  time: "20:30" },
+      { code: "AA 956",  isoDate: "2026-03-31", route: "MIA→GCM",  time: "12:55" },
+      { code: "B6 766",  isoDate: "2026-04-05", route: "GCM→JFK",  time: "15:40" },
+      { code: "DL 1514", isoDate: "2026-04-11", route: "JFK→MIA",  time: "11:10" },
+      { code: "AA 931",  isoDate: "2026-04-11", route: "MIA→EZE",  time: "21:15" },
+    ];
+
+    const allFlights = [
+      ...MY_FLIGHT_DATES,
+      ...userTrips.flatMap(t => t.flights.map(f => ({
+        code: f.flightCode,
+        isoDate: f.isoDate,
+        route: `${f.originCode}→${f.destinationCode}`,
+        time: f.departureTime ?? "",
+      }))),
+    ];
+
+    for (const f of allFlights) {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const flightDay = new Date(f.isoDate + "T00:00:00");
+      const diff = Math.ceil((flightDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (diff !== 1) continue;
+
+      const key = `checkin-notified-${f.code}-${f.isoDate}`;
+      if (localStorage.getItem(key)) continue;
+
+      new Notification(
+        locale === "en" ? `✈ Check-in open · ${f.code}` : `✈ Check-in disponible · ${f.code}`,
+        {
+          body: locale === "en"
+            ? `Your flight ${f.route} departs tomorrow at ${f.time}`
+            : `Tu vuelo ${f.route} sale mañana a las ${f.time}`,
+          tag: key,
+        }
+      );
+      localStorage.setItem(key, "1");
+    }
+  }, [mounted, locale, userTrips]);
+
   // Persist user trips
   useEffect(() => {
     if (mounted) {

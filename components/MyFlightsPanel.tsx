@@ -9,6 +9,8 @@ import { WeatherData } from "@/hooks/useWeather";
 import { TripTimeline } from "./TripTimeline";
 import { CalendarFlight, generateICS, downloadICS, buildGoogleCalendarURL } from "@/lib/calendarExport";
 import { buildWhatsAppMessage, buildWhatsAppURL, WhatsAppFlight } from "@/lib/tripShare";
+import { FlightStatusBadge } from "@/components/FlightStatusBadge";
+import { useTsaWait, TsaAirportData } from "@/hooks/useTsaWait";
 
 interface FlightData {
   date: string;
@@ -170,6 +172,289 @@ function LinkButton({
   );
 }
 
+interface FlightCardItemProps {
+  flight: FlightData;
+  statusMap: AirportStatusMap;
+  weatherMap?: Record<string, WeatherData>;
+  locale: "es" | "en";
+  tsaData?: TsaAirportData;
+}
+
+function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData }: FlightCardItemProps) {
+  const originStatus = statusMap[flight.originCode];
+  const status = originStatus?.status ?? "ok";
+  const hasIssue = status !== "ok";
+  const date = locale === "en" ? flight.dateEn : flight.date;
+  const originName = locale === "en" ? flight.originNameEn : flight.originName;
+  const destName   = locale === "en" ? flight.destinationNameEn : flight.destinationName;
+  const arrivalNote = locale === "en" ? flight.arrivalNoteEn : flight.arrivalNoteEs;
+  const daysUntil = getDaysUntil(flight.isoDate);
+  const airlineCode = flight.flightNum.split(" ")[0];
+
+  return (
+    <div
+      className={`rounded-xl border-2 overflow-hidden transition-all ${
+        hasIssue ? "border-orange-600/50" : "border-gray-800"
+      }`}
+    >
+      {/* Check-in banner */}
+      {daysUntil === 1 && (
+        <div className="px-4 py-2.5 bg-emerald-950/30 border-b border-emerald-800/40 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">✈️</span>
+            <div>
+              <p className="text-xs font-bold text-emerald-300">
+                {locale === "en" ? "Check-in is open!" : "¡Check-in disponible!"}
+              </p>
+              <p className="text-[11px] text-emerald-400/70">
+                {locale === "en"
+                  ? `Your flight ${flight.flightNum} departs tomorrow`
+                  : `Tu vuelo ${flight.flightNum} sale mañana`}
+              </p>
+            </div>
+          </div>
+          {AIRLINE_APP_URLS[airlineCode] && (
+            <a
+              href={AIRLINE_APP_URLS[airlineCode]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-300 border border-emerald-700/50 bg-emerald-900/20 rounded-lg px-3 py-1.5 hover:bg-emerald-900/40 transition-colors"
+            >
+              {locale === "en" ? "Check in now" : "Hacer check-in"}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* SECCIÓN 1: AEROPUERTO */}
+      <div className={`px-4 py-3 ${hasIssue ? "bg-orange-950/30" : "bg-gray-900/60"}`}>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              {hasIssue && <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />}
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                {locale === "en" ? "Departure Airport" : "Aeropuerto de salida"}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-black text-white">{flight.originCode}</span>
+              <span className="text-sm text-gray-400">{originName}</span>
+            </div>
+            {weatherMap?.[flight.originCode] && (
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400">
+                <span className="text-sm leading-none">{weatherMap[flight.originCode].icon}</span>
+                <span className="font-medium text-gray-300">{weatherMap[flight.originCode].temperature}°C</span>
+                <span>{weatherMap[flight.originCode].description}</span>
+              </div>
+            )}
+            {tsaData && tsaData.avgWaitTime > 0 && (
+              <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-500">
+                <span>🛡️</span>
+                <span>{locale === "en" ? "TSA avg wait:" : "Espera TSA prom:"}</span>
+                <span className={`font-semibold ${
+                  tsaData.avgWaitTime <= 15 ? "text-emerald-400" :
+                  tsaData.avgWaitTime <= 30 ? "text-yellow-400" : "text-orange-400"
+                }`}>{tsaData.avgWaitTime} min</span>
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <StatusBadge status={status} className="text-sm px-3 py-1" />
+            <LinkButton
+              href={`https://www.flightaware.com/live/airport/${flight.originICAO}`}
+              variant={hasIssue ? "orange" : "default"}
+            >
+              {locale === "en" ? `FlightAware · Flights from ${flight.originCode}` : `FlightAware · Vuelos de ${flight.originCode}`}
+            </LinkButton>
+          </div>
+        </div>
+
+        {hasIssue && (
+          <div className="mt-2 rounded-lg bg-orange-950/40 border border-orange-800/40 px-3 py-2 text-xs">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400">
+                {locale === "en" ? "FAA Live Alert" : "Alerta FAA en vivo"}
+              </span>
+              <a
+                href={`https://www.flightaware.com/live/airport/${flight.originICAO}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[10px] text-orange-500 hover:text-orange-300 transition-colors"
+              >
+                {locale === "en" ? "See on FlightAware ↗" : "Ver en FlightAware ↗"}
+              </a>
+            </div>
+            {originStatus?.delays && (
+              <p className="text-orange-200">
+                <span className="font-bold">⚠️ {locale === "en" ? "Delay" : "Demora"}:</span>{" "}
+                {originStatus.delays.minMinutes}–{originStatus.delays.maxMinutes} min
+                {originStatus.delays.trend && ` · ${locale === "en" ? "Trend" : "Tendencia"}: ${originStatus.delays.trend}`}
+                <br />
+                <span className="text-orange-400">{locale === "en" ? "Cause" : "Causa"}: {originStatus.delays.reason}</span>
+              </p>
+            )}
+            {originStatus?.groundDelay && (
+              <p className="text-red-200">
+                <span className="font-bold">🔴 {locale === "en" ? "Ground Delay Program" : "Programa de Demora en Tierra"}:</span>{" "}
+                {locale === "en" ? "Average" : "Promedio"} {originStatus.groundDelay.avgMinutes} min · {locale === "en" ? "Max" : "Máx"} {originStatus.groundDelay.maxTime}
+                <br />
+                <span className="text-red-400">{locale === "en" ? "Cause" : "Causa"}: {originStatus.groundDelay.reason}</span>
+              </p>
+            )}
+            {originStatus?.groundStop && (
+              <p className="text-red-200">
+                <span className="font-bold">🛑 {locale === "en" ? "Ground Stop" : "Paro en Tierra"}</span>{" "}
+                {locale === "en" ? "until" : "hasta"} {originStatus.groundStop.endTime ?? (locale === "en" ? "indefinite" : "indefinido")}
+                <br />
+                <span className="text-red-400">{locale === "en" ? "Cause" : "Causa"}: {originStatus.groundStop.reason}</span>
+              </p>
+            )}
+            {originStatus?.closure && (
+              <p className="text-gray-200">
+                <span className="font-bold">⛔ {locale === "en" ? "Airport Closed" : "Aeropuerto Cerrado"}</span>
+                <br />
+                <span className="text-gray-400">{locale === "en" ? "Cause" : "Causa"}: {originStatus.closure.reason}</span>
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* SECCIÓN 2: RUTA */}
+      <div className="px-4 py-3 border-t border-gray-800 bg-gray-900/30">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <p className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wider">
+              {locale === "en" ? "Route" : "Ruta"}
+            </p>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="font-bold text-white">{flight.originCode}</span>
+              <Plane className="h-3.5 w-3.5 text-gray-600" />
+              <span className="font-bold text-gray-400">{flight.destinationCode}</span>
+              <span className="text-gray-600">·</span>
+              <span className="text-gray-500 text-xs">{originName} → {destName}</span>
+            </div>
+          </div>
+          <LinkButton href={flight.routeUrl} variant="default">
+            {locale === "en" ? `Alternative flights ${flight.originCode}→${flight.destinationCode}` : `Vuelos alternativos ${flight.originCode}→${flight.destinationCode}`}
+          </LinkButton>
+        </div>
+      </div>
+
+      {/* SECCIÓN 3: MI VUELO */}
+      <div className="px-4 py-3 border-t border-gray-800 bg-gray-950/40">
+        <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">
+          {locale === "en" ? "My Flight" : "Mi vuelo"}
+        </p>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-xs font-medium bg-gray-800 text-gray-300 px-2 py-0.5 rounded">
+                {date}
+              </span>
+              <DaysCountdown days={daysUntil} locale={locale} />
+              <span className="font-bold text-white">{flight.flightNum}</span>
+              <span className="text-xs text-gray-500">{flight.airline}</span>
+            </div>
+            <div className="flex items-center gap-4 flex-wrap text-xs">
+              <span className="flex items-center gap-1.5 text-gray-400">
+                <Clock className="h-3.5 w-3.5 text-gray-600" />
+                {locale === "en" ? "Departs" : "Sale"} <span className="font-bold text-white ml-1">{flight.departureTime}</span>
+              </span>
+              <span className="flex items-start gap-1.5 text-gray-400">
+                <MapPin className="h-3.5 w-3.5 text-yellow-600 shrink-0 mt-0.5" />
+                <span>
+                  {locale === "en" ? "Arrive at airport by" : "Llegar al aeropuerto:"}{" "}
+                  <span className="font-bold text-yellow-400">{flight.arrivalRecommendation}</span>
+                  <span className="text-gray-600 ml-1">({arrivalNote})</span>
+                </span>
+              </span>
+            </div>
+          </div>
+          <LinkButton href={flight.flightUrl} variant="blue">
+            {locale === "en" ? `Track flight ${flight.flightNum}` : `Tracking vuelo ${flight.flightNum}`}
+          </LinkButton>
+        </div>
+      </div>
+
+      {/* SECCIÓN 4: PUERTA / TERMINAL */}
+      {daysUntil >= 0 && (() => {
+        const airlineAppUrl = AIRLINE_APP_URLS[airlineCode] ?? null;
+        const isToday = daysUntil === 0;
+        return (
+          <div className={`px-4 py-3 border-t border-gray-800 ${isToday ? "bg-yellow-950/15" : ""}`}>
+            <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider flex items-center gap-1.5">
+              <DoorOpen className="h-3 w-3" />
+              {locale === "en" ? "Gate / Terminal" : "Puerta / Terminal"}
+              {isToday && (
+                <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded border border-yellow-600/50 bg-yellow-900/40 text-yellow-400 animate-pulse">
+                  LIVE
+                </span>
+              )}
+            </p>
+            {daysUntil > 3 && (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500">
+                  {locale === "en"
+                    ? "Gates typically assigned 24–48h before departure"
+                    : "Las puertas se asignan 24–48h antes de la salida"}
+                </p>
+                <LinkButton href={flight.flightUrl} variant="blue">
+                  {locale === "en" ? "Live status FlightAware" : "Estado en vivo FlightAware"}
+                </LinkButton>
+              </div>
+            )}
+            {daysUntil >= 1 && daysUntil <= 3 && (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500">
+                  {locale === "en"
+                    ? "Usually confirmed the day before · Verify at airport"
+                    : "Se confirma normalmente el día anterior · Verificar en el aeropuerto"}
+                </p>
+                <LinkButton href={flight.flightUrl} variant="blue">
+                  {locale === "en" ? "Live status FlightAware" : "Estado en vivo FlightAware"}
+                </LinkButton>
+              </div>
+            )}
+            {isToday && (
+              <div className="space-y-2">
+                <p className="text-xs text-yellow-300/80">
+                  {locale === "en"
+                    ? "Gates can change up to 30 min before boarding"
+                    : "Las puertas pueden cambiar hasta 30 min antes del embarque"}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {locale === "en"
+                    ? "Check airline app or airport departure board"
+                    : "Verificar en app de la aerolínea o panel del aeropuerto"}
+                </p>
+                <div className="flex gap-2 flex-wrap">
+                  <LinkButton href={flight.flightUrl} variant="blue">
+                    {locale === "en" ? "Live status FlightAware" : "Estado en vivo FlightAware"}
+                  </LinkButton>
+                  {airlineAppUrl && (
+                    <LinkButton href={airlineAppUrl} variant="default">
+                      {locale === "en" ? "Airline app" : "App aerolínea"}
+                    </LinkButton>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* SECCIÓN 5: Estado vuelo en vivo */}
+      <FlightStatusBadge
+        flightIata={flight.flightNum.replace(/\s+/g, "")}
+        isoDate={flight.isoDate}
+        locale={locale}
+      />
+    </div>
+  );
+}
+
 interface MyFlightsPanelProps {
   statusMap: AirportStatusMap;
   weatherMap?: Record<string, WeatherData>;
@@ -179,6 +464,7 @@ export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
   const { t, locale } = useLanguage();
   const [showGcal, setShowGcal] = useState(false);
   const [waCopied, setWaCopied] = useState(false);
+  const tsaData = useTsaWait();
 
   const calFlights: CalendarFlight[] = MY_FLIGHTS.map((f) => ({
     flightCode:      f.flightNum,
@@ -297,237 +583,22 @@ export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
 
       {/* Vuelos */}
       <div className="space-y-4">
-        {MY_FLIGHTS.map((flight, idx) => {
-          const originStatus = statusMap[flight.originCode];
-          const status = originStatus?.status ?? "ok";
-          const hasIssue = status !== "ok";
-          const date = locale === "en" ? flight.dateEn : flight.date;
-          const originName = locale === "en" ? flight.originNameEn : flight.originName;
-          const destName   = locale === "en" ? flight.destinationNameEn : flight.destinationName;
-          const arrivalNote = locale === "en" ? flight.arrivalNoteEn : flight.arrivalNoteEs;
-          const daysUntil = getDaysUntil(flight.isoDate);
-
-          return (
-            <div
-              key={`${flight.flightNum}-${flight.isoDate}`}
-              id={`flight-card-${idx}`}
-              className={`rounded-xl border-2 overflow-hidden transition-all animate-fade-in-up ${
-                hasIssue ? "border-orange-600/50" : "border-gray-800"
-              }`}
-              style={{ animationDelay: `${idx * 0.08}s` }}
-            >
-              {/* SECCIÓN 1: AEROPUERTO */}
-              <div className={`px-4 py-3 ${hasIssue ? "bg-orange-950/30" : "bg-gray-900/60"}`}>
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      {hasIssue && <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />}
-                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                        {t.sectionAirport}
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-black text-white">{flight.originCode}</span>
-                      <span className="text-sm text-gray-400">{originName}</span>
-                    </div>
-                    {weatherMap?.[flight.originCode] && (
-                      <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-400">
-                        <span className="text-sm leading-none">{weatherMap[flight.originCode].icon}</span>
-                        <span className="font-medium text-gray-300">{weatherMap[flight.originCode].temperature}°C</span>
-                        <span>{weatherMap[flight.originCode].description}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <StatusBadge status={status} className="text-sm px-3 py-1" />
-                    <LinkButton
-                      href={`https://www.flightaware.com/live/airport/${flight.originICAO}`}
-                      variant={hasIssue ? "orange" : "default"}
-                    >
-                      {t.seeAllFlightsFrom(flight.originCode)}
-                    </LinkButton>
-                  </div>
-                </div>
-
-                {hasIssue && (
-                  <div className="mt-2 rounded-lg bg-orange-950/40 border border-orange-800/40 px-3 py-2 text-xs">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-orange-400">
-                        {locale === "en" ? "FAA Live Alert" : "Alerta FAA en vivo"}
-                      </span>
-                      <a
-                        href={`https://www.flightaware.com/live/airport/${flight.originICAO}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-[10px] text-orange-500 hover:text-orange-300 transition-colors"
-                      >
-                        {locale === "en" ? "See on FlightAware ↗" : "Ver en FlightAware ↗"}
-                      </a>
-                    </div>
-                    {originStatus?.delays && (
-                      <p className="text-orange-200">
-                        <span className="font-bold">⚠️ {t.delay}:</span>{" "}
-                        {originStatus.delays.minMinutes}–{originStatus.delays.maxMinutes} min
-                        {originStatus.delays.trend && ` · ${t.trend}: ${originStatus.delays.trend}`}
-                        <br />
-                        <span className="text-orange-400">{t.cause}: {originStatus.delays.reason}</span>
-                      </p>
-                    )}
-                    {originStatus?.groundDelay && (
-                      <p className="text-red-200">
-                        <span className="font-bold">🔴 {t.groundDelayProgram}:</span>{" "}
-                        {t.average} {originStatus.groundDelay.avgMinutes} min · {t.max} {originStatus.groundDelay.maxTime}
-                        <br />
-                        <span className="text-red-400">{t.cause}: {originStatus.groundDelay.reason}</span>
-                      </p>
-                    )}
-                    {originStatus?.groundStop && (
-                      <p className="text-red-200">
-                        <span className="font-bold">🛑 {t.groundStop}</span>{" "}
-                        {t.until} {originStatus.groundStop.endTime ?? t.indefinite}
-                        <br />
-                        <span className="text-red-400">{t.cause}: {originStatus.groundStop.reason}</span>
-                      </p>
-                    )}
-                    {originStatus?.closure && (
-                      <p className="text-gray-200">
-                        <span className="font-bold">⛔ {t.airportClosed}</span>
-                        <br />
-                        <span className="text-gray-400">{t.cause}: {originStatus.closure.reason}</span>
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* SECCIÓN 2: RUTA */}
-              <div className="px-4 py-3 border-t border-gray-800 bg-gray-900/30">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1 font-medium uppercase tracking-wider">
-                      {t.sectionRoute}
-                    </p>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-bold text-white">{flight.originCode}</span>
-                      <Plane className="h-3.5 w-3.5 text-gray-600" />
-                      <span className="font-bold text-gray-400">{flight.destinationCode}</span>
-                      <span className="text-gray-600">·</span>
-                      <span className="text-gray-500 text-xs">{originName} → {destName}</span>
-                    </div>
-                  </div>
-                  <LinkButton href={flight.routeUrl} variant="default">
-                    {t.seeOtherFlights(flight.originCode, flight.destinationCode)}
-                  </LinkButton>
-                </div>
-              </div>
-
-              {/* SECCIÓN 3: MI VUELO */}
-              <div className="px-4 py-3 border-t border-gray-800 bg-gray-950/40">
-                <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">
-                  {t.sectionMyFlight}
-                </p>
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="text-xs font-medium bg-gray-800 text-gray-300 px-2 py-0.5 rounded">
-                        {date}
-                      </span>
-                      <DaysCountdown days={daysUntil} locale={locale} />
-                      <span className="font-bold text-white">{flight.flightNum}</span>
-                      <span className="text-xs text-gray-500">{flight.airline}</span>
-                    </div>
-                    <div className="flex items-center gap-4 flex-wrap text-xs">
-                      <span className="flex items-center gap-1.5 text-gray-400">
-                        <Clock className="h-3.5 w-3.5 text-gray-600" />
-                        {t.departs} <span className="font-bold text-white ml-1">{flight.departureTime}</span>
-                      </span>
-                      <span className="flex items-start gap-1.5 text-gray-400">
-                        <MapPin className="h-3.5 w-3.5 text-yellow-600 shrink-0 mt-0.5" />
-                        <span>
-                          {t.arriveAt}{" "}
-                          <span className="font-bold text-yellow-400">{flight.arrivalRecommendation}</span>
-                          <span className="text-gray-600 ml-1">({arrivalNote})</span>
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-                  <LinkButton href={flight.flightUrl} variant="blue">
-                    {t.trackFlight(flight.flightNum)}
-                  </LinkButton>
-                </div>
-              </div>
-
-              {/* SECCIÓN 4: PUERTA / TERMINAL */}
-              {daysUntil >= 0 && (() => {
-                const airlineCode = flight.flightNum.split(" ")[0];
-                const airlineAppUrl = AIRLINE_APP_URLS[airlineCode] ?? null;
-                const isToday = daysUntil === 0;
-                return (
-                  <div className={`px-4 py-3 border-t border-gray-800 ${isToday ? "bg-yellow-950/15" : ""}`}>
-                    <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider flex items-center gap-1.5">
-                      <DoorOpen className="h-3 w-3" />
-                      {locale === "en" ? "Gate / Terminal" : "Puerta / Terminal"}
-                      {isToday && (
-                        <span className="ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded border border-yellow-600/50 bg-yellow-900/40 text-yellow-400 animate-pulse">
-                          LIVE
-                        </span>
-                      )}
-                    </p>
-                    {daysUntil > 3 && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-500">
-                          {locale === "en"
-                            ? "Gates typically assigned 24–48h before departure"
-                            : "Las puertas se asignan 24–48h antes de la salida"}
-                        </p>
-                        <LinkButton href={flight.flightUrl} variant="blue">
-                          {locale === "en" ? "Live status FlightAware" : "Estado en vivo FlightAware"}
-                        </LinkButton>
-                      </div>
-                    )}
-                    {daysUntil >= 1 && daysUntil <= 3 && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-500">
-                          {locale === "en"
-                            ? "Usually confirmed the day before · Verify at airport"
-                            : "Se confirma normalmente el día anterior · Verificar en el aeropuerto"}
-                        </p>
-                        <LinkButton href={flight.flightUrl} variant="blue">
-                          {locale === "en" ? "Live status FlightAware" : "Estado en vivo FlightAware"}
-                        </LinkButton>
-                      </div>
-                    )}
-                    {isToday && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-yellow-300/80">
-                          {locale === "en"
-                            ? "Gates can change up to 30 min before boarding"
-                            : "Las puertas pueden cambiar hasta 30 min antes del embarque"}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {locale === "en"
-                            ? "Check airline app or airport departure board"
-                            : "Verificar en app de la aerolínea o panel del aeropuerto"}
-                        </p>
-                        <div className="flex gap-2 flex-wrap">
-                          <LinkButton href={flight.flightUrl} variant="blue">
-                            {locale === "en" ? "Live status FlightAware" : "Estado en vivo FlightAware"}
-                          </LinkButton>
-                          {airlineAppUrl && (
-                            <LinkButton href={airlineAppUrl} variant="default">
-                              {locale === "en" ? "Airline app" : "App aerolínea"}
-                            </LinkButton>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-
-            </div>
-          );
-        })}
+        {MY_FLIGHTS.map((flight, idx) => (
+          <div
+            key={`${flight.flightNum}-${flight.isoDate}`}
+            id={`flight-card-${idx}`}
+            className="animate-fade-in-up"
+            style={{ animationDelay: `${idx * 0.08}s` }}
+          >
+            <FlightCardItem
+              flight={flight}
+              statusMap={statusMap}
+              weatherMap={weatherMap}
+              locale={locale}
+              tsaData={tsaData[flight.originCode]}
+            />
+          </div>
+        ))}
       </div>
 
       <p className="text-xs text-gray-700 pt-1">{t.flightLinkNote}</p>
