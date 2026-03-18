@@ -138,6 +138,14 @@ export default function HomePage() {
     }
   }, [mounted, locale, userTrips]);
 
+  // Aggregate trip airports (origin + destination of every flight across all trips)
+  const tripAirports = userTrips.flatMap((t) =>
+    t.flights.flatMap((f) => [f.originCode, f.destinationCode])
+  );
+
+  // All airports that need status data: watched + trip airports (deduped)
+  const allMonitoredAirports = Array.from(new Set([...watchedAirports, ...tripAirports]));
+
   const {
     statusMap,
     loading,
@@ -151,12 +159,8 @@ export default function HomePage() {
     notificationsEnabled,
     requestNotifications,
     disableNotifications,
-  } = useAirportStatus(refreshInterval, locale, showSwNotification, watchedAirports);
+  } = useAirportStatus(refreshInterval, locale, showSwNotification, allMonitoredAirports);
 
-  // Aggregate airports for weather: watched + hardcoded flight airports + all user trip airports
-  const tripAirports = userTrips.flatMap((t) =>
-    t.flights.flatMap((f) => [f.originCode, f.destinationCode])
-  );
   const allAirportsForWeather = Array.from(
     new Set([...watchedAirports, ...FLIGHT_AIRPORTS, ...tripAirports])
   );
