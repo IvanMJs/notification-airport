@@ -43,25 +43,20 @@ export function NotificationSetupSheet({ open, onClose, locale }: NotificationSe
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${visible ? "opacity-100" : "opacity-0"}`}
+        className={`fixed inset-0 z-50 bg-black/70 backdrop-blur-sm transition-opacity duration-200 ${visible ? "opacity-100" : "opacity-0"}`}
         onClick={onClose}
       />
 
-      {/* Sheet */}
-      <div
-        className={`fixed bottom-0 inset-x-0 z-50 rounded-t-3xl border-t border-white/[0.08] transition-transform duration-300 ease-out
-          ${visible ? "translate-y-0" : "translate-y-full"}`}
-        style={{
-          background: "linear-gradient(180deg, rgba(18,18,32,0.99) 0%, rgba(10,10,20,1) 100%)",
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
-      >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-2">
-          <div className="h-1 w-10 rounded-full bg-white/20" />
-        </div>
-
-        <div className="px-5 pb-6 space-y-5">
+      {/* Modal — centered on screen */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+        <div
+          className={`w-full max-w-sm pointer-events-auto rounded-2xl border border-white/[0.08] shadow-2xl transition-all duration-200 ease-out
+            ${visible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`}
+          style={{
+            background: "linear-gradient(160deg, rgba(18,18,32,0.99) 0%, rgba(10,10,20,1) 100%)",
+          }}
+        >
+        <div className="px-5 pt-5 pb-6 space-y-5">
 
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
@@ -165,6 +160,7 @@ export function NotificationSetupSheet({ open, onClose, locale }: NotificationSe
               <RequestButton locale={locale} onClose={onClose} />
             </div>
           )}
+        </div>
         </div>
       </div>
     </>

@@ -125,9 +125,11 @@ export function TripSummaryHero({ statusMap, locale }: TripSummaryHeroProps) {
       return o[a.risk] - o[b.risk];
     })[0] ?? null;
 
-  const airportAlertCount = TRIP_AIRPORTS.filter(
-    (code) => statusMap[code]?.status && statusMap[code].status !== "ok",
-  ).length;
+  // Derive alert count from the same risk engine — avoids band/strip contradiction
+  const airportAlertCount =
+    risk.level === "low"
+      ? 0
+      : risk.factors.filter((f) => f.type === "airport_status").length;
 
   const cfg = LEVEL_CONFIG[risk.level];
   const Icon = cfg.icon;
@@ -252,7 +254,7 @@ export function TripSummaryHero({ statusMap, locale }: TripSummaryHeroProps) {
 
         {/* Trip dates — desktop only, pushed right */}
         <span className="ml-auto text-[10px] text-gray-700 hidden sm:block tabular">
-          29 Mar – 12 Abr 2026
+          {locale === "en" ? "Mar 29 – Apr 12, 2026" : "29 Mar – 12 Abr 2026"}
         </span>
       </div>
     </div>

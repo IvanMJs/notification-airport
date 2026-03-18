@@ -457,7 +457,7 @@ export function TripCopilot({ flights, locale }: TripCopilotProps) {
       {/* ── Header ── */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full px-4 py-4 flex items-center gap-3 text-left tap-scale"
+        className="w-full px-4 py-3 flex items-center gap-3 text-left tap-scale"
       >
         {/* Logo — smaller when collapsed */}
         <TripCopilotLogo className={`shrink-0 w-auto transition-all duration-200 ${expanded ? "h-12" : "h-8"}`} />
@@ -465,8 +465,8 @@ export function TripCopilot({ flights, locale }: TripCopilotProps) {
         <div className="flex-1 min-w-0">
           {/* Title */}
           <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-gray-200 leading-snug">
-              {locale === "es" ? "Guía de viaje · IA" : "Travel guide · AI"}
+            <p className="text-sm font-bold text-white leading-snug tracking-tight">
+              TripCopilot
             </p>
             {status === "loading" && expanded && (
               <span className="text-[9px] text-gray-600 animate-pulse">
@@ -474,6 +474,12 @@ export function TripCopilot({ flights, locale }: TripCopilotProps) {
               </span>
             )}
           </div>
+          {/* Collapsed subtitle */}
+          {!expanded && (
+            <p className="text-[10px] text-gray-600 leading-snug mt-0.5">
+              {locale === "es" ? "Tu copiloto para este viaje" : "Your travel copilot"}
+            </p>
+          )}
 
           {/* Collapsed: feature pills showing what's inside */}
           {!expanded && (
@@ -507,7 +513,7 @@ export function TripCopilot({ flights, locale }: TripCopilotProps) {
         {/* Collapsed: CTA text + flags; Expanded: flags + refresh */}
         <div className="flex items-center gap-2 shrink-0">
           {!expanded && (
-            <span className="text-xs text-gray-600 hidden sm:block">
+            <span className="text-xs text-gray-600">
               {locale === "es" ? "Ver guía →" : "Open guide →"}
             </span>
           )}

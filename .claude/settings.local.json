@@ -36,7 +36,11 @@
       "WebFetch(domain:avgeekery.com)",
       "WebFetch(domain:www.joinkudos.com)",
       "WebFetch(domain:www.pilotplans.com)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(grep -c '\"\": \"\"' lib/airportTimezone.ts)",
+      "Bash(node -e \":*)",
+      "Bash(grep -E \"\\\\.\\(tsx?|json|css\\)$\")",
+      "Bash(find /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport/components /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport/hooks /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport/lib -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))"
     ]
   }
 }

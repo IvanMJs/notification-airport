@@ -69,7 +69,7 @@ function DaysCountdown({ days, locale }: { days: number; locale: "es" | "en" }) 
 
   const label = locale === "en"
     ? `${days} day${days > 1 ? "s" : ""} left`
-    : `${days} día${days > 1 ? "s" : ""}`;
+    : `en ${days} día${days > 1 ? "s" : ""}`;
 
   return (
     <span className={`text-xs font-medium px-2 py-0.5 rounded ${colorClass}`}>
@@ -510,7 +510,6 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index,
               <span className="text-xs font-medium bg-gray-800 text-gray-300 px-2 py-0.5 rounded">
                 {date}
               </span>
-              <DaysCountdown days={daysUntil} locale={locale} />
               <span className="font-bold text-white">{flight.flightNum}</span>
               <span className="text-xs text-gray-500">{flight.airline}</span>
             </div>
@@ -530,7 +529,7 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index,
             </div>
           </div>
           <LinkButton href={flight.flightUrl} variant="blue">
-            {locale === "en" ? `Track flight ${flight.flightNum}` : `Tracking vuelo ${flight.flightNum}`}
+            {locale === "en" ? `Track flight ${flight.flightNum}` : `Rastrear vuelo ${flight.flightNum}`}
           </LinkButton>
         </div>
       </div>
