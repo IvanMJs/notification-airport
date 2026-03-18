@@ -125,6 +125,10 @@ export function TripSummaryHero({ statusMap, locale }: TripSummaryHeroProps) {
       return o[a.risk] - o[b.risk];
     })[0] ?? null;
 
+  const airportAlertCount = TRIP_AIRPORTS.filter(
+    (code) => statusMap[code]?.status && statusMap[code].status !== "ok",
+  ).length;
+
   const cfg = LEVEL_CONFIG[risk.level];
   const Icon = cfg.icon;
 
@@ -201,7 +205,7 @@ export function TripSummaryHero({ statusMap, locale }: TripSummaryHeroProps) {
         <Icon className={`h-5 w-5 ${cfg.text} opacity-50 shrink-0`} />
       </div>
 
-      {/* ── BOTTOM STRIP: conexiones + aeropuertos ───────────────────────────── */}
+      {/* ── BOTTOM STRIP: conexiones · tramos · alertas ──────────────────────── */}
       <div className="px-4 pb-4 sm:px-5 flex items-center gap-3 flex-wrap">
 
         {/* Connection status */}
@@ -211,10 +215,10 @@ export function TripSummaryHero({ statusMap, locale }: TripSummaryHeroProps) {
             <span className="text-xs font-semibold text-orange-300">
               {locale === "es" ? "Conexión:" : "Connection:"}{" "}
               {CONN_LABELS[worstConn.risk as keyof typeof CONN_LABELS][locale]}
-            </span>
-            <span className="text-[10px] text-gray-600">
-              · {worstConn.connectionAirport}
-              {worstConn.delayAddedMinutes > 0 && <> +{worstConn.delayAddedMinutes}m</>}
+              <span className="font-normal text-gray-600 ml-1">
+                · {worstConn.connectionAirport}
+                {worstConn.delayAddedMinutes > 0 && <> +{worstConn.delayAddedMinutes}m</>}
+              </span>
             </span>
           </div>
         ) : (
@@ -226,23 +230,25 @@ export function TripSummaryHero({ statusMap, locale }: TripSummaryHeroProps) {
           </div>
         )}
 
-        {/* Divider */}
         <span className="h-3 w-px bg-gray-800 shrink-0" />
 
-        {/* Airport status dots */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {TRIP_AIRPORTS.map((code) => {
-            const hasIssue = statusMap[code]?.status && statusMap[code].status !== "ok";
-            return (
-              <div key={code} className="flex items-center gap-1">
-                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${hasIssue ? "bg-orange-400 animate-pulse" : "bg-emerald-500"}`} />
-                <span className={`text-[11px] font-bold ${hasIssue ? "text-orange-300" : "text-gray-500"}`}>
-                  {code}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+        {/* Legs count */}
+        <span className="text-xs text-gray-600 shrink-0">
+          {MY_TRIP_FLIGHTS.length} {locale === "es" ? "tramos" : "legs"}
+        </span>
+
+        <span className="h-3 w-px bg-gray-800 shrink-0" />
+
+        {/* Alert count */}
+        {airportAlertCount > 0 ? (
+          <span className="text-xs font-semibold text-orange-400 shrink-0">
+            {airportAlertCount} {locale === "es" ? "con alerta" : "with alert"}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-600 shrink-0">
+            {locale === "es" ? "sin alertas" : "no alerts"}
+          </span>
+        )}
 
         {/* Trip dates — desktop only, pushed right */}
         <span className="ml-auto text-[10px] text-gray-700 hidden sm:block tabular">

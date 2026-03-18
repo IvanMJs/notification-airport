@@ -219,9 +219,10 @@ interface FlightCardItemProps {
   locale: "es" | "en";
   tsaData?: TsaAirportData;
   index: number;
+  isNext?: boolean;
 }
 
-function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index }: FlightCardItemProps) {
+function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index, isNext = false }: FlightCardItemProps) {
   const originStatus = statusMap[flight.originCode];
   const status = originStatus?.status ?? "ok";
   const hasIssue = status !== "ok";
@@ -230,12 +231,13 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index 
   const destName   = locale === "en" ? flight.destinationNameEn : flight.destinationName;
   const arrivalNote = locale === "en" ? flight.arrivalNoteEn : flight.arrivalNoteEs;
   const daysUntil = getDaysUntil(flight.isoDate);
+  const isPast = daysUntil < 0;
   const airlineCode = flight.flightNum.split(" ")[0];
   const accent = CARD_ACCENTS[index % CARD_ACCENTS.length];
   const noteKey = `${flight.flightNum.replace(/\s+/g, "")}-${flight.isoDate}`;
 
-  // Accordion: expanded for future/today flights; collapsed for past flights
-  const [isExpanded, setIsExpanded] = useState(daysUntil >= 0 || hasIssue);
+  // Only next leg and issues start expanded — past and future legs start collapsed
+  const [isExpanded, setIsExpanded] = useState((isNext && !isPast) || hasIssue);
 
   // Notes state
   const [note, setNote] = useState<FlightNote>({ pnr: "", seat: "", notes: "" });
@@ -270,43 +272,66 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index 
 
   return (
     <div
-      className={`relative rounded-xl border overflow-hidden transition-shadow shadow-[0_1px_3px_rgba(0,0,0,0.5),0_4px_20px_rgba(0,0,0,0.35)] ${
-        hasIssue
+      className={`relative rounded-xl border overflow-hidden transition-all shadow-[0_1px_3px_rgba(0,0,0,0.5),0_4px_20px_rgba(0,0,0,0.35)] ${
+        isPast
+          ? "border-gray-800/50 bg-gray-900/20 opacity-55"
+          : hasIssue
           ? "border-orange-500/40 bg-orange-950/15"
           : `${accent.border} ${accent.bg}`
       }`}
     >
       {/* Left accent bar */}
-      <div className={`absolute left-0 inset-y-0 w-[3px] ${hasIssue ? "bg-orange-500" : accent.bar}`} />
+      <div className={`absolute left-0 inset-y-0 w-[3px] ${
+        isPast ? "bg-gray-700/40" : hasIssue ? "bg-orange-500" : accent.bar
+      }`} />
+
+      {/* ── Context label — Próximo tramo or Atención ─────────────────────── */}
+      {(isNext || hasIssue) && !isPast && (
+        <div className={`pl-5 pr-4 py-1.5 flex items-center gap-1.5 border-b ${
+          hasIssue
+            ? "bg-orange-950/30 border-orange-800/20"
+            : "bg-emerald-950/20 border-emerald-800/10"
+        }`}>
+          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+            hasIssue ? "bg-orange-400 animate-pulse" : "bg-emerald-400"
+          }`} />
+          <span className={`text-[10px] font-bold uppercase tracking-widest ${
+            hasIssue ? "text-orange-400" : "text-emerald-400"
+          }`}>
+            {hasIssue
+              ? (locale === "es" ? "Atención" : "Attention")
+              : (locale === "es" ? "Próximo tramo" : "Next leg")}
+          </span>
+        </div>
+      )}
 
       {/* ── Accordion header — always visible, tap to expand/collapse ─────── */}
       <button
         onClick={() => setIsExpanded((v) => !v)}
         className="w-full pl-5 pr-4 py-3.5 flex items-center justify-between gap-3 text-left tap-scale"
       >
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-base font-black text-white">{flight.flightNum}</span>
-              <div className="flex items-center gap-1 text-sm">
-                <span className="font-bold text-white">{flight.originCode}</span>
-                <ArrowRight className="h-3 w-3 text-gray-600 shrink-0" />
-                <span className="font-bold text-gray-300">{flight.destinationCode}</span>
-              </div>
-              <DaysCountdown days={daysUntil} locale={locale} />
+        <div className="min-w-0 flex-1">
+          {/* Row 1: flight identity */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-base font-black ${isPast ? "text-gray-500" : "text-white"}`}>
+              {flight.flightNum}
+            </span>
+            <div className="flex items-center gap-1 text-sm">
+              <span className={`font-bold ${isPast ? "text-gray-600" : "text-white"}`}>{flight.originCode}</span>
+              <ArrowRight className="h-3 w-3 text-gray-600 shrink-0" />
+              <span className={`font-bold ${isPast ? "text-gray-600" : "text-gray-300"}`}>{flight.destinationCode}</span>
             </div>
-            <p className="text-[11px] text-gray-500 mt-0.5 tabular">
-              {date} · {flight.departureTime}
-              {hasIssue && (
-                <span className="ml-2 text-orange-400 font-semibold">
-                  ⚠ {locale === "es" ? "Demora activa" : "Active delay"}
-                </span>
-              )}
-            </p>
+          </div>
+          {/* Row 2: date · time · countdown — temporal info together */}
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span className="text-[11px] text-gray-500 tabular">{date} · {flight.departureTime}</span>
+            <DaysCountdown days={daysUntil} locale={locale} />
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className={`h-2 w-2 rounded-full ${hasIssue ? "bg-orange-400 animate-pulse" : "bg-emerald-500"}`} />
+          <span className={`h-2 w-2 rounded-full ${
+            hasIssue ? "bg-orange-400 animate-pulse" : isPast ? "bg-gray-700" : "bg-emerald-500"
+          }`} />
           <ChevronDown
             className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
           />
@@ -712,6 +737,9 @@ export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
   const todayFlight = MY_FLIGHTS.find((f) => getDaysUntil(f.isoDate) === 0);
   const airlineCode = todayFlight ? todayFlight.flightNum.split(" ")[0] : null;
 
+  // Index of the next upcoming flight (first with daysUntil >= 0)
+  const nextFlightIndex = MY_FLIGHTS.findIndex((f) => getDaysUntil(f.isoDate) >= 0);
+
   return (
     <div className="space-y-5">
 
@@ -748,6 +776,7 @@ export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
               locale={locale}
               tsaData={tsaData[flight.originCode]}
               index={idx}
+              isNext={idx === nextFlightIndex}
             />
           </div>
         ))}

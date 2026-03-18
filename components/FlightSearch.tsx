@@ -6,7 +6,7 @@ import { AirportStatusMap } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { AIRPORTS } from "@/lib/airports";
-import { AIRLINES, ParsedFlight, parseFlightCode } from "@/lib/flightUtils";
+import { ParsedFlight, parseFlightCode } from "@/lib/flightUtils";
 
 interface TrackedFlight {
   parsed: ParsedFlight;
@@ -32,54 +32,58 @@ function loadTracked(): TrackedFlight[] {
   }
 }
 
-// Build sorted airline list (IATA codes only — 2-char or digit-prefixed, exclude ICAO duplicates)
-const airlineList = Object.entries(AIRLINES)
-  .filter(([code]) => code.length <= 2 || /^\d/.test(code))
-  .map(([code, info]) => ({ code, name: info.name }))
-  .sort((a, b) => a.name.localeCompare(b.name));
-
 interface FlightSearchProps {
   statusMap: AirportStatusMap;
 }
 
 const LABELS = {
   es: {
-    title: "Buscar vuelo por código",
-    placeholder: "Ej: AA900, B6766, EDV5068",
-    add: "Agregar",
-    track: "Rastrear en FlightAware",
-    airportStatus: "Estado del aeropuerto de salida",
-    airportPlaceholder: "Código IATA del aeropuerto (ej: MIA)",
-    airportOptional: "Aeropuerto de salida (opcional, para ver demoras FAA)",
-    remove: "Quitar",
-    noAirport: "Sin aeropuerto asignado — ingresá el código IATA para ver demoras FAA",
-    faaNote: "Mostramos el estado en tiempo real del aeropuerto de salida vía FAA oficial.",
-    invalidCode: "Código inválido. Usá formato: AA900, B6766 o EDV5068",
-    unknownAirline: "Aerolínea no reconocida. Intentá con FlightAware directamente.",
-    trackedFlights: "Vuelos rastreados",
-    empty: "Ingresá un código (ej: AA900) para ver el estado del aeropuerto de salida y rastrear el vuelo en FlightAware.",
-    airportLabel: "Aeropuerto:",
-    unknownAirport: "Aeropuerto no reconocido. Verificá el código IATA.",
-    airlineFilter: "Aerolínea...",
+    title:           "Seguí cualquier vuelo",
+    subtitle:        "Ingresá el código para ver el estado FAA y rastrear en tiempo real",
+    flightPlaceholder: "Código de vuelo · AA900, B6766…",
+    airportPlaceholder: "Aeropuerto IATA · MIA (opcional)",
+    add:             "Agregar",
+    track:           "Rastrear en FlightAware",
+    airportStatus:   "Estado del aeropuerto de salida",
+    remove:          "Quitar",
+    noAirport:       "Sin aeropuerto — ingresá el código IATA para ver demoras FAA",
+    faaNote:         "Estado del aeropuerto vía FAA oficial en tiempo real.",
+    invalidCode:     "Código inválido. Usá formato AA900, B6766 o EDV5068",
+    unknownAirline:  "Aerolínea no reconocida. Intentá con FlightAware directamente.",
+    unknownAirport:  "Aeropuerto no reconocido. Verificá el código IATA.",
+    trackedFlights:  "Vuelos rastreados",
+    airportLabel:    "Aeropuerto:",
+    emptyTitle:      "Todavía no rastreás ningún vuelo",
+    emptyBullets: [
+      "Verificar el estado FAA antes de ir al aeropuerto",
+      "Seguir un vuelo en tiempo real",
+      "Detectar demoras en cualquier ruta",
+    ],
+    emptyNote: "Ingresá un código de vuelo para empezar",
   },
   en: {
-    title: "Search flight by code",
-    placeholder: "E.g.: AA900, B6766, EDV5068",
-    add: "Add",
-    track: "Track on FlightAware",
-    airportStatus: "Departure airport status",
-    airportPlaceholder: "IATA airport code (e.g.: MIA)",
-    airportOptional: "Departure airport (optional, to show FAA delays)",
-    remove: "Remove",
-    noAirport: "No airport assigned — enter IATA code to see FAA delays",
-    faaNote: "We show real-time departure airport status via official FAA data.",
-    invalidCode: "Invalid code. Use format: AA900, B6766 or EDV5068",
-    unknownAirline: "Airline not recognized. Try FlightAware directly.",
-    trackedFlights: "Tracked flights",
-    empty: "Enter a code (e.g. AA900) to see departure airport status and track the flight on FlightAware.",
-    airportLabel: "Airport:",
-    unknownAirport: "Airport not recognized. Check the IATA code.",
-    airlineFilter: "Airline...",
+    title:           "Track any flight",
+    subtitle:        "Enter the code to see FAA status and track in real time",
+    flightPlaceholder: "Flight code · AA900, B6766…",
+    airportPlaceholder: "IATA airport · MIA (optional)",
+    add:             "Add",
+    track:           "Track on FlightAware",
+    airportStatus:   "Departure airport status",
+    remove:          "Remove",
+    noAirport:       "No airport — enter IATA code to see FAA delays",
+    faaNote:         "Live departure airport status via official FAA data.",
+    invalidCode:     "Invalid code. Use format AA900, B6766 or EDV5068",
+    unknownAirline:  "Airline not recognized. Try FlightAware directly.",
+    unknownAirport:  "Airport not recognized. Check the IATA code.",
+    trackedFlights:  "Tracked flights",
+    airportLabel:    "Airport:",
+    emptyTitle:      "No flights tracked yet",
+    emptyBullets: [
+      "Check FAA status before heading to the airport",
+      "Follow any flight live",
+      "Detect delays on any route",
+    ],
+    emptyNote: "Enter a flight code to get started",
   },
 };
 
@@ -91,7 +95,6 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
   const [airportInput, setAirportInput] = useState("");
   const [error, setError] = useState("");
   const [tracked, setTracked] = useState<TrackedFlight[]>([]);
-  const [selectedAirline, setSelectedAirline] = useState<string>("");
 
   useEffect(() => { setTracked(loadTracked()); }, []);
 
@@ -108,34 +111,18 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
     setError("");
     const parsed = parseFlightCode(input);
     if (!parsed) {
-      const clean = input.trim().toUpperCase().replace(/\s+/g, "");
-      const codeMatch = clean.match(/^([A-Z]{2,3}|[A-Z0-9]{2})\d+$/);
-      if (codeMatch && !AIRLINES[codeMatch[1]]) {
-        setError(L.unknownAirline);
-      } else {
-        setError(L.invalidCode);
-      }
+      setError(L.invalidCode);
       return;
     }
-
     const airportCode = airportInput.trim().toUpperCase();
     if (airportCode && !AIRPORTS[airportCode]) {
       setError(L.unknownAirport);
       return;
     }
-
-    const alreadyExists = tracked.some(
-      (t) => t.parsed.fullCode === parsed.fullCode
-    );
-    if (alreadyExists) return;
-
-    setTracked((prev) => [
-      ...prev,
-      { parsed, airportCode },
-    ]);
+    if (tracked.some((t) => t.parsed.fullCode === parsed.fullCode)) return;
+    setTracked((prev) => [...prev, { parsed, airportCode }]);
     setInput("");
     setAirportInput("");
-    setSelectedAirline("");
   }
 
   function handleRemove(fullCode: string) {
@@ -143,54 +130,34 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
 
-      {/* Formulario de búsqueda */}
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-lg font-bold text-white leading-snug">{L.title}</h2>
+        <p className="text-sm text-gray-500 mt-0.5">{L.subtitle}</p>
+      </div>
+
+      {/* ── Search form ────────────────────────────────────────────────────── */}
       <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-300">{L.title}</h3>
 
-        <div className="flex gap-2 flex-wrap">
-          {/* Airline filter select */}
-          <select
-            value={selectedAirline}
-            onChange={(e) => {
-              setSelectedAirline(e.target.value);
-              if (e.target.value) {
-                setInput(e.target.value);
-                setError("");
-              }
-            }}
-            className="rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 min-w-[140px]"
-          >
-            <option value="">{L.airlineFilter}</option>
-            {airlineList.map(({ code, name }) => (
-              <option key={code} value={code}>{code} — {name}</option>
-            ))}
-          </select>
-
-          {/* Flight code input */}
-          <div className="relative flex-1 min-w-[140px]">
+        {/* Inputs — stack on mobile, row on sm+ */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {/* Flight code */}
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
             <input
               type="text"
               value={input}
-              onChange={(e) => {
-                const val = e.target.value;
-                setInput(val);
-                setError("");
-                // Clear airline selection if user removes the prefix
-                if (selectedAirline && !val.toUpperCase().startsWith(selectedAirline)) {
-                  setSelectedAirline("");
-                }
-              }}
+              onChange={(e) => { setInput(e.target.value); setError(""); }}
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-              placeholder={L.placeholder}
-              className="w-full rounded-lg border border-gray-700 bg-gray-950 pl-9 pr-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              placeholder={L.flightPlaceholder}
+              className="w-full rounded-lg border border-gray-700 bg-gray-950 pl-9 pr-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
-          {/* Airport input */}
-          <div className="relative flex-1 min-w-[120px]">
+          {/* Airport (optional) */}
+          <div className="relative sm:w-48">
             <Plane className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
             <input
               type="text"
@@ -199,35 +166,51 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               placeholder={L.airportPlaceholder}
               maxLength={3}
-              className="w-full rounded-lg border border-gray-700 bg-gray-950 pl-9 pr-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-700 bg-gray-950 pl-9 pr-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
+          {/* Button — full width on mobile */}
           <button
             onClick={handleAdd}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 transition-colors"
+            className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 transition-colors shrink-0"
           >
             {L.add}
           </button>
         </div>
 
-        {error && (
-          <p className="text-xs text-red-400">{error}</p>
-        )}
+        {error && <p className="text-xs text-red-400">{error}</p>}
 
-        <p className="text-xs text-gray-500 flex items-start gap-1.5">
-          <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+        <p className="text-[11px] text-gray-600 flex items-start gap-1.5">
+          <Info className="h-3 w-3 shrink-0 mt-0.5" />
           {L.faaNote}
         </p>
       </div>
 
-      {/* Resultados */}
+      {/* ── Results or empty state ──────────────────────────────────────────── */}
       {tracked.length === 0 ? (
-        <p className="text-sm text-gray-500 text-center py-6">{L.empty}</p>
+
+        /* Empty state */
+        <div className="rounded-xl border border-gray-800/50 bg-gray-900/20 px-5 py-7 flex flex-col items-center text-center">
+          <div className="text-3xl mb-3 select-none">🔍</div>
+          <p className="text-sm font-semibold text-gray-400 mb-3">{L.emptyTitle}</p>
+          <ul className="space-y-1.5 text-left mb-4 max-w-xs">
+            {L.emptyBullets.map((b, i) => (
+              <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                <span className="text-gray-700 mt-0.5 shrink-0">→</span>
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-gray-700">{L.emptyNote}</p>
+        </div>
+
       ) : (
+
+        /* Tracked flights list */
         <div className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-            {L.trackedFlights}
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+            {L.trackedFlights} · {tracked.length}
           </h3>
           {tracked.map(({ parsed, airportCode }) => {
             const airportStatus = airportCode ? statusMap[airportCode] : undefined;
@@ -237,19 +220,19 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
             return (
               <div
                 key={parsed.fullCode}
-                className={`rounded-xl border-2 p-4 transition-all ${
-                  hasIssue ? "border-orange-600/50 bg-orange-950/10" : "border-gray-800 bg-gray-900/30"
+                className={`rounded-xl border p-4 transition-all ${
+                  hasIssue
+                    ? "border-orange-600/40 bg-orange-950/10"
+                    : "border-gray-800 bg-gray-900/30"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 min-w-0">
                     <div className="flex items-center gap-2.5 flex-wrap">
-                      <span className="text-2xl font-black text-white">{parsed.fullCode}</span>
-                      <span className="inline-flex items-center rounded-md border border-gray-700 bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-300">
-                        {parsed.airlineCode}
-                      </span>
-                      <span className="text-sm text-gray-500">{parsed.airlineName}</span>
+                      <span className="text-xl font-black text-white">{parsed.fullCode}</span>
+                      <span className="text-xs text-gray-500">{parsed.airlineName}</span>
                     </div>
+
                     {airportCode ? (
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-xs text-gray-500">{L.airportLabel}</span>
@@ -260,30 +243,32 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
                       <p className="text-xs text-gray-600 italic">{L.noAirport}</p>
                     )}
 
-                    {/* Detalle de demora si existe */}
                     {airportStatus?.delays && (
-                      <p className="text-xs text-orange-300 mt-1">
+                      <p className="text-xs text-orange-300">
                         ⚠️ {airportStatus.delays.minMinutes}–{airportStatus.delays.maxMinutes} min
                         {" · "}{airportStatus.delays.reason}
                       </p>
                     )}
                     {airportStatus?.groundDelay && (
-                      <p className="text-xs text-red-300 mt-1">
-                        🔴 {locale === "en" ? "Ground Delay" : "Demora en Tierra"} avg {airportStatus.groundDelay.avgMinutes} min
+                      <p className="text-xs text-red-300">
+                        🔴 {locale === "en" ? "Ground Delay" : "Demora en Tierra"}{" "}
+                        avg {airportStatus.groundDelay.avgMinutes} min
                         {" · "}{airportStatus.groundDelay.reason}
                       </p>
                     )}
                     {airportStatus?.groundStop && (
-                      <p className="text-xs text-red-300 mt-1">
-                        🛑 {locale === "en" ? "Ground Stop" : "Parada en Tierra"} {locale === "en" ? "until" : "hasta"} {airportStatus.groundStop.endTime ?? "?"} · {airportStatus.groundStop.reason}
+                      <p className="text-xs text-red-300">
+                        🛑 {locale === "en" ? "Ground Stop until" : "Parada en Tierra hasta"}{" "}
+                        {airportStatus.groundStop.endTime ?? "?"}{" · "}{airportStatus.groundStop.reason}
                       </p>
                     )}
                   </div>
 
-                  <div className="flex flex-col items-end gap-2">
+                  <div className="flex flex-col items-end gap-2 shrink-0">
                     <button
                       onClick={() => handleRemove(parsed.fullCode)}
                       className="rounded-full p-1 text-gray-600 hover:text-gray-400 hover:bg-gray-800 transition-colors"
+                      title={L.remove}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
