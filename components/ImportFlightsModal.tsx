@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import {
-  X, CheckCircle, AlertCircle, Loader2,
+  X, CheckCircle, AlertCircle,
   FileText, ImagePlus, ArrowRight, Sparkles,
 } from "lucide-react";
 import Image from "next/image";
@@ -30,7 +30,7 @@ Funciona con cualquier formato:
     imageTip: "Subí una captura de pantalla, email o boarding pass",
     imageBtn: "Elegir imagen",
     imageHint: "JPG, PNG, WEBP o GIF · máx 5 MB",
-    parse: "Analizar con IA",
+    parse: "TripCopilot IA",
     parsing: "Analizando...",
     reviewTitle: (n: number) => `${n} vuelo${n !== 1 ? "s" : ""} detectado${n !== 1 ? "s" : ""}`,
     reviewSub: "Revisá y editá los datos antes de agregar",
@@ -61,7 +61,7 @@ Works with any format:
     imageTip: "Upload a screenshot, email or boarding pass photo",
     imageBtn: "Choose image",
     imageHint: "JPG, PNG, WEBP or GIF · max 5 MB",
-    parse: "Analyze with AI",
+    parse: "TripCopilot AI",
     parsing: "Analyzing...",
     reviewTitle: (n: number) => `${n} flight${n !== 1 ? "s" : ""} detected`,
     reviewSub: "Review and edit the details before adding",
@@ -331,11 +331,18 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
           {/* ── PARSING PHASE ── */}
           {phase === "parsing" && (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
-              <div className="relative">
-                <div className="h-14 w-14 rounded-full border-2 border-violet-500/20 flex items-center justify-center">
-                  <Sparkles className="h-6 w-6 text-violet-400" />
-                </div>
-                <Loader2 className="absolute inset-0 h-14 w-14 animate-spin text-violet-500/40" />
+              <div className="relative h-16 w-16">
+                {/* Glow ring */}
+                <div className="absolute inset-0 rounded-full border-2 border-violet-500/30 animate-ping" />
+                {/* Spinning avatar */}
+                <Image
+                  src="/tripcopliot-avatar.svg"
+                  alt="TripCopilot"
+                  width={64}
+                  height={64}
+                  className="rounded-full animate-spin"
+                  style={{ animationDuration: "2s" }}
+                />
               </div>
               <p className="text-sm text-gray-400 animate-pulse">{t.parsing}</p>
             </div>
@@ -414,7 +421,13 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
               disabled={!canParse}
               className="flex items-center gap-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 px-5 py-2 text-sm font-semibold text-white transition-colors"
             >
-              <Sparkles className="h-3.5 w-3.5" />
+              <Image
+                src="/tripcopliot-avatar.svg"
+                alt=""
+                width={16}
+                height={16}
+                className="rounded-full"
+              />
               {t.parse}
             </button>
           )}
