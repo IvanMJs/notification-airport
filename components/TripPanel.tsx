@@ -637,22 +637,13 @@ function FlightCard({
       }`}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            {/* Header row: label + trash button always on same line */}
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <div className="flex items-center gap-2">
-                {hasIssue && <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />}
-                {isNonFAA && <Globe className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                  {L.sectionAirport}
-                </span>
-              </div>
-              <button
-                onClick={onRemove}
-                title={L.removeTitle}
-                className="shrink-0 rounded-lg p-1.5 text-red-600 hover:text-red-400 hover:bg-red-950/40 transition-colors"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+            {/* Header label */}
+            <div className="flex items-center gap-2 mb-1">
+              {hasIssue && <AlertTriangle className="h-4 w-4 text-orange-400 shrink-0" />}
+              {isNonFAA && <Globe className="h-3.5 w-3.5 text-blue-500 shrink-0" />}
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                {L.sectionAirport}
+              </span>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-black text-white tracking-tight">{flight.originCode}</span>
@@ -680,14 +671,24 @@ function FlightCard({
             )}
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
-            {isNonFAA ? (
-              <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 bg-white/4 border border-white/8 px-2.5 py-1 rounded-lg">
-                <Globe className="h-3 w-3" />
-                {L.internationalNote}
-              </span>
-            ) : (
-              <StatusBadge status={status} className="text-sm px-3 py-1" />
-            )}
+            {/* Status badge + trash on the same row */}
+            <div className="flex items-center gap-1.5">
+              {isNonFAA ? (
+                <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 bg-white/4 border border-white/8 px-2.5 py-1 rounded-lg">
+                  <Globe className="h-3 w-3" />
+                  {L.internationalNote}
+                </span>
+              ) : (
+                <StatusBadge status={status} className="text-sm px-3 py-1" />
+              )}
+              <button
+                onClick={onRemove}
+                title={L.removeTitle}
+                className="rounded-lg p-1.5 text-red-600 hover:text-red-400 hover:bg-red-950/40 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
             <LinkButton href={airportUrl} variant={hasIssue ? "orange" : "default"}>
               {L.seeAllFlightsFrom(flight.originCode)}
             </LinkButton>
@@ -998,6 +999,7 @@ interface TripPanelProps {
   weatherMap: Record<string, WeatherData>;
   onAddFlight: (tripId: string, flight: TripFlight) => void;
   onRemoveFlight: (tripId: string, flightId: string) => void;
+  onDeleteTrip?: () => void;
   isDraft?: boolean;
   onSave?: () => void;
 }
@@ -1008,6 +1010,7 @@ export function TripPanel({
   weatherMap,
   onAddFlight,
   onRemoveFlight,
+  onDeleteTrip,
   isDraft,
   onSave,
 }: TripPanelProps) {
@@ -1142,6 +1145,26 @@ export function TripPanel({
 
   return (
     <div className="space-y-4">
+      {/* Trip header — name + delete trip (always visible, especially useful on mobile) */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-600 mb-0.5">
+            {locale === "es" ? "Viaje" : "Trip"}
+          </p>
+          <h2 className="text-base font-black text-white truncate">{trip.name}</h2>
+        </div>
+        {onDeleteTrip && (
+          <button
+            onClick={onDeleteTrip}
+            title={locale === "es" ? "Eliminar viaje" : "Delete trip"}
+            className="shrink-0 flex items-center gap-1.5 rounded-xl border border-red-900/40 bg-red-950/20 px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-950/40 hover:text-red-400 transition-colors"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{locale === "es" ? "Eliminar viaje" : "Delete trip"}</span>
+          </button>
+        )}
+      </div>
+
       {/* Draft banner */}
       {isDraft && (
         <div className="rounded-xl border border-yellow-700/40 bg-yellow-950/20 px-4 py-3 flex items-center justify-between gap-3">

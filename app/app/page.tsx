@@ -43,6 +43,8 @@ const REFRESH_OPTIONS = [5, 10, 15, 30];
 // Always include these airports for weather regardless of watchedAirports
 const FLIGHT_AIRPORTS = ["EZE", "MIA", "GCM", "JFK"];
 
+const DRAFT_ID = "__draft__";
+
 export default function HomePage() {
   const { t, locale, setLocale } = useLanguage();
   const { showSwNotification } = useServiceWorker();
@@ -75,8 +77,11 @@ export default function HomePage() {
   const [newTripName, setNewTripName] = useState("");
   const createModalInputRef = useRef<HTMLInputElement>(null);
 
-  // Draft trip tracking (pure UI state, no DB needed)
-  const [draftTripIds, setDraftTripIds] = useState<Set<string>>(new Set());
+  // Draft trip — local only, not persisted until "Guardar viaje"
+  const [draftTrip, setDraftTrip] = useState<{ name: string; flights: TripFlight[] } | null>(null);
+
+  // Delete confirmation modal
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; flightCount: number } | null>(null);
 
   // Mobile trip picker popup
   const [showTripPicker, setShowTripPicker] = useState(false);
@@ -175,29 +180,47 @@ export default function HomePage() {
   // ── Trip management ───────────────────────────────────────────────────────
 
   function openCreateTripModal() {
+    if (draftTrip) {
+      setActiveTab(DRAFT_ID);
+      return;
+    }
     setNewTripName("");
     setShowCreateModal(true);
     setTimeout(() => createModalInputRef.current?.focus(), 60);
   }
 
-  async function confirmCreateTrip() {
+  function confirmCreateTrip() {
     const tripName =
       newTripName.trim() ||
       (locale === "en" ? `Trip ${userTrips.length + 1}` : `Viaje ${userTrips.length + 1}`);
-    const id = await createTripDB(tripName);
-    if (id) {
-      setActiveTab(id);
-      setDraftTripIds((prev) => new Set(prev).add(id));
-    }
+    setDraftTrip({ name: tripName, flights: [] });
+    setActiveTab(DRAFT_ID);
     setShowCreateModal(false);
   }
 
-  function handleSaveTrip(id: string) {
-    setDraftTripIds((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
+  async function saveDraftTrip() {
+    if (!draftTrip) return;
+    const id = await createTripDB(draftTrip.name);
+    if (id) {
+      for (const flight of draftTrip.flights) {
+        await addFlightDB(id, flight);
+      }
+      setDraftTrip(null);
+      setActiveTab(id);
+    }
+  }
+
+  function discardDraft() {
+    setDraftTrip(null);
+    setActiveTab("trips");
+  }
+
+  function addFlightToDraft(_tripId: string, flight: TripFlight) {
+    setDraftTrip((prev) => prev ? { ...prev, flights: [...prev.flights, flight] } : prev);
+  }
+
+  function removeFlightFromDraft(_tripId: string, flightId: string) {
+    setDraftTrip((prev) => prev ? { ...prev, flights: prev.flights.filter((f) => f.id !== flightId) } : prev);
   }
 
   function renameTrip(id: string, newName: string) { renameTripDB(id, newName); }
@@ -205,17 +228,14 @@ export default function HomePage() {
   function deleteTrip(id: string) {
     const trip = userTrips.find((t) => t.id === id);
     if (!trip) return;
-    if (
-      trip.flights.length > 0 &&
-      !window.confirm(
-        locale === "en"
-          ? `Delete trip "${trip.name}" and its ${trip.flights.length} flight(s)?`
-          : `¿Eliminar el viaje "${trip.name}" con ${trip.flights.length} vuelo(s)?`
-      )
-    ) return;
-    deleteTripDB(id);
-    handleSaveTrip(id); // remove from drafts if present
-    if (activeTab === id) setActiveTab("trips");
+    setDeleteConfirm({ id, name: trip.name, flightCount: trip.flights.length });
+  }
+
+  function confirmDeleteTrip() {
+    if (!deleteConfirm) return;
+    deleteTripDB(deleteConfirm.id);
+    if (activeTab === deleteConfirm.id) setActiveTab("trips");
+    setDeleteConfirm(null);
   }
 
   function addFlightToTrip(tripId: string, flight: TripFlight) { addFlightDB(tripId, flight); }
@@ -323,6 +343,48 @@ export default function HomePage() {
                   className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-500 py-2.5 text-sm font-semibold text-white transition-colors tap-scale"
                 >
                   {locale === "es" ? "Crear viaje" : "Create trip"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteConfirm && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+            onClick={() => setDeleteConfirm(null)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+            <div
+              className="w-full max-w-sm pointer-events-auto rounded-2xl border border-white/[0.08] shadow-2xl p-5 space-y-4"
+              style={{ background: "linear-gradient(160deg, rgba(18,18,32,0.99) 0%, rgba(10,10,20,1) 100%)" }}
+            >
+              <div>
+                <h3 className="text-base font-black text-white">
+                  {locale === "es" ? "¿Eliminar viaje?" : "Delete trip?"}
+                </h3>
+                <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+                  {locale === "es"
+                    ? `¿Estás seguro de eliminar "${deleteConfirm.name}"${deleteConfirm.flightCount > 0 ? ` y sus ${deleteConfirm.flightCount} vuelo${deleteConfirm.flightCount !== 1 ? "s" : ""}` : ""}? Esta acción no se puede deshacer.`
+                    : `Are you sure you want to delete "${deleteConfirm.name}"${deleteConfirm.flightCount > 0 ? ` and its ${deleteConfirm.flightCount} flight${deleteConfirm.flightCount !== 1 ? "s" : ""}` : ""}? This can't be undone.`
+                  }
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+                >
+                  {locale === "es" ? "Cancelar" : "Cancel"}
+                </button>
+                <button
+                  onClick={confirmDeleteTrip}
+                  className="flex-1 rounded-xl bg-red-700 hover:bg-red-600 py-2.5 text-sm font-semibold text-white transition-colors"
+                >
+                  {locale === "es" ? "Eliminar" : "Delete"}
                 </button>
               </div>
             </div>
@@ -576,6 +638,28 @@ export default function HomePage() {
                 );
               })}
 
+              {/* Draft trip tab — only shown when a draft exists */}
+              {draftTrip && (
+                <div className="flex items-center -mb-px">
+                  <button
+                    onClick={() => setActiveTab(DRAFT_ID)}
+                    className={`${tabBase} ${activeTab === DRAFT_ID ? tabActive : tabInactive} flex items-center gap-2`}
+                  >
+                    {draftTrip.name}
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-yellow-500 border border-yellow-700/50 rounded px-1 py-0.5 leading-none">
+                      {locale === "es" ? "Borrador" : "Draft"}
+                    </span>
+                  </button>
+                  <button
+                    onClick={discardDraft}
+                    className="p-1 text-gray-700 hover:text-red-400 transition-colors -mb-px"
+                    title={locale === "es" ? "Descartar borrador" : "Discard draft"}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              )}
+
               {/* New trip button */}
               <button
                 onClick={openCreateTripModal}
@@ -645,6 +729,22 @@ export default function HomePage() {
               />
             )}
 
+            {/* Draft trip panel */}
+            {draftTrip && activeTab === DRAFT_ID && (
+              <TripPanel
+                key={DRAFT_ID}
+                trip={{ id: DRAFT_ID, name: draftTrip.name, flights: draftTrip.flights }}
+                statusMap={statusMap}
+                weatherMap={weatherMap}
+                onAddFlight={addFlightToDraft}
+                onRemoveFlight={removeFlightFromDraft}
+                onDeleteTrip={discardDraft}
+                isDraft={true}
+                onSave={saveDraftTrip}
+              />
+            )}
+
+            {/* Saved trip panels */}
             {userTrips.map((trip) =>
               activeTab === trip.id ? (
                 <TripPanel
@@ -654,8 +754,7 @@ export default function HomePage() {
                   weatherMap={weatherMap}
                   onAddFlight={addFlightToTrip}
                   onRemoveFlight={removeFlightFromTrip}
-                  isDraft={draftTripIds.has(trip.id)}
-                  onSave={() => handleSaveTrip(trip.id)}
+                  onDeleteTrip={() => deleteTrip(trip.id)}
                 />
               ) : null
             )}
@@ -677,7 +776,7 @@ export default function HomePage() {
           <div className="relative">
 
           {/* Trip picker popup — slides up above bottom nav when multiple trips */}
-          {showTripPicker && userTrips.length > 1 && (
+          {showTripPicker && (userTrips.length + (draftTrip ? 1 : 0)) > 1 && (
             <>
               {/* Backdrop */}
               <div
@@ -694,6 +793,35 @@ export default function HomePage() {
                     {locale === "es" ? "Mis viajes" : "My trips"}
                   </p>
                 </div>
+                {/* Draft trip entry */}
+                {draftTrip && (
+                  <button
+                    onClick={() => {
+                      setActiveTab(DRAFT_ID);
+                      setShowTripPicker(false);
+                    }}
+                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.07] ${
+                      activeTab === DRAFT_ID ? "bg-white/[0.04]" : ""
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className={`text-sm font-semibold truncate ${activeTab === DRAFT_ID ? "text-blue-400" : "text-white"}`}>
+                        {draftTrip.name}
+                        <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-yellow-500 border border-yellow-700/50 rounded px-1 py-0.5">
+                          {locale === "es" ? "Borrador" : "Draft"}
+                        </span>
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {draftTrip.flights.length === 0
+                          ? (locale === "es" ? "Sin vuelos" : "No flights")
+                          : locale === "es"
+                          ? `${draftTrip.flights.length} vuelo${draftTrip.flights.length !== 1 ? "s" : ""}`
+                          : `${draftTrip.flights.length} flight${draftTrip.flights.length !== 1 ? "s" : ""}`}
+                      </p>
+                    </div>
+                    <ChevronRight className={`h-4 w-4 shrink-0 ${activeTab === DRAFT_ID ? "text-blue-400" : "text-gray-600"}`} />
+                  </button>
+                )}
                 {userTrips.map((trip) => (
                   <button
                     key={trip.id}
@@ -708,11 +836,6 @@ export default function HomePage() {
                     <div className="min-w-0">
                       <p className={`text-sm font-semibold truncate ${activeTab === trip.id ? "text-blue-400" : "text-white"}`}>
                         {trip.name}
-                        {draftTripIds.has(trip.id) && (
-                          <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-yellow-500 border border-yellow-700/50 rounded px-1 py-0.5">
-                            {locale === "es" ? "Borrador" : "Draft"}
-                          </span>
-                        )}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
                         {trip.flights.length === 0
@@ -771,14 +894,15 @@ export default function HomePage() {
             {/* Trips tab — smart nav: 0→list, 1→direct, 2+→picker */}
             {(() => {
               const tripsActive =
-                activeTab === "trips" || userTrips.some((t) => t.id === activeTab);
+                activeTab === "trips" || activeTab === DRAFT_ID || userTrips.some((t) => t.id === activeTab);
               return (
                 <button
                   onClick={() => {
-                    if (userTrips.length === 0) {
+                    const allTrips = [...userTrips, ...(draftTrip ? [{ id: DRAFT_ID, name: draftTrip.name, flights: draftTrip.flights }] : [])];
+                    if (allTrips.length === 0) {
                       setActiveTab("trips");
-                    } else if (userTrips.length === 1) {
-                      setActiveTab(userTrips[0].id);
+                    } else if (allTrips.length === 1) {
+                      setActiveTab(allTrips[0].id);
                     } else {
                       setShowTripPicker((v) => !v);
                     }
@@ -794,9 +918,9 @@ export default function HomePage() {
                   )}
                   <div className="relative">
                     <Map className="h-[22px] w-[22px]" />
-                    {userTrips.length > 0 && (
+                    {(userTrips.length + (draftTrip ? 1 : 0)) > 0 && (
                       <span className="absolute -top-1.5 -right-2.5 h-4 min-w-[16px] bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
-                        {userTrips.length}
+                        {userTrips.length + (draftTrip ? 1 : 0)}
                       </span>
                     )}
                   </div>
