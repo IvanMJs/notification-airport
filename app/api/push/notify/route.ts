@@ -1,5 +1,5 @@
 import webpush from "web-push";
-import { createClient } from "@/utils/supabase/server";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 
 webpush.setVapidDetails(
   "mailto:support@tripcopilot.app",
@@ -14,7 +14,10 @@ export async function POST(request: Request) {
     return Response.json({ error: "user_id and title required" }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
 
   const { data: subs } = await supabase
     .from("push_subscriptions")
