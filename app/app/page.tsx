@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Toaster } from "react-hot-toast";
-import { RefreshCw, Plane, Pencil, X, Plus, Bell, HelpCircle, MapPin, Search, Map, LogOut, ChevronRight } from "lucide-react";
+import { RefreshCw, Plane, Pencil, X, Plus, Bell, HelpCircle, MapPin, Search, Map, LogOut, ChevronRight, Trash2 } from "lucide-react";
 import { useAirportStatus } from "@/hooks/useAirportStatus";
 import { AirportCard } from "@/components/AirportCard";
 import { AirportSearch } from "@/components/AirportSearch";
@@ -85,6 +85,8 @@ export default function HomePage() {
 
   // Mobile trip picker popup
   const [showTripPicker, setShowTripPicker] = useState(false);
+  const [renameInPickerId, setRenameInPickerId] = useState<string | null>(null);
+  const [renameInPickerName, setRenameInPickerName] = useState("");
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -224,6 +226,15 @@ export default function HomePage() {
   }
 
   function renameTrip(id: string, newName: string) { renameTripDB(id, newName); }
+
+  function renameTripFromPanel(id: string, newName: string) {
+    if (id === DRAFT_ID) {
+      const trimmed = newName.trim();
+      if (trimmed) setDraftTrip((prev) => prev ? { ...prev, name: trimmed } : prev);
+    } else {
+      renameTripDB(id, newName);
+    }
+  }
 
   function deleteTrip(id: string) {
     const trip = userTrips.find((t) => t.id === id);
@@ -739,6 +750,7 @@ export default function HomePage() {
                 onAddFlight={addFlightToDraft}
                 onRemoveFlight={removeFlightFromDraft}
                 onDeleteTrip={discardDraft}
+                onRenameTrip={(name) => renameTripFromPanel(DRAFT_ID, name)}
                 isDraft={true}
                 onSave={saveDraftTrip}
               />
@@ -755,6 +767,7 @@ export default function HomePage() {
                   onAddFlight={addFlightToTrip}
                   onRemoveFlight={removeFlightFromTrip}
                   onDeleteTrip={() => deleteTrip(trip.id)}
+                  onRenameTrip={(name) => renameTripFromPanel(trip.id, name)}
                 />
               ) : null
             )}
@@ -775,39 +788,50 @@ export default function HomePage() {
         >
           <div className="relative">
 
-          {/* Trip picker popup — slides up above bottom nav when multiple trips */}
-          {showTripPicker && (userTrips.length + (draftTrip ? 1 : 0)) > 1 && (
+          {/* Trip management popup — always opens on tap, full management hub */}
+          {showTripPicker && (
             <>
               {/* Backdrop */}
               <div
                 className="fixed inset-0 z-40"
-                onClick={() => setShowTripPicker(false)}
+                onClick={() => { setShowTripPicker(false); setRenameInPickerId(null); }}
               />
               {/* Picker panel */}
               <div
                 className="absolute bottom-full left-0 right-0 z-50 mx-3 mb-2 rounded-2xl border border-white/[0.08] shadow-2xl overflow-hidden"
                 style={{ background: "linear-gradient(160deg, rgba(18,18,32,0.99) 0%, rgba(10,10,20,1) 100%)" }}
               >
-                <div className="px-4 py-3 border-b border-white/[0.06]">
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                {/* Header */}
+                <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
                     {locale === "es" ? "Mis viajes" : "My trips"}
                   </p>
+                  <button
+                    onClick={() => { setShowTripPicker(false); openCreateTripModal(); }}
+                    className="flex items-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-2.5 py-1.5 transition-colors tap-scale"
+                  >
+                    <Plus className="h-3 w-3" />
+                    {locale === "es" ? "Nuevo" : "New"}
+                  </button>
                 </div>
+
+                {/* Empty state */}
+                {userTrips.length === 0 && !draftTrip && (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-sm text-gray-400">{locale === "es" ? "No tenés viajes todavía" : "No trips yet"}</p>
+                  </div>
+                )}
+
                 {/* Draft trip entry */}
                 {draftTrip && (
-                  <button
-                    onClick={() => {
-                      setActiveTab(DRAFT_ID);
-                      setShowTripPicker(false);
-                    }}
-                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.07] ${
-                      activeTab === DRAFT_ID ? "bg-white/[0.04]" : ""
-                    }`}
-                  >
-                    <div className="min-w-0">
+                  <div className={`flex items-center gap-2 px-3 py-2.5 border-b border-white/[0.04] ${activeTab === DRAFT_ID ? "bg-white/[0.04]" : ""}`}>
+                    <button
+                      onClick={() => { setActiveTab(DRAFT_ID); setShowTripPicker(false); setRenameInPickerId(null); }}
+                      className="flex-1 min-w-0 text-left"
+                    >
                       <p className={`text-sm font-semibold truncate ${activeTab === DRAFT_ID ? "text-blue-400" : "text-white"}`}>
                         {draftTrip.name}
-                        <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-yellow-500 border border-yellow-700/50 rounded px-1 py-0.5">
+                        <span className="ml-2 text-[9px] font-bold uppercase tracking-wider text-yellow-500 border border-yellow-700/50 rounded px-1 py-0.5">
                           {locale === "es" ? "Borrador" : "Draft"}
                         </span>
                       </p>
@@ -818,47 +842,80 @@ export default function HomePage() {
                           ? `${draftTrip.flights.length} vuelo${draftTrip.flights.length !== 1 ? "s" : ""}`
                           : `${draftTrip.flights.length} flight${draftTrip.flights.length !== 1 ? "s" : ""}`}
                       </p>
-                    </div>
-                    <ChevronRight className={`h-4 w-4 shrink-0 ${activeTab === DRAFT_ID ? "text-blue-400" : "text-gray-600"}`} />
-                  </button>
+                    </button>
+                    <button
+                      onClick={discardDraft}
+                      className="shrink-0 p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-950/30 transition-colors"
+                      title={locale === "es" ? "Descartar borrador" : "Discard draft"}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
+
+                {/* Saved trips */}
                 {userTrips.map((trip) => (
-                  <button
+                  <div
                     key={trip.id}
-                    onClick={() => {
-                      setActiveTab(trip.id);
-                      setShowTripPicker(false);
-                    }}
-                    className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.07] ${
-                      activeTab === trip.id ? "bg-white/[0.04]" : ""
-                    }`}
+                    className={`flex items-center gap-2 px-3 py-2.5 border-b border-white/[0.04] last:border-0 ${activeTab === trip.id ? "bg-white/[0.04]" : ""}`}
                   >
-                    <div className="min-w-0">
-                      <p className={`text-sm font-semibold truncate ${activeTab === trip.id ? "text-blue-400" : "text-white"}`}>
-                        {trip.name}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {trip.flights.length === 0
-                          ? (locale === "es" ? "Sin vuelos" : "No flights")
-                          : locale === "es"
-                          ? `${trip.flights.length} vuelo${trip.flights.length !== 1 ? "s" : ""}`
-                          : `${trip.flights.length} flight${trip.flights.length !== 1 ? "s" : ""}`}
-                      </p>
-                    </div>
-                    <ChevronRight className={`h-4 w-4 shrink-0 ${activeTab === trip.id ? "text-blue-400" : "text-gray-600"}`} />
-                  </button>
+                    {renameInPickerId === trip.id ? (
+                      /* Inline rename input */
+                      <input
+                        autoFocus
+                        value={renameInPickerName}
+                        onChange={(e) => setRenameInPickerName(e.target.value)}
+                        onBlur={() => {
+                          if (renameInPickerName.trim()) renameTripDB(trip.id, renameInPickerName.trim());
+                          setRenameInPickerId(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            if (renameInPickerName.trim()) renameTripDB(trip.id, renameInPickerName.trim());
+                            setRenameInPickerId(null);
+                          }
+                          if (e.key === "Escape") setRenameInPickerId(null);
+                        }}
+                        maxLength={40}
+                        className="flex-1 min-w-0 bg-white/[0.06] border border-blue-500/50 rounded-lg px-3 py-1.5 text-sm text-white outline-none"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => { setActiveTab(trip.id); setShowTripPicker(false); setRenameInPickerId(null); }}
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <p className={`text-sm font-semibold truncate ${activeTab === trip.id ? "text-blue-400" : "text-white"}`}>
+                          {trip.name}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {trip.flights.length === 0
+                            ? (locale === "es" ? "Sin vuelos" : "No flights")
+                            : locale === "es"
+                            ? `${trip.flights.length} vuelo${trip.flights.length !== 1 ? "s" : ""}`
+                            : `${trip.flights.length} flight${trip.flights.length !== 1 ? "s" : ""}`}
+                        </p>
+                      </button>
+                    )}
+                    {renameInPickerId !== trip.id && (
+                      <>
+                        <button
+                          onClick={() => { setRenameInPickerId(trip.id); setRenameInPickerName(trip.name); }}
+                          className="shrink-0 p-1.5 rounded-lg text-gray-600 hover:text-gray-300 hover:bg-white/[0.06] transition-colors"
+                          title={locale === "es" ? "Renombrar" : "Rename"}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          onClick={() => { setShowTripPicker(false); deleteTrip(trip.id); }}
+                          className="shrink-0 p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-950/30 transition-colors"
+                          title={locale === "es" ? "Eliminar" : "Delete"}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 ))}
-                <div className="px-4 py-3 border-t border-white/[0.06]">
-                  <button
-                    onClick={() => {
-                      setActiveTab("trips");
-                      setShowTripPicker(false);
-                    }}
-                    className="w-full text-xs text-gray-500 hover:text-gray-300 transition-colors text-center py-1"
-                  >
-                    {locale === "es" ? "Ver todos los viajes" : "View all trips"}
-                  </button>
-                </div>
               </div>
             </>
           )}
@@ -891,22 +948,14 @@ export default function HomePage() {
               );
             })}
 
-            {/* Trips tab — smart nav: 0→list, 1→direct, 2+→picker */}
+            {/* Trips tab — ALWAYS opens the management picker popup */}
             {(() => {
               const tripsActive =
                 activeTab === "trips" || activeTab === DRAFT_ID || userTrips.some((t) => t.id === activeTab);
+              const totalTrips = userTrips.length + (draftTrip ? 1 : 0);
               return (
                 <button
-                  onClick={() => {
-                    const allTrips = [...userTrips, ...(draftTrip ? [{ id: DRAFT_ID, name: draftTrip.name, flights: draftTrip.flights }] : [])];
-                    if (allTrips.length === 0) {
-                      setActiveTab("trips");
-                    } else if (allTrips.length === 1) {
-                      setActiveTab(allTrips[0].id);
-                    } else {
-                      setShowTripPicker((v) => !v);
-                    }
-                  }}
+                  onClick={() => { setShowTripPicker((v) => !v); setRenameInPickerId(null); }}
                   className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${
                     tripsActive ? "text-blue-400" : "text-gray-500"
                   }`}
@@ -918,9 +967,9 @@ export default function HomePage() {
                   )}
                   <div className="relative">
                     <Map className="h-[22px] w-[22px]" />
-                    {(userTrips.length + (draftTrip ? 1 : 0)) > 0 && (
+                    {totalTrips > 0 && (
                       <span className="absolute -top-1.5 -right-2.5 h-4 min-w-[16px] bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
-                        {userTrips.length + (draftTrip ? 1 : 0)}
+                        {totalTrips}
                       </span>
                     )}
                   </div>

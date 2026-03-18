@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import {
   Plus, X, ExternalLink, Clock, MapPin, Plane,
   AlertTriangle, Search, Calendar, Share2, CheckCheck,
-  Upload, Radar, Globe, Zap, DoorOpen, Trash2, BookmarkCheck,
+  Upload, Radar, Globe, Zap, DoorOpen, Trash2, BookmarkCheck, Pencil,
 } from "lucide-react";
 import { AirportStatusMap, TripFlight, TripTab } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
@@ -1000,6 +1000,7 @@ interface TripPanelProps {
   onAddFlight: (tripId: string, flight: TripFlight) => void;
   onRemoveFlight: (tripId: string, flightId: string) => void;
   onDeleteTrip?: () => void;
+  onRenameTrip?: (name: string) => void;
   isDraft?: boolean;
   onSave?: () => void;
 }
@@ -1011,6 +1012,7 @@ export function TripPanel({
   onAddFlight,
   onRemoveFlight,
   onDeleteTrip,
+  onRenameTrip,
   isDraft,
   onSave,
 }: TripPanelProps) {
@@ -1020,6 +1022,8 @@ export function TripPanel({
   const [waCopied, setWaCopied]     = useState(false);
   const [showGcal, setShowGcal]     = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [isRenamingTrip, setIsRenamingTrip] = useState(false);
+  const [renamingTripName, setRenamingTripName] = useState("");
 
   const sorted = useMemo(
     () => [...trip.flights].sort((a, b) => {
@@ -1145,15 +1149,47 @@ export function TripPanel({
 
   return (
     <div className="space-y-4">
-      {/* Trip header — name + delete trip (always visible, especially useful on mobile) */}
+      {/* Trip header — name (editable) + rename + delete */}
       <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
+        <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-wider text-gray-600 mb-0.5">
             {locale === "es" ? "Viaje" : "Trip"}
           </p>
-          <h2 className="text-base font-black text-white truncate">{trip.name}</h2>
+          {isRenamingTrip ? (
+            <input
+              autoFocus
+              value={renamingTripName}
+              onChange={(e) => setRenamingTripName(e.target.value)}
+              onBlur={() => {
+                if (renamingTripName.trim() && onRenameTrip) onRenameTrip(renamingTripName.trim());
+                setIsRenamingTrip(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (renamingTripName.trim() && onRenameTrip) onRenameTrip(renamingTripName.trim());
+                  setIsRenamingTrip(false);
+                }
+                if (e.key === "Escape") setIsRenamingTrip(false);
+              }}
+              maxLength={40}
+              className="w-full bg-white/[0.06] border border-blue-500/50 rounded-lg px-3 py-1.5 text-base font-black text-white outline-none"
+            />
+          ) : (
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-black text-white truncate">{trip.name}</h2>
+              {onRenameTrip && (
+                <button
+                  onClick={() => { setRenamingTripName(trip.name); setIsRenamingTrip(true); }}
+                  title={locale === "es" ? "Renombrar viaje" : "Rename trip"}
+                  className="shrink-0 p-1 rounded-md text-gray-600 hover:text-gray-300 transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
-        {onDeleteTrip && (
+        {onDeleteTrip && !isRenamingTrip && (
           <button
             onClick={onDeleteTrip}
             title={locale === "es" ? "Eliminar viaje" : "Delete trip"}
