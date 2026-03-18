@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { X, Upload, CheckCircle, AlertCircle, Loader2, FileText } from "lucide-react";
-import { parseFlightsFromText, ParsedFlight } from "@/lib/importFlights";
+import { useRef, useState } from "react";
+import {
+  X, Upload, CheckCircle, AlertCircle, Loader2,
+  FileText, ImagePlus, ArrowRight, Sparkles,
+} from "lucide-react";
+import { ParsedFlight } from "@/lib/importFlights";
+import { AIRLINES } from "@/lib/flightUtils";
 
 interface ImportFlightsModalProps {
   onImport: (flights: ParsedFlight[]) => void;
@@ -10,128 +14,216 @@ interface ImportFlightsModalProps {
   locale: "es" | "en";
 }
 
+// ── i18n ─────────────────────────────────────────────────────────────────────
 const L = {
   es: {
-    title: "Importar vuelos",
-    subtitle: "Pegá el texto de tu confirmación de vuelo. Detectamos automáticamente los datos.",
-    placeholder: `Pegá el texto de tu email de confirmación aquí...
+    title: "Importar con IA",
+    tabText: "Texto",
+    tabImage: "Imagen",
+    textPlaceholder: `Pegá el texto de tu email de confirmación...
 
-Ejemplos que funcionan:
-• AA900 EZE MIA 29MAR 20:30
-• Flight AA 900 Buenos Aires (EZE) → Miami (MIA) March 29, 2026 · Dep. 8:30 PM
-• UA456 | EWR → MIA | 2026-03-29 | 14:25`,
-    parse: "Detectar vuelos",
-    parsing: "Detectando...",
-    foundFlights: (n: number) => `${n} vuelo${n !== 1 ? "s" : ""} detectado${n !== 1 ? "s" : ""}`,
-    noFlights: "No se detectaron vuelos. Verificá el formato del texto.",
-    addAll: (n: number) => `Agregar ${n} vuelo${n !== 1 ? "s" : ""}`,
+Funciona con cualquier formato:
+• "AA 900 · EZE → MIA · 29 Mar 2026 · Salida 20:30"
+• Texto copiado de Gmail, Outlook o la web de la aerolínea
+• Itinerarios completos con múltiples tramos`,
+    imageTip: "Subí una captura de pantalla, email o boarding pass",
+    imageBtn: "Elegir imagen",
+    imageHint: "JPG, PNG, WEBP o GIF · máx 5 MB",
+    parse: "Analizar con IA",
+    parsing: "Analizando...",
+    reviewTitle: (n: number) => `${n} vuelo${n !== 1 ? "s" : ""} detectado${n !== 1 ? "s" : ""}`,
+    reviewSub: "Revisá y editá los datos antes de agregar",
+    noFlights: "No se detectaron vuelos. Verificá el texto o la imagen.",
+    addBtn: (n: number) => `Agregar ${n} vuelo${n !== 1 ? "s" : ""}`,
     cancel: "Cancelar",
-    confidence: { high: "Alta confianza", medium: "Confianza media", low: "Baja confianza" },
+    tryAgain: "Intentar de nuevo",
+    flightCode: "Código",
     origin: "Origen",
     dest: "Destino",
-    date: "Fecha",
-    time: "Hora",
-    noTime: "—",
-    unresolved: (n: number) => `${n} código${n !== 1 ? "s" : ""} no reconocido${n !== 1 ? "s" : ""}`,
-    tip: "Funciona con confirmaciones de American, United, Delta, JetBlue, LATAM, Aerolíneas y muchas más.",
-    selectAll: "Seleccionar todos",
-    deselectAll: "Deseleccionar todos",
+    date: "Fecha (AAAA-MM-DD)",
+    time: "Hora salida",
+    buffer: "Buffer arr. (hs)",
+    fieldRequired: "Requerido",
+    missingWarning: "Completá los campos marcados en naranja antes de agregar.",
+    aiPowered: "Extracción automática con Claude IA",
   },
   en: {
-    title: "Import flights",
-    subtitle: "Paste your flight confirmation text. We'll automatically detect the details.",
-    placeholder: `Paste your confirmation email text here...
+    title: "AI Import",
+    tabText: "Text",
+    tabImage: "Image",
+    textPlaceholder: `Paste your booking confirmation text...
 
-Examples that work:
-• AA900 EZE MIA 29MAR 20:30
-• Flight AA 900 Buenos Aires (EZE) → Miami (MIA) March 29, 2026 · Dep. 8:30 PM
-• UA456 | EWR → MIA | 2026-03-29 | 14:25`,
-    parse: "Detect flights",
-    parsing: "Detecting...",
-    foundFlights: (n: number) => `${n} flight${n !== 1 ? "s" : ""} detected`,
-    noFlights: "No flights detected. Check the text format.",
-    addAll: (n: number) => `Add ${n} flight${n !== 1 ? "s" : ""}`,
+Works with any format:
+• "AA 900 · EZE → MIA · Mar 29, 2026 · Dep. 8:30 PM"
+• Text copied from Gmail, Outlook or the airline's website
+• Full itineraries with multiple legs`,
+    imageTip: "Upload a screenshot, email or boarding pass photo",
+    imageBtn: "Choose image",
+    imageHint: "JPG, PNG, WEBP or GIF · max 5 MB",
+    parse: "Analyze with AI",
+    parsing: "Analyzing...",
+    reviewTitle: (n: number) => `${n} flight${n !== 1 ? "s" : ""} detected`,
+    reviewSub: "Review and edit the details before adding",
+    noFlights: "No flights detected. Check your text or image.",
+    addBtn: (n: number) => `Add ${n} flight${n !== 1 ? "s" : ""}`,
     cancel: "Cancel",
-    confidence: { high: "High confidence", medium: "Medium confidence", low: "Low confidence" },
+    tryAgain: "Try again",
+    flightCode: "Code",
     origin: "Origin",
-    dest: "Dest",
-    date: "Date",
-    time: "Time",
-    noTime: "—",
-    unresolved: (n: number) => `${n} unrecognized code${n !== 1 ? "s" : ""}`,
-    tip: "Works with American, United, Delta, JetBlue, LATAM, Aerolíneas, and many more.",
-    selectAll: "Select all",
-    deselectAll: "Deselect all",
+    dest: "Destination",
+    date: "Date (YYYY-MM-DD)",
+    time: "Dep. time",
+    buffer: "Arr. buffer (hrs)",
+    fieldRequired: "Required",
+    missingWarning: "Fill in the orange fields before adding.",
+    aiPowered: "Automatic extraction with Claude AI",
   },
 };
 
-const CONFIDENCE_COLORS = {
-  high:   "text-emerald-400 bg-emerald-900/30 border-emerald-800/50",
-  medium: "text-yellow-400 bg-yellow-900/30 border-yellow-800/50",
-  low:    "text-red-400 bg-red-900/30 border-red-800/50",
-};
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface EditableFlight extends ParsedFlight {
+  selected: boolean;
+  missing: string[];
+}
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function buildParsedFlight(raw: {
+  flightCode: string;
+  airlineCode: string;
+  airlineName: string;
+  flightNumber: string;
+  originCode: string;
+  destinationCode: string;
+  isoDate: string;
+  departureTime: string;
+  missing: string[];
+}): EditableFlight {
+  const airline = AIRLINES[raw.airlineCode.toUpperCase()];
+  return {
+    flightCode:      raw.flightCode,
+    airlineCode:     raw.airlineCode.toUpperCase(),
+    airlineName:     raw.airlineName || airline?.name || raw.airlineCode,
+    airlineIcao:     airline?.icao ?? "",
+    flightNumber:    raw.flightNumber,
+    originCode:      raw.originCode.toUpperCase(),
+    destinationCode: raw.destinationCode.toUpperCase(),
+    isoDate:         raw.isoDate,
+    departureTime:   raw.departureTime ?? "",
+    arrivalBuffer:   2,
+    confidence:      raw.missing.length === 0 ? "high"
+                   : raw.missing.length <= 1   ? "medium"
+                   : "low",
+    selected: true,
+    missing:  raw.missing,
+  };
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve((reader.result as string).split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsModalProps) {
   const t = L[locale];
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [tab, setTab] = useState<"text" | "image">("text");
   const [text, setText] = useState("");
-  const [result, setResult] = useState<ReturnType<typeof parseFlightsFromText> | null>(null);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [parsing, setParsing] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
-  function handleParse() {
-    if (!text.trim()) return;
-    setParsing(true);
-    // Small delay for UX (let loader show)
-    setTimeout(() => {
-      const parsed = parseFlightsFromText(text.toUpperCase());
-      setResult(parsed);
-      setSelected(new Set(parsed.flights.map((_, i) => i)));
-      setParsing(false);
-    }, 400);
+  const [phase, setPhase] = useState<"input" | "parsing" | "review">("input");
+  const [flights, setFlights] = useState<EditableFlight[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  function handleImagePick(file: File) {
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   }
 
-  function toggleSelect(i: number) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      next.has(i) ? next.delete(i) : next.add(i);
-      return next;
-    });
+  async function handleParse() {
+    setPhase("parsing");
+    setApiError(null);
+    try {
+      let body: Record<string, string>;
+      if (tab === "image" && imageFile) {
+        const base64 = await fileToBase64(imageFile);
+        body = { imageBase64: base64, mimeType: imageFile.type };
+      } else {
+        body = { text };
+      }
+
+      const res = await fetch("/api/parse-flight", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      const raw: ReturnType<typeof buildParsedFlight>[] = (data.flights ?? []).map(buildParsedFlight);
+      setFlights(raw);
+      setPhase("review");
+    } catch {
+      setApiError("Error al conectar con la IA. Intentá de nuevo.");
+      setPhase("input");
+    }
   }
 
-  function handleImport() {
-    if (!result) return;
-    const toImport = result.flights.filter((_, i) => selected.has(i));
-    onImport(toImport);
-    onClose();
-  }
-
-  const allSelected = result && selected.size === result.flights.length;
-
-  function formatDate(iso: string, loc: "es" | "en") {
-    return new Date(iso + "T00:00:00").toLocaleDateString(
-      loc === "en" ? "en-US" : "es-AR",
-      { day: "numeric", month: "short", year: "numeric" }
+  function updateFlight(idx: number, field: keyof EditableFlight, value: string | number | boolean) {
+    setFlights((prev) =>
+      prev.map((f, i) => {
+        if (i !== idx) return f;
+        const updated = { ...f, [field]: value };
+        // Remove from missing if the field is now filled
+        if (typeof value === "string" && value.trim()) {
+          updated.missing = updated.missing.filter((m) => m !== field);
+        }
+        return updated;
+      })
     );
   }
 
+  function toggleSelect(idx: number) {
+    setFlights((prev) =>
+      prev.map((f, i) => (i === idx ? { ...f, selected: !f.selected } : f))
+    );
+  }
+
+  function handleImport() {
+    const selected = flights.filter((f) => f.selected);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    onImport(selected.map(({ selected: _s, missing: _m, ...rest }) => rest as ParsedFlight));
+    onClose();
+  }
+
+  const selectedFlights = flights.filter((f) => f.selected);
+  const hasMissingRequired = selectedFlights.some(
+    (f) => f.missing.some((m) => ["originCode", "destinationCode", "isoDate", "flightCode"].includes(m))
+  );
+  const canParse = tab === "text" ? text.trim().length > 0 : imageFile !== null;
+
+  // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    /* Backdrop */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}
+      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      {/* Panel */}
-      <div className="relative w-full max-w-2xl rounded-2xl border border-white/8 bg-[#0f0f17] shadow-2xl animate-fade-in-up">
+      <div className="relative w-full max-w-2xl rounded-2xl border border-white/8 bg-[#0f0f17] shadow-2xl animate-fade-in-up max-h-[90vh] flex flex-col">
 
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-white/6">
+        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-white/6 shrink-0">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Upload className="h-5 w-5 text-blue-400" />
+              <Sparkles className="h-5 w-5 text-violet-400" />
               {t.title}
             </h2>
-            <p className="text-xs text-gray-400 mt-0.5 max-w-md">{t.subtitle}</p>
+            <p className="text-[11px] text-gray-500 mt-0.5">{t.aiPowered}</p>
           </div>
           <button
             onClick={onClose}
@@ -141,163 +233,328 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
-          {/* Textarea */}
-          {!result && (
-            <div className="space-y-3">
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder={t.placeholder}
-                rows={9}
-                className="w-full rounded-xl border border-white/8 bg-[#080810] px-4 py-3 text-sm text-gray-200 placeholder-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500/60 resize-none font-mono leading-relaxed"
-              />
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] text-gray-600 flex items-center gap-1.5">
-                  <FileText className="h-3 w-3" />
-                  {t.tip}
-                </p>
-                <button
-                  onClick={handleParse}
-                  disabled={!text.trim() || parsing}
-                  className="flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-40 px-4 py-2 text-sm font-semibold text-white transition-colors shrink-0"
-                >
-                  {parsing ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      {t.parsing}
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-3.5 w-3.5" />
-                      {t.parse}
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
 
-          {/* Results */}
-          {result && (
-            <div className="space-y-3">
-              {/* Summary bar */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  {result.flights.length > 0 ? (
-                    <CheckCircle className="h-4 w-4 text-emerald-400" />
-                  ) : (
-                    <AlertCircle className="h-4 w-4 text-red-400" />
-                  )}
-                  <span className={`text-sm font-semibold ${result.flights.length > 0 ? "text-emerald-400" : "text-red-400"}`}>
-                    {result.flights.length > 0
-                      ? t.foundFlights(result.flights.length)
-                      : t.noFlights}
-                  </span>
-                  {result.unresolved.length > 0 && (
-                    <span className="text-xs text-gray-500">
-                      · {t.unresolved(result.unresolved.length)}
-                    </span>
-                  )}
-                </div>
-                {result.flights.length > 0 && (
+          {/* ── INPUT PHASE ── */}
+          {phase === "input" && (
+            <>
+              {/* Mode tabs */}
+              <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/6 w-fit">
+                {(["text", "image"] as const).map((t_) => (
                   <button
-                    onClick={() =>
-                      allSelected
-                        ? setSelected(new Set())
-                        : setSelected(new Set(result.flights.map((_, i) => i)))
-                    }
-                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                    key={t_}
+                    onClick={() => setTab(t_)}
+                    className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                      tab === t_
+                        ? "bg-violet-600 text-white shadow"
+                        : "text-gray-500 hover:text-gray-300"
+                    }`}
                   >
-                    {allSelected ? t.deselectAll : t.selectAll}
+                    {t_ === "text" ? <FileText className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
+                    {t_ === "text" ? t.tabText : t.tabImage}
                   </button>
-                )}
+                ))}
               </div>
 
-              {/* Flight list */}
-              {result.flights.length > 0 && (
-                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                  {result.flights.map((f, i) => (
-                    <button
-                      key={i}
-                      onClick={() => toggleSelect(i)}
-                      className={`w-full text-left rounded-xl border px-4 py-3 transition-all ${
-                        selected.has(i)
-                          ? "border-blue-600/40 bg-blue-950/25"
-                          : "border-white/6 bg-[#080810] opacity-50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          {/* Checkbox indicator */}
-                          <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                            selected.has(i) ? "border-blue-500 bg-blue-500" : "border-gray-600"
-                          }`}>
-                            {selected.has(i) && (
-                              <svg viewBox="0 0 10 8" fill="none" className="h-2.5 w-2.5">
-                                <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            )}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-white text-sm">{f.flightCode}</span>
-                              <span className="text-xs text-gray-500">{f.airlineName}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5 text-xs text-gray-400">
-                              <span className="font-semibold text-gray-200">{f.originCode}</span>
-                              <span className="text-gray-600">→</span>
-                              <span className="font-semibold text-gray-200">{f.destinationCode}</span>
-                              <span className="text-gray-600">·</span>
-                              <span>{formatDate(f.isoDate, locale)}</span>
-                              {f.departureTime && (
-                                <>
-                                  <span className="text-gray-600">·</span>
-                                  <span className="text-blue-400 font-medium">{f.departureTime}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${CONFIDENCE_COLORS[f.confidence]}`}>
-                          {t.confidence[f.confidence]}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
+              {/* Text input */}
+              {tab === "text" && (
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder={t.textPlaceholder}
+                  rows={9}
+                  className="w-full rounded-xl border border-white/8 bg-[#080810] px-4 py-3 text-sm text-gray-200 placeholder-gray-700 focus:outline-none focus:ring-1 focus:ring-violet-500/60 resize-none font-mono leading-relaxed"
+                />
+              )}
+
+              {/* Image input */}
+              {tab === "image" && (
+                <div
+                  className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-white/10 bg-[#080810] p-6 cursor-pointer hover:border-violet-500/40 transition-colors"
+                  onClick={() => fileRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith("image/")) handleImagePick(file);
+                  }}
+                >
+                  {imagePreview ? (
+                    <img
+                      src={imagePreview}
+                      alt="preview"
+                      className="max-h-48 rounded-lg object-contain border border-white/10"
+                    />
+                  ) : (
+                    <>
+                      <ImagePlus className="h-10 w-10 text-gray-700" />
+                      <p className="text-sm text-gray-400">{t.imageTip}</p>
+                      <p className="text-xs text-gray-600">{t.imageHint}</p>
+                    </>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }}
+                    className="mt-1 rounded-lg border border-white/10 bg-white/5 px-4 py-1.5 text-sm text-gray-300 hover:bg-white/10 transition-colors"
+                  >
+                    {t.imageBtn}
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImagePick(file);
+                    }}
+                  />
                 </div>
               )}
 
-              {/* Try again */}
-              <button
-                onClick={() => { setResult(null); setSelected(new Set()); }}
-                className="text-xs text-gray-500 hover:text-gray-300 transition-colors underline"
-              >
-                {locale === "en" ? "Try different text" : "Intentar con otro texto"}
-              </button>
+              {apiError && (
+                <p className="text-xs text-red-400 flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                  {apiError}
+                </p>
+              )}
+            </>
+          )}
+
+          {/* ── PARSING PHASE ── */}
+          {phase === "parsing" && (
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <div className="relative">
+                <div className="h-14 w-14 rounded-full border-2 border-violet-500/20 flex items-center justify-center">
+                  <Sparkles className="h-6 w-6 text-violet-400" />
+                </div>
+                <Loader2 className="absolute inset-0 h-14 w-14 animate-spin text-violet-500/40" />
+              </div>
+              <p className="text-sm text-gray-400 animate-pulse">{t.parsing}</p>
+            </div>
+          )}
+
+          {/* ── REVIEW PHASE ── */}
+          {phase === "review" && (
+            <div className="space-y-4">
+              {flights.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-10 text-center">
+                  <AlertCircle className="h-8 w-8 text-red-400" />
+                  <p className="text-sm text-red-400">{t.noFlights}</p>
+                  <button
+                    onClick={() => setPhase("input")}
+                    className="text-xs text-gray-500 hover:text-gray-300 underline"
+                  >
+                    {t.tryAgain}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-emerald-400 flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4" />
+                        {t.reviewTitle(flights.length)}
+                      </p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">{t.reviewSub}</p>
+                    </div>
+                    <button
+                      onClick={() => setPhase("input")}
+                      className="text-xs text-gray-600 hover:text-gray-400 underline"
+                    >
+                      {t.tryAgain}
+                    </button>
+                  </div>
+
+                  {hasMissingRequired && (
+                    <p className="text-xs text-orange-400 bg-orange-950/30 border border-orange-800/30 rounded-lg px-3 py-2 flex items-center gap-2">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      {t.missingWarning}
+                    </p>
+                  )}
+
+                  {/* Editable flight cards */}
+                  <div className="space-y-3">
+                    {flights.map((f, idx) => (
+                      <FlightEditCard
+                        key={idx}
+                        flight={f}
+                        locale={locale}
+                        t={t}
+                        onToggle={() => toggleSelect(idx)}
+                        onChange={(field, value) => updateFlight(idx, field, value)}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/6">
+        <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-white/6 shrink-0">
           <button
             onClick={onClose}
             className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
           >
             {t.cancel}
           </button>
-          {result && result.flights.length > 0 && selected.size > 0 && (
+
+          {phase === "input" && (
+            <button
+              onClick={handleParse}
+              disabled={!canParse}
+              className="flex items-center gap-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 px-5 py-2 text-sm font-semibold text-white transition-colors"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {t.parse}
+            </button>
+          )}
+
+          {phase === "review" && selectedFlights.length > 0 && !hasMissingRequired && (
             <button
               onClick={handleImport}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-500 px-5 py-2 text-sm font-semibold text-white transition-colors"
+              className="flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 px-5 py-2 text-sm font-semibold text-white transition-colors"
             >
               <CheckCircle className="h-3.5 w-3.5" />
-              {t.addAll(selected.size)}
+              {t.addBtn(selectedFlights.length)}
             </button>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Editable flight card ──────────────────────────────────────────────────────
+function FlightEditCard({
+  flight,
+  locale,
+  t,
+  onToggle,
+  onChange,
+}: {
+  flight: EditableFlight;
+  locale: "es" | "en";
+  t: typeof L["es"];
+  onToggle: () => void;
+  onChange: (field: keyof EditableFlight, value: string | number) => void;
+}) {
+  const isMissing = (field: string) => flight.missing.includes(field);
+  const fieldCls = (field: string) =>
+    `w-full rounded-lg border px-2.5 py-1.5 text-xs text-gray-200 bg-[#080810] focus:outline-none focus:ring-1 transition-colors ${
+      isMissing(field)
+        ? "border-orange-600/60 focus:ring-orange-500/50 placeholder-orange-800"
+        : "border-white/8 focus:ring-violet-500/40 placeholder-gray-700"
+    }`;
+
+  return (
+    <div className={`rounded-xl border transition-all ${
+      flight.selected
+        ? "border-violet-600/30 bg-violet-950/10"
+        : "border-white/6 bg-[#080810] opacity-50"
+    }`}>
+      {/* Card header with checkbox + route summary */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+        onClick={onToggle}
+      >
+        <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+          flight.selected ? "border-violet-500 bg-violet-500" : "border-gray-600"
+        }`}>
+          {flight.selected && (
+            <svg viewBox="0 0 10 8" fill="none" className="h-2.5 w-2.5">
+              <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </div>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-bold text-white text-sm">{flight.flightCode || "—"}</span>
+          <span className="text-gray-600">·</span>
+          <span className="text-sm font-semibold text-gray-200">{flight.originCode || "?"}</span>
+          <ArrowRight className="h-3 w-3 text-gray-600 shrink-0" />
+          <span className="text-sm font-semibold text-gray-200">{flight.destinationCode || "?"}</span>
+          <span className="text-gray-600">·</span>
+          <span className="text-xs text-gray-500">{flight.isoDate || "—"}</span>
+          {flight.departureTime && (
+            <>
+              <span className="text-gray-600">·</span>
+              <span className="text-xs text-blue-400 font-medium">{flight.departureTime}</span>
+            </>
+          )}
+        </div>
+        {flight.missing.length > 0 && (
+          <span className="ml-auto text-[10px] font-semibold text-orange-400 bg-orange-950/40 border border-orange-800/30 rounded-full px-2 py-0.5 shrink-0">
+            {flight.missing.length} {locale === "es" ? "faltan" : "missing"}
+          </span>
+        )}
+      </div>
+
+      {/* Editable fields grid */}
+      {flight.selected && (
+        <div className="px-4 pb-4 grid grid-cols-2 sm:grid-cols-3 gap-2 border-t border-white/4 pt-3">
+          <div>
+            <label className="text-[10px] text-gray-600 mb-1 block">{t.flightCode}</label>
+            <input
+              value={flight.flightCode}
+              onChange={(e) => onChange("flightCode", e.target.value.toUpperCase())}
+              placeholder="AA900"
+              className={fieldCls("flightCode")}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-600 mb-1 block">{t.origin}</label>
+            <input
+              value={flight.originCode}
+              onChange={(e) => onChange("originCode", e.target.value.toUpperCase().slice(0, 3))}
+              placeholder="EZE"
+              maxLength={3}
+              className={fieldCls("originCode")}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-600 mb-1 block">{t.dest}</label>
+            <input
+              value={flight.destinationCode}
+              onChange={(e) => onChange("destinationCode", e.target.value.toUpperCase().slice(0, 3))}
+              placeholder="MIA"
+              maxLength={3}
+              className={fieldCls("destinationCode")}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-600 mb-1 block">{t.date}</label>
+            <input
+              value={flight.isoDate}
+              onChange={(e) => onChange("isoDate", e.target.value)}
+              placeholder="2026-03-29"
+              className={fieldCls("isoDate")}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-600 mb-1 block">{t.time}</label>
+            <input
+              value={flight.departureTime}
+              onChange={(e) => onChange("departureTime", e.target.value)}
+              placeholder="20:30"
+              className={fieldCls("departureTime")}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-600 mb-1 block">{t.buffer}</label>
+            <input
+              type="number"
+              value={flight.arrivalBuffer}
+              onChange={(e) => onChange("arrivalBuffer", parseFloat(e.target.value) || 2)}
+              min={0.5}
+              max={12}
+              step={0.5}
+              className={fieldCls("arrivalBuffer")}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
