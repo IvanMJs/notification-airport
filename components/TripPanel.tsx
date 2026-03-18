@@ -665,7 +665,7 @@ function FlightCard({
 
   const originStatus = statusMap[flight.originCode];
   const status       = originStatus?.status ?? "ok";
-  const hasIssue     = !isNonFAA && status !== "ok";
+  const hasIssue     = status !== "ok";
   const weather      = weatherMap[flight.originCode];
   const isImminent   = daysUntil >= 0 && daysUntil <= 1;
 
@@ -763,7 +763,7 @@ function FlightCard({
           <div className="flex flex-col items-end gap-2 shrink-0">
             {/* Status badge + trash on the same row */}
             <div className="flex items-center gap-1.5">
-              {isNonFAA ? (
+              {isNonFAA && !originStatus ? (
                 <span title={L.internationalNote}><Globe className="h-4 w-4 text-blue-400/70" /></span>
               ) : (
                 <StatusBadge status={status} className="text-sm px-3 py-1" />
