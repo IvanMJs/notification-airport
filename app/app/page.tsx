@@ -802,17 +802,10 @@ export default function HomePage() {
                 style={{ background: "linear-gradient(160deg, rgba(18,18,32,0.99) 0%, rgba(10,10,20,1) 100%)" }}
               >
                 {/* Header */}
-                <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+                <div className="px-4 py-3 border-b border-white/[0.06]">
                   <p className="text-xs font-bold uppercase tracking-wider text-gray-400">
                     {locale === "es" ? "Mis viajes" : "My trips"}
                   </p>
-                  <button
-                    onClick={() => { setShowTripPicker(false); openCreateTripModal(); }}
-                    className="flex items-center gap-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-2.5 py-1.5 transition-colors tap-scale"
-                  >
-                    <Plus className="h-3 w-3" />
-                    {locale === "es" ? "Nuevo" : "New"}
-                  </button>
                 </div>
 
                 {/* Empty state */}
@@ -948,14 +941,26 @@ export default function HomePage() {
               );
             })}
 
-            {/* Trips tab — ALWAYS opens the management picker popup */}
+            {/* Mis viajes — opens picker popup */}
             {(() => {
               const tripsActive =
                 activeTab === "trips" || activeTab === DRAFT_ID || userTrips.some((t) => t.id === activeTab);
               const totalTrips = userTrips.length + (draftTrip ? 1 : 0);
+              const label = totalTrips === 1
+                ? (locale === "es" ? "Mi viaje" : "My trip")
+                : (locale === "es" ? "Mis viajes" : "My trips");
               return (
                 <button
-                  onClick={() => { setShowTripPicker((v) => !v); setRenameInPickerId(null); }}
+                  onClick={() => {
+                    const allTrips = [...userTrips, ...(draftTrip ? [{ id: DRAFT_ID }] : [])];
+                    if (allTrips.length === 1) {
+                      setActiveTab(allTrips[0].id);
+                      setShowTripPicker(false);
+                    } else {
+                      setShowTripPicker((v) => !v);
+                      setRenameInPickerId(null);
+                    }
+                  }}
                   className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${
                     tripsActive ? "text-blue-400" : "text-gray-500"
                   }`}
@@ -967,18 +972,29 @@ export default function HomePage() {
                   )}
                   <div className="relative">
                     <Map className="h-[22px] w-[22px]" />
-                    {totalTrips > 0 && (
+                    {totalTrips > 1 && (
                       <span className="absolute -top-1.5 -right-2.5 h-4 min-w-[16px] bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
                         {totalTrips}
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] font-semibold leading-none">
-                    {locale === "es" ? "Viajes" : "Trips"}
+                  <span className="text-[10px] font-semibold leading-none truncate max-w-[56px] text-center">
+                    {label}
                   </span>
                 </button>
               );
             })()}
+
+            {/* + Nuevo viaje */}
+            <button
+              onClick={() => { setShowTripPicker(false); openCreateTripModal(); }}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors text-gray-500 hover:text-blue-400"
+            >
+              <Plus className="h-[22px] w-[22px]" />
+              <span className="text-[10px] font-semibold leading-none">
+                {locale === "es" ? "Nuevo" : "New"}
+              </span>
+            </button>
           </div>
 
           </div>
