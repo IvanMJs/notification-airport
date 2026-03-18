@@ -3,48 +3,33 @@
 import { useMemo } from "react";
 import { ArrowRight, CheckCircle, AlertTriangle, ShieldAlert, ShieldCheck, Shield, ShieldOff } from "lucide-react";
 import { AirportStatusMap, TripFlight } from "@/lib/types";
+import { FlightData } from "@/hooks/useMyFlights";
 import { calculateTripRiskScore } from "@/lib/tripRiskScore";
 import { analyzeAllConnections } from "@/lib/connectionRisk";
 
 interface TripSummaryHeroProps {
   statusMap: AirportStatusMap;
   locale: "es" | "en";
+  flights: FlightData[];
 }
 
-const MY_TRIP_FLIGHTS: TripFlight[] = [
-  {
-    id: "mf1", flightCode: "AA900", airlineCode: "AA",
-    airlineName: "American Airlines", airlineIcao: "AAL", flightNumber: "900",
-    originCode: "EZE", destinationCode: "MIA",
-    isoDate: "2026-03-29", departureTime: "20:30", arrivalBuffer: 3,
-  },
-  {
-    id: "mf2", flightCode: "AA956", airlineCode: "AA",
-    airlineName: "American Airlines", airlineIcao: "AAL", flightNumber: "956",
-    originCode: "MIA", destinationCode: "GCM",
-    isoDate: "2026-03-31", departureTime: "12:55", arrivalBuffer: 2,
-  },
-  {
-    id: "mf3", flightCode: "B6766", airlineCode: "B6",
-    airlineName: "JetBlue Airways", airlineIcao: "JBU", flightNumber: "766",
-    originCode: "GCM", destinationCode: "JFK",
-    isoDate: "2026-04-05", departureTime: "15:40", arrivalBuffer: 2.5,
-  },
-  {
-    id: "mf4", flightCode: "DL1514", airlineCode: "DL",
-    airlineName: "Delta Air Lines", airlineIcao: "DAL", flightNumber: "1514",
-    originCode: "JFK", destinationCode: "MIA",
-    isoDate: "2026-04-11", departureTime: "11:10", arrivalBuffer: 2,
-  },
-  {
-    id: "mf5", flightCode: "AA931", airlineCode: "AA",
-    airlineName: "American Airlines", airlineIcao: "AAL", flightNumber: "931",
-    originCode: "MIA", destinationCode: "EZE",
-    isoDate: "2026-04-11", departureTime: "21:15", arrivalBuffer: 3,
-  },
-];
-
-const TRIP_AIRPORTS = ["EZE", "MIA", "GCM", "JFK"] as const;
+// Convert display-oriented FlightData → data model TripFlight for risk functions
+function toTripFlight(f: FlightData, idx: number): TripFlight {
+  const parts = f.flightNum.split(" ");
+  return {
+    id:              f.isoDate + idx,
+    flightCode:      f.flightNum.replace(/\s+/g, ""),
+    airlineCode:     parts[0] ?? "",
+    airlineName:     f.airline,
+    airlineIcao:     "",
+    flightNumber:    parts[1] ?? "",
+    originCode:      f.originCode,
+    destinationCode: f.destinationCode,
+    isoDate:         f.isoDate,
+    departureTime:   f.departureTime,
+    arrivalBuffer:   f.arrivalBuffer,
+  };
+}
 
 function getDaysUntil(isoDate: string): number {
   const today = new Date();
@@ -101,19 +86,21 @@ const CONN_LABELS = {
   tight:   { es: "Ajustada",          en: "Tight"              },
 } as const;
 
-export function TripSummaryHero({ statusMap, locale }: TripSummaryHeroProps) {
+export function TripSummaryHero({ statusMap, locale, flights }: TripSummaryHeroProps) {
+  const tripFlights = useMemo(() => flights.map(toTripFlight), [flights]);
+
   const risk = useMemo(
-    () => calculateTripRiskScore(MY_TRIP_FLIGHTS, statusMap, locale),
-    [statusMap, locale],
+    () => calculateTripRiskScore(tripFlights, statusMap, locale),
+    [tripFlights, statusMap, locale],
   );
   const connectionMap = useMemo(
-    () => analyzeAllConnections(MY_TRIP_FLIGHTS, statusMap),
-    [statusMap],
+    () => analyzeAllConnections(tripFlights, statusMap),
+    [tripFlights, statusMap],
   );
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const nextFlight = MY_TRIP_FLIGHTS.find(
+  const nextFlight = flights.find(
     (f) => new Date(f.isoDate + "T00:00:00") >= today,
   );
   const daysUntil = nextFlight ? getDaysUntil(nextFlight.isoDate) : null;
@@ -152,7 +139,7 @@ export function TripSummaryHero({ statusMap, locale }: TripSummaryHeroProps) {
             {/* Flight code + route */}
             <div className="flex items-baseline gap-3 flex-wrap mb-2.5">
               <span className="text-2xl font-black text-white tracking-tight leading-none">
-                {nextFlight.flightCode}
+                {nextFlight.flightNum}
               </span>
               <div className="flex items-center gap-1.5">
                 <span className="text-base font-bold text-gray-200">{nextFlight.originCode}</span>
@@ -236,7 +223,7 @@ export function TripSummaryHero({ statusMap, locale }: TripSummaryHeroProps) {
 
         {/* Legs count */}
         <span className="text-xs text-gray-600 shrink-0">
-          {MY_TRIP_FLIGHTS.length} {locale === "es" ? "tramos" : "legs"}
+          {flights.length} {locale === "es" ? "tramos" : "legs"}
         </span>
 
         <span className="h-3 w-px bg-gray-800 shrink-0" />
@@ -253,9 +240,13 @@ export function TripSummaryHero({ statusMap, locale }: TripSummaryHeroProps) {
         )}
 
         {/* Trip dates — desktop only, pushed right */}
-        <span className="ml-auto text-[10px] text-gray-700 hidden sm:block tabular">
-          {locale === "en" ? "Mar 29 – Apr 12, 2026" : "29 Mar – 12 Abr 2026"}
-        </span>
+        {flights.length > 0 && (
+          <span className="ml-auto text-[10px] text-gray-700 hidden sm:block tabular">
+            {locale === "en"
+              ? `${flights[0].dateEn} – ${flights[flights.length - 1].dateEn}`
+              : `${flights[0].date} – ${flights[flights.length - 1].date}`}
+          </span>
+        )}
       </div>
     </div>
   );

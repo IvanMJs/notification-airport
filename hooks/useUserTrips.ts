@@ -1,0 +1,160 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { TripTab, TripFlight } from "@/lib/types";
+
+// Shape of a flights row returned by Supabase
+interface DbFlight {
+  id: string;
+  flight_code: string;
+  airline_code: string;
+  airline_name: string;
+  airline_icao: string;
+  flight_number: string;
+  origin_code: string;
+  destination_code: string;
+  iso_date: string;
+  departure_time: string | null;
+  arrival_buffer: number;
+  sort_order: number;
+}
+
+function toTripFlight(f: DbFlight): TripFlight {
+  return {
+    id:              f.id,
+    flightCode:      f.flight_code,
+    airlineCode:     f.airline_code,
+    airlineName:     f.airline_name,
+    airlineIcao:     f.airline_icao,
+    flightNumber:    f.flight_number,
+    originCode:      f.origin_code,
+    destinationCode: f.destination_code,
+    isoDate:         f.iso_date,
+    departureTime:   f.departure_time ?? "",
+    arrivalBuffer:   f.arrival_buffer,
+  };
+}
+
+export function useUserTrips() {
+  const [trips, setTrips] = useState<TripTab[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    async function load() {
+      const { data, error } = await supabase
+        .from("trips")
+        .select("id, name, flights(*)")
+        .order("created_at", { ascending: true });
+
+      if (!error && data) {
+        // Skip the first (oldest) trip — that's the primary trip used by MyFlightsPanel
+        const userTrips: TripTab[] = data.slice(1).map((t) => ({
+          id:   t.id,
+          name: t.name,
+          flights: [...(t.flights as DbFlight[])]
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map(toTripFlight),
+        }));
+        setTrips(userTrips);
+      }
+
+      setLoading(false);
+    }
+
+    load();
+  }, []);
+
+  // ── CRUD ──────────────────────────────────────────────────────────────────
+
+  const createTrip = useCallback(async (name: string): Promise<string | null> => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("trips")
+      .insert({ name })
+      .select("id")
+      .single();
+
+    if (!error && data) {
+      setTrips((prev) => [...prev, { id: data.id, name, flights: [] }]);
+      return data.id;
+    }
+    return null;
+  }, []);
+
+  const deleteTrip = useCallback(async (id: string) => {
+    setTrips((prev) => prev.filter((t) => t.id !== id));
+
+    const supabase = createClient();
+    // Flights cascade on delete via FK
+    await supabase.from("trips").delete().eq("id", id);
+  }, []);
+
+  const renameTrip = useCallback(async (id: string, name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setTrips((prev) => prev.map((t) => (t.id === id ? { ...t, name: trimmed } : t)));
+
+    const supabase = createClient();
+    await supabase.from("trips").update({ name: trimmed }).eq("id", id);
+  }, []);
+
+  const addFlight = useCallback(async (tripId: string, flight: TripFlight) => {
+    const supabase = createClient();
+
+    const { data: last } = await supabase
+      .from("flights")
+      .select("sort_order")
+      .eq("trip_id", tripId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const sort_order = (last?.sort_order ?? -1) + 1;
+
+    const { data, error } = await supabase
+      .from("flights")
+      .insert({
+        trip_id:          tripId,
+        flight_code:      flight.flightCode,
+        airline_code:     flight.airlineCode,
+        airline_name:     flight.airlineName,
+        airline_icao:     flight.airlineIcao,
+        flight_number:    flight.flightNumber,
+        origin_code:      flight.originCode,
+        destination_code: flight.destinationCode,
+        iso_date:         flight.isoDate,
+        departure_time:   flight.departureTime || null,
+        arrival_buffer:   flight.arrivalBuffer,
+        sort_order,
+      })
+      .select("id")
+      .single();
+
+    if (!error && data) {
+      const newFlight: TripFlight = { ...flight, id: data.id };
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.id === tripId ? { ...t, flights: [...t.flights, newFlight] } : t,
+        ),
+      );
+    }
+  }, []);
+
+  const removeFlight = useCallback(async (tripId: string, flightId: string) => {
+    setTrips((prev) =>
+      prev.map((t) =>
+        t.id === tripId
+          ? { ...t, flights: t.flights.filter((f) => f.id !== flightId) }
+          : t,
+      ),
+    );
+
+    const supabase = createClient();
+    await supabase.from("flights").delete().eq("id", flightId);
+  }, []);
+
+  return { trips, loading, createTrip, deleteTrip, renameTrip, addFlight, removeFlight };
+}

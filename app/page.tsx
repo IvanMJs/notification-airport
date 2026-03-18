@@ -14,7 +14,6 @@ import { TripPanel } from "@/components/TripPanel";
 import { TripListView } from "@/components/TripListView";
 import { HelpPanel } from "@/components/HelpPanel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { DEFAULT_AIRPORTS } from "@/lib/airports";
 import { DelayStatus, TripFlight, TripTab } from "@/lib/types";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Locale } from "@/lib/i18n";
@@ -22,6 +21,8 @@ import { useWeather } from "@/hooks/useWeather";
 import { useMetar } from "@/hooks/useMetar";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
+import { useWatchedAirports } from "@/hooks/useWatchedAirports";
+import { useUserTrips } from "@/hooks/useUserTrips";
 import { NotificationSetupSheet } from "@/components/NotificationSetupSheet";
 
 const SEVERITY_ORDER: Record<DelayStatus, number> = {
@@ -37,31 +38,8 @@ const SEVERITY_ORDER: Record<DelayStatus, number> = {
 
 const REFRESH_OPTIONS = [5, 10, 15, 30];
 
-const STORAGE_KEY       = "airport-monitor-watched";
-const TRIPS_STORAGE_KEY = "airport-monitor-trips";
-
 // Always include these airports for weather regardless of watchedAirports
 const FLIGHT_AIRPORTS = ["EZE", "MIA", "GCM", "JFK"];
-
-function loadWatched(): string[] {
-  if (typeof window === "undefined") return DEFAULT_AIRPORTS;
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : DEFAULT_AIRPORTS;
-  } catch {
-    return DEFAULT_AIRPORTS;
-  }
-}
-
-function loadTrips(): TripTab[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const stored = localStorage.getItem(TRIPS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
 
 export default function HomePage() {
   const { t, locale, setLocale } = useLanguage();
@@ -71,9 +49,18 @@ export default function HomePage() {
 
   const [activeTab, setActiveTab] = useState<string>("flights");
   const [refreshInterval, setRefreshInterval] = useState(5);
-  const [watchedAirports, setWatchedAirports] = useState<string[]>(DEFAULT_AIRPORTS);
-  const [userTrips, setUserTrips] = useState<TripTab[]>([]);
   const [mounted, setMounted] = useState(false);
+
+  // DB-backed state
+  const { airports: watchedAirports, add: addAirportDB, remove: removeAirportDB } = useWatchedAirports();
+  const {
+    trips: userTrips,
+    createTrip: createTripDB,
+    deleteTrip: deleteTripDB,
+    renameTrip: renameTripDB,
+    addFlight:  addFlightDB,
+    removeFlight: removeFlightDB,
+  } = useUserTrips();
 
   // Tab rename state
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
@@ -85,19 +72,7 @@ export default function HomePage() {
   const [newTripName, setNewTripName] = useState("");
   const createModalInputRef = useRef<HTMLInputElement>(null);
 
-  // Hydrate from localStorage after mount (avoids SSR mismatch)
-  useEffect(() => {
-    setWatchedAirports(loadWatched());
-    setUserTrips(loadTrips());
-    setMounted(true);
-  }, []);
-
-  // Persist watched airports
-  useEffect(() => {
-    if (mounted) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(watchedAirports));
-    }
-  }, [watchedAirports, mounted]);
+  useEffect(() => { setMounted(true); }, []);
 
   // Check-in push notifications
   useEffect(() => {
@@ -144,13 +119,6 @@ export default function HomePage() {
     }
   }, [mounted, locale, userTrips]);
 
-  // Persist user trips
-  useEffect(() => {
-    if (mounted) {
-      localStorage.setItem(TRIPS_STORAGE_KEY, JSON.stringify(userTrips));
-    }
-  }, [userTrips, mounted]);
-
   const {
     statusMap,
     loading,
@@ -178,13 +146,8 @@ export default function HomePage() {
 
   // ── Watched airports ──────────────────────────────────────────────────────
 
-  function addAirport(iata: string) {
-    setWatchedAirports((prev) => [...prev, iata]);
-  }
-
-  function removeAirport(iata: string) {
-    setWatchedAirports((prev) => prev.filter((a) => a !== iata));
-  }
+  function addAirport(iata: string) { addAirportDB(iata); }
+  function removeAirport(iata: string) { removeAirportDB(iata); }
 
   const sortedAirports = [...watchedAirports].sort((a, b) => {
     const sa = statusMap[a]?.status ?? "ok";
@@ -195,34 +158,21 @@ export default function HomePage() {
   // ── Trip management ───────────────────────────────────────────────────────
 
   function openCreateTripModal() {
-    setNewTripName(
-      locale === "en" ? `Trip ${userTrips.length + 1}` : `Viaje ${userTrips.length + 1}`,
-    );
+    setNewTripName("");
     setShowCreateModal(true);
-    setTimeout(() => createModalInputRef.current?.select(), 60);
+    setTimeout(() => createModalInputRef.current?.focus(), 60);
   }
 
-  function createTrip(name?: string) {
-    const id = `trip_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
+  async function confirmCreateTrip() {
     const tripName =
-      (name ?? "").trim() ||
+      newTripName.trim() ||
       (locale === "en" ? `Trip ${userTrips.length + 1}` : `Viaje ${userTrips.length + 1}`);
-    setUserTrips((prev) => [...prev, { id, name: tripName, flights: [] }]);
-    setActiveTab(id);
-  }
-
-  function confirmCreateTrip() {
-    createTrip(newTripName);
+    const id = await createTripDB(tripName);
+    if (id) setActiveTab(id);
     setShowCreateModal(false);
   }
 
-  function renameTrip(id: string, newName: string) {
-    const trimmed = newName.trim();
-    if (!trimmed) return;
-    setUserTrips((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, name: trimmed } : t))
-    );
-  }
+  function renameTrip(id: string, newName: string) { renameTripDB(id, newName); }
 
   function deleteTrip(id: string) {
     const trip = userTrips.find((t) => t.id === id);
@@ -234,30 +184,13 @@ export default function HomePage() {
           ? `Delete trip "${trip.name}" and its ${trip.flights.length} flight(s)?`
           : `¿Eliminar el viaje "${trip.name}" con ${trip.flights.length} vuelo(s)?`
       )
-    ) {
-      return;
-    }
-    setUserTrips((prev) => prev.filter((t) => t.id !== id));
+    ) return;
+    deleteTripDB(id);
     if (activeTab === id) setActiveTab("trips");
   }
 
-  function addFlightToTrip(tripId: string, flight: TripFlight) {
-    setUserTrips((prev) =>
-      prev.map((t) =>
-        t.id === tripId ? { ...t, flights: [...t.flights, flight] } : t
-      )
-    );
-  }
-
-  function removeFlightFromTrip(tripId: string, flightId: string) {
-    setUserTrips((prev) =>
-      prev.map((t) =>
-        t.id === tripId
-          ? { ...t, flights: t.flights.filter((f) => f.id !== flightId) }
-          : t
-      )
-    );
-  }
+  function addFlightToTrip(tripId: string, flight: TripFlight) { addFlightDB(tripId, flight); }
+  function removeFlightFromTrip(tripId: string, flightId: string) { removeFlightDB(tripId, flightId); }
 
   // ── Tab rename helpers ────────────────────────────────────────────────────
 

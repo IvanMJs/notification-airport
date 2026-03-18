@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { AirportStatusMap } from "@/lib/types";
+import { useMyFlights, FlightData } from "@/hooks/useMyFlights";
+import { useFlightNotes, FlightNote } from "@/hooks/useFlightNotes";
 import { StatusBadge } from "./StatusBadge";
 import { ExternalLink, Clock, MapPin, Plane, AlertTriangle, Calendar, Share2, DoorOpen, ChevronDown, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -17,28 +19,6 @@ import { TripCopilot } from "@/components/TripCopilot";
 import { TripClocks } from "@/components/TripClocks";
 import { TripEmptyState } from "@/components/TripEmptyState";
 import { getAirportTime, getAirportTzLabel } from "@/lib/airportTimezone";
-
-interface FlightData {
-  date: string;
-  dateEn: string;
-  isoDate: string;
-  flightNum: string;
-  airline: string;
-  originCode: string;
-  originName: string;
-  originNameEn: string;
-  originICAO: string;
-  destinationCode: string;
-  destinationName: string;
-  destinationNameEn: string;
-  destinationICAO: string;
-  departureTime: string;
-  arrivalRecommendation: string;
-  arrivalNoteEs: string;
-  arrivalNoteEn: string;
-  flightUrl: string;
-  routeUrl: string;
-}
 
 function getDaysUntil(isoDate: string): number {
   const today = new Date();
@@ -88,69 +68,6 @@ const AIRLINE_APP_URLS: Record<string, string> = {
   AR: "https://www.aerolineas.com.ar/ar/es/check-in-online",
 };
 
-const MY_FLIGHTS: FlightData[] = [
-  {
-    date: "29 Mar", dateEn: "Mar 29", isoDate: "2026-03-29",
-    flightNum: "AA 900", airline: "American Airlines",
-    originCode: "EZE", originName: "Buenos Aires", originNameEn: "Buenos Aires", originICAO: "SAEZ",
-    destinationCode: "MIA", destinationName: "Miami", destinationNameEn: "Miami", destinationICAO: "KMIA",
-    departureTime: "20:30",
-    arrivalRecommendation: "17:30",
-    arrivalNoteEs: "3 hs antes — internacional + migraciones EZE",
-    arrivalNoteEn: "3 hrs before — international + EZE immigration",
-    flightUrl: "https://www.flightaware.com/live/flight/AAL900",
-    routeUrl: "https://www.google.com/travel/flights?q=flights+from+EZE+to+MIA",
-  },
-  {
-    date: "31 Mar", dateEn: "Mar 31", isoDate: "2026-03-31",
-    flightNum: "AA 956", airline: "American Airlines",
-    originCode: "MIA", originName: "Miami", originNameEn: "Miami", originICAO: "KMIA",
-    destinationCode: "GCM", destinationName: "Grand Cayman", destinationNameEn: "Grand Cayman", destinationICAO: "MWCR",
-    departureTime: "12:55",
-    arrivalRecommendation: "10:55",
-    arrivalNoteEs: "2 hs antes — internacional desde MIA",
-    arrivalNoteEn: "2 hrs before — international from MIA",
-    flightUrl: "https://www.flightaware.com/live/flight/AAL956",
-    routeUrl: "https://www.google.com/travel/flights?q=flights+from+MIA+to+GCM",
-  },
-  {
-    date: "05 Abr", dateEn: "Apr 5", isoDate: "2026-04-05",
-    flightNum: "B6 766", airline: "JetBlue Airways",
-    originCode: "GCM", originName: "Grand Cayman", originNameEn: "Grand Cayman", originICAO: "MWCR",
-    destinationCode: "JFK", destinationName: "New York", destinationNameEn: "New York", destinationICAO: "KJFK",
-    departureTime: "15:40",
-    arrivalRecommendation: "13:10",
-    arrivalNoteEs: "2.5 hs antes — GCM pequeño, vuelo internacional",
-    arrivalNoteEn: "2.5 hrs before — GCM small airport, international flight",
-    flightUrl: "https://www.flightaware.com/live/flight/JBU766",
-    routeUrl: "https://www.google.com/travel/flights?q=flights+from+GCM+to+JFK",
-  },
-  {
-    date: "11 Abr", dateEn: "Apr 11", isoDate: "2026-04-11",
-    flightNum: "DL 1514", airline: "Delta Air Lines",
-    originCode: "JFK", originName: "New York", originNameEn: "New York", originICAO: "KJFK",
-    destinationCode: "MIA", destinationName: "Miami", destinationNameEn: "Miami", destinationICAO: "KMIA",
-    departureTime: "11:10",
-    arrivalRecommendation: "09:10",
-    arrivalNoteEs: "2 hs antes — doméstico USA, JFK es grande",
-    arrivalNoteEn: "2 hrs before — domestic US, JFK is large",
-    flightUrl: "https://www.flightaware.com/live/flight/DAL1514",
-    routeUrl: "https://www.google.com/travel/flights?q=flights+from+JFK+to+MIA",
-  },
-  {
-    date: "11 Abr", dateEn: "Apr 11", isoDate: "2026-04-11",
-    flightNum: "AA 931", airline: "American Airlines",
-    originCode: "MIA", originName: "Miami", originNameEn: "Miami", originICAO: "KMIA",
-    destinationCode: "EZE", destinationName: "Buenos Aires", destinationNameEn: "Buenos Aires", destinationICAO: "SAEZ",
-    departureTime: "21:15",
-    arrivalRecommendation: "18:15",
-    arrivalNoteEs: "3 hs antes — internacional largo + migraciones USA",
-    arrivalNoteEn: "3 hrs before — long international + US immigration",
-    flightUrl: "https://www.flightaware.com/live/flight/AAL931",
-    routeUrl: "https://www.google.com/travel/flights?q=flights+from+MIA+to+EZE",
-  },
-];
-
 function LinkButton({
   href,
   children,
@@ -178,32 +95,6 @@ function LinkButton({
   );
 }
 
-// ── Flight notes storage ─────────────────────────────────────────────────────
-const NOTES_KEY = "copiloto-notes";
-
-interface FlightNote {
-  pnr: string;
-  seat: string;
-  notes: string;
-}
-
-function loadNotes(): Record<string, FlightNote> {
-  if (typeof window === "undefined") return {};
-  try {
-    return JSON.parse(localStorage.getItem(NOTES_KEY) ?? "{}");
-  } catch {
-    return {};
-  }
-}
-
-function saveNote(key: string, note: FlightNote) {
-  try {
-    const all = loadNotes();
-    all[key] = note;
-    localStorage.setItem(NOTES_KEY, JSON.stringify(all));
-  } catch {}
-}
-
 const CARD_ACCENTS = [
   { bar: "bg-blue-400/80",   border: "border-blue-500/25",   bg: "bg-blue-950/35"   },
   { bar: "bg-violet-400/80", border: "border-violet-500/25", bg: "bg-violet-950/35" },
@@ -220,9 +111,11 @@ interface FlightCardItemProps {
   tsaData?: TsaAirportData;
   index: number;
   isNext?: boolean;
+  note: FlightNote;
+  onUpdateNote: (flightKey: string, field: keyof FlightNote, value: string) => void;
 }
 
-function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index, isNext = false }: FlightCardItemProps) {
+function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index, isNext = false, note, onUpdateNote }: FlightCardItemProps) {
   const originStatus = statusMap[flight.originCode];
   const status = originStatus?.status ?? "ok";
   const hasIssue = status !== "ok";
@@ -238,23 +131,11 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index,
 
   // Only next leg and issues start expanded — past and future legs start collapsed
   const [isExpanded, setIsExpanded] = useState((isNext && !isPast) || hasIssue);
-
-  // Notes state
-  const [note, setNote] = useState<FlightNote>({ pnr: "", seat: "", notes: "" });
   const [showNotes, setShowNotes] = useState(false);
 
-  useEffect(() => {
-    const all = loadNotes();
-    if (all[noteKey]) setNote(all[noteKey]);
-  }, [noteKey]);
-
   const updateNote = useCallback((field: keyof FlightNote, value: string) => {
-    setNote((prev) => {
-      const next = { ...prev, [field]: value };
-      saveNote(noteKey, next);
-      return next;
-    });
-  }, [noteKey]);
+    onUpdateNote(noteKey, field, value);
+  }, [noteKey, onUpdateNote]);
 
   const hasAnyNote = note.pnr || note.seat || note.notes;
 
@@ -687,8 +568,19 @@ export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
   const [showGcal, setShowGcal] = useState(false);
   const [waCopied, setWaCopied] = useState(false);
   const tsaData = useTsaWait();
+  const { flights: MY_FLIGHTS, loading: flightsLoading } = useMyFlights();
+  const { notesMap, updateNote } = useFlightNotes();
 
-  // Empty state — shown when no hardcoded flights exist (ready for when MY_FLIGHTS is removed)
+  if (flightsLoading) {
+    return (
+      <div className="space-y-3 animate-pulse">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-20 rounded-xl bg-white/[0.04] border border-white/[0.06]" />
+        ))}
+      </div>
+    );
+  }
+
   if (MY_FLIGHTS.length === 0) {
     return <TripEmptyState locale={locale} />;
   }
@@ -757,7 +649,7 @@ export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
       )}
 
       {/* 2. Trip summary hero — status + next flight */}
-      <TripSummaryHero statusMap={statusMap} locale={locale} />
+      <TripSummaryHero statusMap={statusMap} locale={locale} flights={MY_FLIGHTS} />
 
       {/* 3. Flight cards — primary content, shown first */}
       <div className="space-y-5">
@@ -776,6 +668,8 @@ export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
               tsaData={tsaData[flight.originCode]}
               index={idx}
               isNext={idx === nextFlightIndex}
+              note={notesMap[`${flight.flightNum.replace(/\s+/g, "")}-${flight.isoDate}`] ?? { pnr: "", seat: "", notes: "" }}
+              onUpdateNote={updateNote}
             />
           </div>
         ))}

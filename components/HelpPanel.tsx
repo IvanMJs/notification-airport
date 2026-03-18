@@ -1009,7 +1009,7 @@ const SECTIONS: SectionDef[] = [
           },
           {
             q: "¿Necesito crear una cuenta?",
-            a: "No. La app funciona completamente sin registro. Tus aeropuertos, viajes y vuelos se guardan en el navegador (localStorage). Nunca se envían a ningún servidor.",
+            a: "Sí. La app usa autenticación para sincronizar tus datos entre dispositivos. Tus aeropuertos, vuelos y notas se guardan en una base de datos segura. El login es con Google o magic link por email — sin contraseña.",
           },
           {
             q: "¿Con qué frecuencia se actualizan los datos?",
@@ -1058,7 +1058,7 @@ const SECTIONS: SectionDef[] = [
           },
           {
             q: "Do I need to create an account?",
-            a: "No. The app works completely without registration. Your airports, trips and flights are saved in the browser (localStorage). They are never sent to any server.",
+            a: "Yes. The app uses authentication to sync your data across devices. Your airports, flights and notes are stored in a secure database. Login is via Google or email magic link — no password needed.",
           },
           {
             q: "How often is data updated?",

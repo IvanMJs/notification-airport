@@ -1,36 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Search, X, ExternalLink, Plane, Info } from "lucide-react";
 import { AirportStatusMap } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { AIRPORTS } from "@/lib/airports";
-import { ParsedFlight, parseFlightCode } from "@/lib/flightUtils";
-
-interface TrackedFlight {
-  parsed: ParsedFlight;
-  airportCode: string;
-}
-
-const TRACKED_KEY = "airport-monitor-tracked-flights";
-
-interface StoredFlight { airlineCode: string; flightNumber: string; airportCode: string; }
-
-function loadTracked(): TrackedFlight[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const stored = localStorage.getItem(TRACKED_KEY);
-    if (!stored) return [];
-    const raw: StoredFlight[] = JSON.parse(stored);
-    return raw.flatMap(({ airlineCode, flightNumber, airportCode }) => {
-      const parsed = parseFlightCode(`${airlineCode}${flightNumber}`);
-      return parsed ? [{ parsed, airportCode }] : [];
-    });
-  } catch {
-    return [];
-  }
-}
+import { parseFlightCode } from "@/lib/flightUtils";
+import { useTrackedFlights } from "@/hooks/useTrackedFlights";
 
 interface FlightSearchProps {
   statusMap: AirportStatusMap;
@@ -94,39 +71,18 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
   const [input, setInput] = useState("");
   const [airportInput, setAirportInput] = useState("");
   const [error, setError] = useState("");
-  const [tracked, setTracked] = useState<TrackedFlight[]>([]);
-
-  useEffect(() => { setTracked(loadTracked()); }, []);
-
-  useEffect(() => {
-    const toStore: StoredFlight[] = tracked.map(({ parsed, airportCode }) => ({
-      airlineCode: parsed.airlineCode,
-      flightNumber: parsed.flightNumber,
-      airportCode,
-    }));
-    localStorage.setItem(TRACKED_KEY, JSON.stringify(toStore));
-  }, [tracked]);
+  const { flights: tracked, add: addTracked, remove: removeTracked } = useTrackedFlights();
 
   function handleAdd() {
     setError("");
     const parsed = parseFlightCode(input);
-    if (!parsed) {
-      setError(L.invalidCode);
-      return;
-    }
+    if (!parsed) { setError(L.invalidCode); return; }
     const airportCode = airportInput.trim().toUpperCase();
-    if (airportCode && !AIRPORTS[airportCode]) {
-      setError(L.unknownAirport);
-      return;
-    }
+    if (airportCode && !AIRPORTS[airportCode]) { setError(L.unknownAirport); return; }
     if (tracked.some((t) => t.parsed.fullCode === parsed.fullCode)) return;
-    setTracked((prev) => [...prev, { parsed, airportCode }]);
+    addTracked(parsed, airportCode);
     setInput("");
     setAirportInput("");
-  }
-
-  function handleRemove(fullCode: string) {
-    setTracked((prev) => prev.filter((t) => t.parsed.fullCode !== fullCode));
   }
 
   return (
@@ -212,7 +168,7 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
           <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
             {L.trackedFlights} · {tracked.length}
           </h3>
-          {tracked.map(({ parsed, airportCode }) => {
+          {tracked.map(({ id, parsed, airportCode }) => {
             const airportStatus = airportCode ? statusMap[airportCode] : undefined;
             const status = airportStatus?.status ?? "ok";
             const hasIssue = status !== "ok" && !!airportCode;
@@ -266,7 +222,7 @@ export function FlightSearch({ statusMap }: FlightSearchProps) {
 
                   <div className="flex flex-col items-end gap-2 shrink-0">
                     <button
-                      onClick={() => handleRemove(parsed.fullCode)}
+                      onClick={() => removeTracked(id)}
                       className="rounded-full p-1 text-gray-600 hover:text-gray-400 hover:bg-gray-800 transition-colors"
                       title={L.remove}
                     >
