@@ -29,7 +29,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <head>
         <link rel="icon" href="/tripcopliot-avatar.svg" type="image/svg+xml" />
-        <link rel="apple-touch-icon" href="/tripcopliot-avatar.svg" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className="min-h-screen bg-gray-950 text-gray-100 antialiased">
         <LanguageProvider>{children}</LanguageProvider>

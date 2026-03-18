@@ -309,7 +309,9 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="min-h-screen bg-gray-950 px-4 py-4 md:py-6 pb-nav md:pb-6">
+      <div className="min-h-screen bg-gray-950 px-4 pb-nav md:pb-6 md:py-6"
+        style={{ paddingTop: "calc(env(safe-area-inset-top) + 1rem)" }}
+      >
         <div className="mx-auto max-w-6xl space-y-4 md:space-y-6">
 
           {/* ── Header ── */}
