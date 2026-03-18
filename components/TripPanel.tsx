@@ -361,11 +361,16 @@ function AddFlightForm({ tripId, onAdd, onOpenImport, locale }: AddFlightFormPro
   }
 
   const inputClass =
-    "rounded-lg border border-white/8 bg-[#080810] px-3 py-2 text-sm text-gray-200 placeholder-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500/60";
+    "w-full rounded-xl border border-white/[0.12] bg-[#080810] px-3 py-2.5 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500/70";
+  const labelClass =
+    "block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5";
 
   return (
-    <div className="rounded-xl border border-white/6 p-4 space-y-3"
-      style={{ background: "linear-gradient(135deg, rgba(15,15,23,0.8) 0%, rgba(10,10,18,0.9) 100%)" }}>
+    <div
+      className="rounded-xl border border-white/[0.08] p-4 space-y-4"
+      style={{ background: "linear-gradient(135deg, rgba(15,15,23,0.8) 0%, rgba(10,10,18,0.9) 100%)" }}
+    >
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Search className="h-3.5 w-3.5 text-gray-500" />
@@ -373,73 +378,115 @@ function AddFlightForm({ tripId, onAdd, onOpenImport, locale }: AddFlightFormPro
         </div>
         <button
           onClick={onOpenImport}
-          className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/8 transition-colors"
+          className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/[0.08] transition-colors"
         >
           <Upload className="h-3 w-3" />
           {L.importBtn}
         </button>
       </div>
 
-      <div className="flex gap-2 flex-wrap">
+      {/* Row 1: Flight code — full width */}
+      <div>
+        <label className={labelClass}>
+          {locale === "es" ? "Código de vuelo" : "Flight code"}
+        </label>
         <input
           value={form.flightCode}
           onChange={(e) => update("flightCode", e.target.value)}
           onKeyDown={handleKey}
           placeholder={L.flightPlaceholder}
-          className={`${inputClass} flex-1 min-w-[160px]`}
+          className={inputClass}
         />
-        <input
-          value={form.originCode}
-          onChange={(e) => update("originCode", e.target.value.toUpperCase())}
-          onKeyDown={handleKey}
-          placeholder={L.originPlaceholder}
-          maxLength={3}
-          className={`${inputClass} w-28`}
-        />
-        <input
-          value={form.destCode}
-          onChange={(e) => update("destCode", e.target.value.toUpperCase())}
-          onKeyDown={handleKey}
-          placeholder={L.destPlaceholder}
-          maxLength={3}
-          className={`${inputClass} w-28`}
-        />
-        <input
-          type="date"
-          value={form.isoDate}
-          onChange={(e) => update("isoDate", e.target.value)}
-          onKeyDown={handleKey}
-          className={`${inputClass} flex-1 min-w-[140px]`}
-        />
-        <input
-          type="time"
-          value={form.departureTime}
-          onChange={(e) => update("departureTime", e.target.value)}
-          onKeyDown={handleKey}
-          className={`${inputClass} w-28`}
-          title={locale === "es" ? "Hora de salida (opcional)" : "Departure time (optional)"}
-        />
-        {form.departureTime && (
-          <select
-            value={form.arrivalBuffer}
-            onChange={(e) => update("arrivalBuffer", Number(e.target.value))}
-            className={`${inputClass} w-36`}
-            aria-label={L.bufferLabel}
-          >
-            {L.bufferOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        )}
-        <button
-          onClick={handleAdd}
-          className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-semibold text-white transition-colors"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          {L.addBtn}
-        </button>
       </div>
+
+      {/* Row 2: Origin · Destination · Date */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div>
+          <label className={labelClass}>
+            {locale === "es" ? "Origen" : "Origin"}
+          </label>
+          <input
+            value={form.originCode}
+            onChange={(e) => update("originCode", e.target.value.toUpperCase())}
+            onKeyDown={handleKey}
+            placeholder="EZE"
+            maxLength={3}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className={labelClass}>
+            {locale === "es" ? "Destino" : "Destination"}
+          </label>
+          <input
+            value={form.destCode}
+            onChange={(e) => update("destCode", e.target.value.toUpperCase())}
+            onKeyDown={handleKey}
+            placeholder="MIA"
+            maxLength={3}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label className={labelClass}>
+            {locale === "es" ? "Fecha" : "Date"}
+          </label>
+          <input
+            type="date"
+            value={form.isoDate}
+            onChange={(e) => update("isoDate", e.target.value)}
+            onKeyDown={handleKey}
+            className={inputClass}
+          />
+        </div>
+      </div>
+
+      {/* Row 3: Time (optional) · Buffer */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelClass}>
+            {locale === "es" ? "Hora de salida" : "Departure time"}
+            {" "}<span className="normal-case font-normal tracking-normal text-gray-700">
+              ({locale === "es" ? "opcional" : "optional"})
+            </span>
+          </label>
+          <input
+            type="time"
+            value={form.departureTime}
+            onChange={(e) => update("departureTime", e.target.value)}
+            onKeyDown={handleKey}
+            className={inputClass}
+          />
+        </div>
+        {form.departureTime && (
+          <div>
+            <label className={labelClass}>
+              {locale === "es" ? "Llegar al aeropuerto" : "Arrive at airport"}
+            </label>
+            <select
+              value={form.arrivalBuffer}
+              onChange={(e) => update("arrivalBuffer", Number(e.target.value))}
+              className={inputClass}
+            >
+              {L.bufferOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* Error */}
       {error && <p className="text-xs text-red-400">{error}</p>}
+
+      {/* Add button — full width on mobile */}
+      <button
+        onClick={handleAdd}
+        className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 px-5 py-2.5 text-sm font-semibold text-white transition-all tap-scale"
+      >
+        <Plus className="h-3.5 w-3.5" />
+        {L.addBtn}
+      </button>
     </div>
   );
 }

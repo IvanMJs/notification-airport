@@ -11,6 +11,7 @@ import { RefreshCountdown } from "@/components/RefreshCountdown";
 import { MyFlightsPanel } from "@/components/MyFlightsPanel";
 import { FlightSearch } from "@/components/FlightSearch";
 import { TripPanel } from "@/components/TripPanel";
+import { TripListView } from "@/components/TripListView";
 import { HelpPanel } from "@/components/HelpPanel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DEFAULT_AIRPORTS } from "@/lib/airports";
@@ -78,6 +79,11 @@ export default function HomePage() {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const editInputRef = useRef<HTMLInputElement>(null);
+
+  // Create trip modal
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newTripName, setNewTripName] = useState("");
+  const createModalInputRef = useRef<HTMLInputElement>(null);
 
   // Hydrate from localStorage after mount (avoids SSR mismatch)
   useEffect(() => {
@@ -188,13 +194,26 @@ export default function HomePage() {
 
   // ── Trip management ───────────────────────────────────────────────────────
 
-  function createTrip() {
+  function openCreateTripModal() {
+    setNewTripName(
+      locale === "en" ? `Trip ${userTrips.length + 1}` : `Viaje ${userTrips.length + 1}`,
+    );
+    setShowCreateModal(true);
+    setTimeout(() => createModalInputRef.current?.select(), 60);
+  }
+
+  function createTrip(name?: string) {
     const id = `trip_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`;
-    const name = locale === "en"
-      ? `Trip ${userTrips.length + 1}`
-      : `Viaje ${userTrips.length + 1}`;
-    setUserTrips((prev) => [...prev, { id, name, flights: [] }]);
+    const tripName =
+      (name ?? "").trim() ||
+      (locale === "en" ? `Trip ${userTrips.length + 1}` : `Viaje ${userTrips.length + 1}`);
+    setUserTrips((prev) => [...prev, { id, name: tripName, flights: [] }]);
     setActiveTab(id);
+  }
+
+  function confirmCreateTrip() {
+    createTrip(newTripName);
+    setShowCreateModal(false);
   }
 
   function renameTrip(id: string, newName: string) {
@@ -219,7 +238,7 @@ export default function HomePage() {
       return;
     }
     setUserTrips((prev) => prev.filter((t) => t.id !== id));
-    if (activeTab === id) setActiveTab("airports");
+    if (activeTab === id) setActiveTab("trips");
   }
 
   function addFlightToTrip(tripId: string, flight: TripFlight) {
@@ -289,6 +308,65 @@ export default function HomePage() {
         }}
         locale={locale}
       />
+
+      {/* Create trip modal */}
+      {showCreateModal && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowCreateModal(false)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+            <div
+              className="w-full max-w-sm pointer-events-auto rounded-2xl border border-white/[0.08] shadow-2xl p-5 space-y-4"
+              style={{ background: "linear-gradient(160deg, rgba(18,18,32,0.99) 0%, rgba(10,10,20,1) 100%)" }}
+            >
+              <div>
+                <h3 className="text-base font-black text-white">
+                  {locale === "es" ? "Nuevo viaje" : "New trip"}
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {locale === "es" ? "Podés renombrarlo después" : "You can rename it later"}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1.5">
+                  {locale === "es" ? "Nombre del viaje" : "Trip name"}
+                </label>
+                <input
+                  ref={createModalInputRef}
+                  value={newTripName}
+                  onChange={(e) => setNewTripName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") confirmCreateTrip();
+                    if (e.key === "Escape") setShowCreateModal(false);
+                  }}
+                  placeholder={locale === "es" ? "Ej: Vacaciones Miami 2026" : "E.g. Miami Trip 2026"}
+                  maxLength={40}
+                  autoFocus
+                  className="w-full rounded-xl border border-white/[0.12] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+                >
+                  {locale === "es" ? "Cancelar" : "Cancel"}
+                </button>
+                <button
+                  onClick={confirmCreateTrip}
+                  className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-500 py-2.5 text-sm font-semibold text-white transition-colors tap-scale"
+                >
+                  {locale === "es" ? "Crear viaje" : "Create trip"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Offline banner */}
       {mounted && !isOnline && (
@@ -520,7 +598,7 @@ export default function HomePage() {
 
               {/* New trip button */}
               <button
-                onClick={createTrip}
+                onClick={openCreateTripModal}
                 className={`${tabBase} ${tabInactive} flex items-center gap-1 px-3`}
                 title={locale === "en" ? "New trip" : "Nuevo viaje"}
               >
@@ -574,6 +652,17 @@ export default function HomePage() {
 
             {activeTab === "help" && (
               <HelpPanel />
+            )}
+
+            {activeTab === "trips" && (
+              <TripListView
+                trips={userTrips}
+                statusMap={statusMap}
+                locale={locale}
+                onSelect={(id) => setActiveTab(id)}
+                onCreateTrip={openCreateTripModal}
+                onDeleteTrip={deleteTrip}
+              />
             )}
 
             {userTrips.map((trip) =>
@@ -631,43 +720,32 @@ export default function HomePage() {
               );
             })}
 
-            {/* Trips / New trip button */}
+            {/* Trips tab — always goes to list view */}
             {(() => {
-              const hasTrips = userTrips.length > 0;
-              const tripActive = userTrips.some((t) => t.id === activeTab);
+              const tripsActive =
+                activeTab === "trips" || userTrips.some((t) => t.id === activeTab);
               return (
                 <button
-                  onClick={() => {
-                    if (!hasTrips) {
-                      createTrip();
-                    } else {
-                      const stillActive = userTrips.find((t) => t.id === activeTab);
-                      setActiveTab(stillActive ? activeTab : userTrips[0].id);
-                    }
-                  }}
+                  onClick={() => setActiveTab("trips")}
                   className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${
-                    tripActive ? "text-blue-400" : "text-gray-500"
+                    tripsActive ? "text-blue-400" : "text-gray-500"
                   }`}
                 >
-                  {tripActive && (
+                  {tripsActive && (
                     <span className="absolute top-0 inset-x-0 flex justify-center">
                       <span className="h-0.5 w-8 rounded-full bg-blue-400" />
                     </span>
                   )}
                   <div className="relative">
-                    {hasTrips ? (
-                      <>
-                        <Map className="h-[22px] w-[22px]" />
-                        <span className="absolute -top-1.5 -right-2.5 h-4 min-w-[16px] bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
-                          {userTrips.length}
-                        </span>
-                      </>
-                    ) : (
-                      <Plus className="h-[22px] w-[22px]" />
+                    <Map className="h-[22px] w-[22px]" />
+                    {userTrips.length > 0 && (
+                      <span className="absolute -top-1.5 -right-2.5 h-4 min-w-[16px] bg-blue-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                        {userTrips.length}
+                      </span>
                     )}
                   </div>
                   <span className="text-[10px] font-semibold leading-none">
-                    {hasTrips ? (locale === "es" ? "Viajes" : "Trips") : (locale === "es" ? "Nuevo" : "New")}
+                    {locale === "es" ? "Viajes" : "Trips"}
                   </span>
                 </button>
               );
