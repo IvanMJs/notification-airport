@@ -2,9 +2,10 @@
 
 import { useRef, useState } from "react";
 import {
-  X, Upload, CheckCircle, AlertCircle, Loader2,
+  X, CheckCircle, AlertCircle, Loader2,
   FileText, ImagePlus, ArrowRight, Sparkles,
 } from "lucide-react";
+import Image from "next/image";
 import { ParsedFlight } from "@/lib/importFlights";
 import { AIRLINES } from "@/lib/flightUtils";
 
@@ -17,7 +18,7 @@ interface ImportFlightsModalProps {
 // ── i18n ─────────────────────────────────────────────────────────────────────
 const L = {
   es: {
-    title: "Importar con IA",
+    title: "TripCopilot Import",
     tabText: "Texto",
     tabImage: "Imagen",
     textPlaceholder: `Pegá el texto de tu email de confirmación...
@@ -48,7 +49,7 @@ Funciona con cualquier formato:
     aiPowered: "Extracción automática con Claude IA",
   },
   en: {
-    title: "AI Import",
+    title: "TripCopilot Import",
     tabText: "Text",
     tabImage: "Image",
     textPlaceholder: `Paste your booking confirmation text...
@@ -220,8 +221,14 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
         <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-white/6 shrink-0">
           <div>
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-violet-400" />
-              {t.title}
+              <Image
+                src="/tripcopliot-avatar.svg"
+                alt="TripCopilot"
+                width={24}
+                height={24}
+                className="rounded-full shrink-0"
+              />
+              TripCopilot Import
             </h2>
             <p className="text-[11px] text-gray-500 mt-0.5">{t.aiPowered}</p>
           </div>
