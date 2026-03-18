@@ -88,6 +88,9 @@ export default function HomePage() {
   const [renameInPickerId, setRenameInPickerId] = useState<string | null>(null);
   const [renameInPickerName, setRenameInPickerName] = useState("");
 
+  // Draft leave confirmation (shown when navigating away from unsaved draft)
+  const [draftLeaveConfirm, setDraftLeaveConfirm] = useState<{ targetTab: string } | null>(null);
+
   useEffect(() => { setMounted(true); }, []);
 
   // Check-in push notifications
@@ -252,6 +255,15 @@ export default function HomePage() {
   function addFlightToTrip(tripId: string, flight: TripFlight) { addFlightDB(tripId, flight); }
   function removeFlightFromTrip(tripId: string, flightId: string) { removeFlightDB(tripId, flightId); }
 
+  // Navigate away — intercepts if there's an unsaved draft currently open
+  function navigateAway(targetTab: string) {
+    if (activeTab === DRAFT_ID && draftTrip) {
+      setDraftLeaveConfirm({ targetTab });
+    } else {
+      setActiveTab(targetTab);
+    }
+  }
+
   // ── Tab rename helpers ────────────────────────────────────────────────────
 
   function startRename(trip: TripTab) {
@@ -396,6 +408,61 @@ export default function HomePage() {
                   className="flex-1 rounded-xl bg-red-700 hover:bg-red-600 py-2.5 text-sm font-semibold text-white transition-colors"
                 >
                   {locale === "es" ? "Eliminar" : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Draft leave confirmation modal */}
+      {draftLeaveConfirm && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+            onClick={() => setDraftLeaveConfirm(null)}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+            <div
+              className="w-full max-w-sm pointer-events-auto rounded-2xl border border-white/[0.08] shadow-2xl p-5 space-y-4"
+              style={{ background: "linear-gradient(160deg, rgba(18,18,32,0.99) 0%, rgba(10,10,20,1) 100%)" }}
+            >
+              <div>
+                <h3 className="text-base font-black text-white">
+                  {locale === "es" ? "Tenés un borrador sin guardar" : "You have an unsaved draft"}
+                </h3>
+                <p className="text-sm text-gray-400 mt-2 leading-relaxed">
+                  {locale === "es"
+                    ? `El viaje "${draftTrip?.name}" todavía no fue guardado. ¿Qué querés hacer?`
+                    : `The trip "${draftTrip?.name}" hasn't been saved yet. What would you like to do?`}
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={async () => {
+                    await saveDraftTrip();
+                    setActiveTab(draftLeaveConfirm.targetTab);
+                    setDraftLeaveConfirm(null);
+                  }}
+                  className="w-full rounded-xl bg-blue-600 hover:bg-blue-500 py-2.5 text-sm font-semibold text-white transition-colors"
+                >
+                  {locale === "es" ? "Guardar y continuar" : "Save and continue"}
+                </button>
+                <button
+                  onClick={() => {
+                    discardDraft();
+                    setActiveTab(draftLeaveConfirm.targetTab);
+                    setDraftLeaveConfirm(null);
+                  }}
+                  className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+                >
+                  {locale === "es" ? "Descartar borrador" : "Discard draft"}
+                </button>
+                <button
+                  onClick={() => setDraftLeaveConfirm(null)}
+                  className="w-full py-2 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+                >
+                  {locale === "es" ? "Cancelar" : "Cancel"}
                 </button>
               </div>
             </div>
@@ -915,33 +982,7 @@ export default function HomePage() {
 
           <div className="flex h-[60px]">
 
-            {/* Static tabs */}
-            {([
-              { id: "flights",  Icon: Plane,   label: t.tabFlights  },
-              { id: "airports", Icon: MapPin,  label: t.tabAirports },
-              { id: "search",   Icon: Search,  label: t.tabSearch   },
-            ] as const).map(({ id, Icon, label }) => {
-              const isActive = activeTab === id;
-              return (
-                <button
-                  key={id}
-                  onClick={() => setActiveTab(id)}
-                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${
-                    isActive ? "text-blue-400" : "text-gray-500"
-                  }`}
-                >
-                  {isActive && (
-                    <span className="absolute top-0 inset-x-0 flex justify-center">
-                      <span className="h-0.5 w-8 rounded-full bg-blue-400" />
-                    </span>
-                  )}
-                  <Icon className="h-[22px] w-[22px]" />
-                  <span className="text-[10px] font-semibold leading-none">{label}</span>
-                </button>
-              );
-            })}
-
-            {/* Mis viajes — opens picker popup */}
+            {/* Mi viaje / Mis viajes — first, opens picker or navigates directly */}
             {(() => {
               const tripsActive =
                 activeTab === "trips" || activeTab === DRAFT_ID || userTrips.some((t) => t.id === activeTab);
@@ -954,8 +995,7 @@ export default function HomePage() {
                   onClick={() => {
                     const allTrips = [...userTrips, ...(draftTrip ? [{ id: DRAFT_ID }] : [])];
                     if (allTrips.length === 1) {
-                      setActiveTab(allTrips[0].id);
-                      setShowTripPicker(false);
+                      navigateAway(allTrips[0].id);
                     } else {
                       setShowTripPicker((v) => !v);
                       setRenameInPickerId(null);
@@ -981,6 +1021,36 @@ export default function HomePage() {
                   <span className="text-[10px] font-semibold leading-none truncate max-w-[56px] text-center">
                     {label}
                   </span>
+                </button>
+              );
+            })()}
+
+            {/* Aeropuertos */}
+            {(() => {
+              const isActive = activeTab === "airports";
+              return (
+                <button
+                  onClick={() => navigateAway("airports")}
+                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${isActive ? "text-blue-400" : "text-gray-500"}`}
+                >
+                  {isActive && <span className="absolute top-0 inset-x-0 flex justify-center"><span className="h-0.5 w-8 rounded-full bg-blue-400" /></span>}
+                  <MapPin className="h-[22px] w-[22px]" />
+                  <span className="text-[10px] font-semibold leading-none">{t.tabAirports}</span>
+                </button>
+              );
+            })()}
+
+            {/* Vuelos */}
+            {(() => {
+              const isActive = activeTab === "flights";
+              return (
+                <button
+                  onClick={() => navigateAway("flights")}
+                  className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${isActive ? "text-blue-400" : "text-gray-500"}`}
+                >
+                  {isActive && <span className="absolute top-0 inset-x-0 flex justify-center"><span className="h-0.5 w-8 rounded-full bg-blue-400" /></span>}
+                  <Plane className="h-[22px] w-[22px]" />
+                  <span className="text-[10px] font-semibold leading-none">{t.tabFlights}</span>
                 </button>
               );
             })()}
