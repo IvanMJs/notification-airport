@@ -440,6 +440,12 @@ export function TripCopilot({ flights, locale }: TripCopilotProps) {
 
   const totalNights = stays.reduce((s, x) => s + x.nights, 0);
 
+  // Check if any stay has weather alerts (for collapsed pill)
+  const hasAlerts = stays.some((s) => {
+    const p = getDestinationProfile(s.code, s.arrivalIso);
+    return (p?.weatherAlerts ?? []).length > 0;
+  });
+
   return (
     <div
       className="rounded-2xl border border-white/[0.07] overflow-hidden"
@@ -451,50 +457,80 @@ export function TripCopilot({ flights, locale }: TripCopilotProps) {
       {/* ── Header ── */}
       <button
         onClick={() => setExpanded((v) => !v)}
-        className="w-full px-4 py-3.5 flex items-center gap-3 text-left tap-scale"
+        className="w-full px-4 py-4 flex items-center gap-3 text-left tap-scale"
       >
-        {/* TripCopilot logo — brand mark */}
-        <TripCopilotLogo className="h-14 w-auto shrink-0" />
+        {/* Logo — smaller when collapsed */}
+        <TripCopilotLogo className={`shrink-0 w-auto transition-all duration-200 ${expanded ? "h-12" : "h-8"}`} />
 
         <div className="flex-1 min-w-0">
+          {/* Title */}
           <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold text-gray-200 leading-snug tracking-wide uppercase">
-              {locale === "es" ? "Tu guía de viaje" : "Your travel guide"}
+            <p className="text-sm font-semibold text-gray-200 leading-snug">
+              {locale === "es" ? "Guía de viaje · IA" : "Travel guide · AI"}
             </p>
-            {status === "loading" && (
+            {status === "loading" && expanded && (
               <span className="text-[9px] text-gray-600 animate-pulse">
                 {locale === "es" ? "analizando…" : "analyzing…"}
               </span>
             )}
           </div>
-          <p className="text-[11px] text-gray-600 mt-0.5">
-            {stays.length} {locale === "es" ? "destinos" : "destinations"} ·{" "}
-            {totalNights} {locale === "es" ? "noches" : "nights"}{" "}
-            {!expanded && (
-              <span className="text-gray-700">
-                · {locale === "es" ? "tocá para ver" : "tap to open"}
+
+          {/* Collapsed: feature pills showing what's inside */}
+          {!expanded && (
+            <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">
+                👕 {locale === "es" ? "Equipaje" : "Packing"}
               </span>
-            )}
-          </p>
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">
+                💡 Tips
+              </span>
+              {hasAlerts && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-yellow-600 bg-yellow-950/30 border border-yellow-800/30 rounded-full px-2 py-0.5">
+                  ⚠️ {locale === "es" ? "Alertas" : "Alerts"}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gray-500 bg-white/[0.04] border border-white/[0.06] rounded-full px-2 py-0.5">
+                🗺️ {stays.length} {locale === "es" ? "destinos" : "destinations"}
+              </span>
+            </div>
+          )}
+
+          {/* Expanded: subtitle */}
+          {expanded && (
+            <p className="text-[11px] text-gray-600 mt-0.5">
+              {stays.length} {locale === "es" ? "destinos" : "destinations"} ·{" "}
+              {totalNights} {locale === "es" ? "noches" : "nights"}
+            </p>
+          )}
         </div>
 
+        {/* Collapsed: CTA text + flags; Expanded: flags + refresh */}
         <div className="flex items-center gap-2 shrink-0">
-          {stays.map((s) => (
-            <span key={s.code} className="text-base">
-              {s.flag}
+          {!expanded && (
+            <span className="text-xs text-gray-600 hidden sm:block">
+              {locale === "es" ? "Ver guía →" : "Open guide →"}
             </span>
-          ))}
-          {status === "done" && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                refresh();
-              }}
-              className="p-1 rounded text-gray-600 hover:text-gray-400 transition-colors"
-              title={locale === "es" ? "Actualizar análisis" : "Refresh analysis"}
-            >
-              <RefreshCw className="h-3 w-3" />
-            </button>
+          )}
+          {expanded && (
+            <>
+              {stays.map((s) => (
+                <span key={s.code} className="text-base">
+                  {s.flag}
+                </span>
+              ))}
+              {status === "done" && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    refresh();
+                  }}
+                  className="p-1 rounded text-gray-600 hover:text-gray-400 transition-colors"
+                  title={locale === "es" ? "Actualizar análisis" : "Refresh analysis"}
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </button>
+              )}
+            </>
           )}
         </div>
 

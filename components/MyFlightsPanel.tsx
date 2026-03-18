@@ -15,6 +15,7 @@ import { useTsaWait, TsaAirportData } from "@/hooks/useTsaWait";
 import { DayOfTravelBanner } from "@/components/DayOfTravelBanner";
 import { TripCopilot } from "@/components/TripCopilot";
 import { TripClocks } from "@/components/TripClocks";
+import { TripEmptyState } from "@/components/TripEmptyState";
 import { getAirportTime, getAirportTzLabel } from "@/lib/airportTimezone";
 
 interface FlightData {
@@ -662,6 +663,11 @@ export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
   const [showGcal, setShowGcal] = useState(false);
   const [waCopied, setWaCopied] = useState(false);
   const tsaData = useTsaWait();
+
+  // Empty state — shown when no hardcoded flights exist (ready for when MY_FLIGHTS is removed)
+  if (MY_FLIGHTS.length === 0) {
+    return <TripEmptyState locale={locale} />;
+  }
 
   const calFlights: CalendarFlight[] = MY_FLIGHTS.map((f) => ({
     flightCode:      f.flightNum,
