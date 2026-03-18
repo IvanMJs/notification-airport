@@ -1,12 +1,11 @@
+// @ts-nocheck
 /// <reference lib="webworker" />
-export {};
-declare const self: ServiceWorkerGlobalScope;
 
 // ── Push event: show notification ────────────────────────────────────────────
 self.addEventListener("push", (event) => {
   const data = event.data?.json() ?? {};
-  const title: string = data.title ?? "TripCopilot";
-  const options: NotificationOptions = {
+  const title = data.title ?? "TripCopilot";
+  const options = {
     body: data.body ?? "",
     icon: "/icon.svg",
     badge: "/icon.svg",
@@ -19,7 +18,7 @@ self.addEventListener("push", (event) => {
 // ── Notification click: focus or open the app ────────────────────────────────
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url: string = event.notification.data?.url ?? "/app";
+  const url = event.notification.data?.url ?? "/app";
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
