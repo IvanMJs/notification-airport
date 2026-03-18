@@ -54,7 +54,7 @@ export function useServiceWorker() {
         existing ??
         (await regRef.current.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey),
+          applicationServerKey: urlBase64ToUint8Array(publicKey) as unknown as BufferSource,
         }));
 
       await fetch("/api/push/subscribe", {
