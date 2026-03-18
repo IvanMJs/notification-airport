@@ -72,8 +72,8 @@ export async function GET(request: Request) {
 
   return Response.json(results, {
     headers: {
-      // Cache 10 minutes — delays don't change faster than that
-      "Cache-Control": "public, max-age=600, s-maxage=600",
+      // No client/SW caching — the hook re-fetches on its own schedule
+      "Cache-Control": "no-store",
     },
   });
 }
