@@ -50,8 +50,7 @@ export function useUserTrips() {
         .order("created_at", { ascending: true });
 
       if (!error && data) {
-        // Skip the first (oldest) trip — that's the primary trip used by MyFlightsPanel
-        const userTrips: TripTab[] = data.slice(1).map((t) => ({
+        const userTrips: TripTab[] = data.map((t) => ({
           id:   t.id,
           name: t.name,
           flights: [...(t.flights as DbFlight[])]
