@@ -174,10 +174,9 @@ export default function LandingPage() {
 
             {/* ── LEFT: copy ── */}
             <div className="flex flex-col items-start">
-              {/* Avatar + brand */}
-              <div className="flex items-center gap-3 mb-6">
-                <img src="/tripcopliot-avatar.svg" alt="TripCopilot" className="h-14 w-auto sm:h-20 drop-shadow-xl" />
-                <span className="text-base sm:text-lg font-black text-white tracking-tight">TripCopilot</span>
+              {/* Avatar */}
+              <div className="mb-6">
+                <img src="/tripcopliot-avatar.svg" alt="TripCopilot" className="h-24 w-auto sm:h-32 lg:h-36 drop-shadow-2xl" />
               </div>
 
               {/* AI import badge — the hook */}
