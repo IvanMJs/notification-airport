@@ -56,6 +56,9 @@ export default function LandingPage() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const scrollRafRef = useRef<number | null>(null);
+  const isDragging = useRef(false);
+  const dragStartX = useRef(0);
+  const dragScrollLeft = useRef(0);
 
   // Detect centered item on scroll (mobile swipe + web)
   const handleCarouselScroll = useCallback(() => {
@@ -73,6 +76,30 @@ export default function LandingPage() {
       });
       setActiveNotif(closest);
     });
+  }, []);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!carouselRef.current) return;
+    isDragging.current = true;
+    dragStartX.current = e.pageX - carouselRef.current.offsetLeft;
+    dragScrollLeft.current = carouselRef.current.scrollLeft;
+    carouselRef.current.style.cursor = "grabbing";
+    carouselRef.current.style.userSelect = "none";
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging.current || !carouselRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - carouselRef.current.offsetLeft;
+    const walk = (x - dragStartX.current) * 1.5;
+    carouselRef.current.scrollLeft = dragScrollLeft.current - walk;
+  }, []);
+
+  const handleMouseUp = useCallback(() => {
+    if (!carouselRef.current) return;
+    isDragging.current = false;
+    carouselRef.current.style.cursor = "grab";
+    carouselRef.current.style.userSelect = "";
   }, []);
 
   const scrollToNotif = useCallback((idx: number) => {
@@ -577,10 +604,15 @@ export default function LandingPage() {
           <div
             ref={carouselRef}
             onScroll={handleCarouselScroll}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
             className="flex items-center overflow-x-auto pb-10 snap-x snap-mandatory"
             style={{
               scrollbarWidth: "none",
               msOverflowStyle: "none",
+              cursor: "grab",
               gap: "clamp(12px, 3vw, 24px)",
               paddingLeft: "clamp(calc(50% - 120px), calc(50% - 140px), calc(50% - 160px))",
               paddingRight: "clamp(calc(50% - 120px), calc(50% - 140px), calc(50% - 160px))",
@@ -592,7 +624,7 @@ export default function LandingPage() {
                 <div
                   key={s.src}
                   ref={(el) => { itemRefs.current[i] = el; }}
-                  onClick={() => scrollToNotif(i)}
+                  onClick={() => { if (!isDragging.current) scrollToNotif(i); }}
                   className="shrink-0 snap-center cursor-pointer flex flex-col items-center"
                   style={{
                     width: "clamp(160px, 28vw, 260px)",
