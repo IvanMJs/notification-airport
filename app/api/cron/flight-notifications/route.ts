@@ -172,6 +172,23 @@ export async function GET(request: Request) {
       }
     }
 
+    // A2: Morning briefing — day of flight, between 9:00–13:00 UTC (6–10am Argentina)
+    if (isoDate === todayISO && hoursUntil !== null && hoursUntil > 3) {
+      const utcHour = now.getUTCHours();
+      if (utcHour >= 9 && utcHour <= 13) {
+        const alreadySent = await checkLog(supabase, flight.id, "morning_briefing", Infinity);
+        if (!alreadySent) {
+          const statusLabel = STATUS_LABEL[airportStatus] ?? "Normal ✅";
+          await sendAndLog(supabase, subs, flight, userId, "morning_briefing", {
+            title: `¡Hoy viajás! ${flight.flight_code} sale a las ${departureTime ?? "?"}`,
+            body: `${originCode}→${flight.destination_code}. ${originCode}: ${statusLabel}. ¡Buen vuelo! 🛫`,
+            url: "/app",
+          });
+          notificationsSent++;
+        }
+      }
+    }
+
     // B: Check-in 24h before
     if (hoursUntil !== null && hoursUntil >= 23 && hoursUntil <= 25) {
       const alreadySent = await checkLog(supabase, flight.id, "checkin_24h", Infinity);
