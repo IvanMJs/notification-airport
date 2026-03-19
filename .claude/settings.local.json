@@ -54,7 +54,17 @@
       "Bash(git push:*)",
       "Bash(grep -rn \"notification_log\\\\|accommodations\" /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=*.sql)",
       "Bash(grep -rn \"CREATE TABLE\\\\|flight_id\\\\|accommodations\" /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\" ! -path \"*/node_modules/*\")",
-      "Bash(grep -rn notification_log /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=*.ts --include=*.tsx)"
+      "Bash(grep -rn notification_log /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=*.ts --include=*.tsx)",
+      "Bash(xargs wc:*)",
+      "Bash(node -e \"const pkg = require\\(''''./node_modules/zod/package.json''''\\); console.log\\(JSON.stringify\\(pkg.exports?.[''''.''''] ?? pkg.main ?? ''''no main'''', null, 2\\)\\)\")",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__list_migrations",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__apply_migration"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }

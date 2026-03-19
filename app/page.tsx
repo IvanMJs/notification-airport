@@ -5,7 +5,8 @@ import { createClient } from "@/utils/supabase/client";
 import {
   Plane, Shield, Brain, Bell, Calendar, Search,
   ArrowRight, Mail, Loader2, MapPin, Clock,
-  Zap, Star, CheckCircle, ChevronDown, LogIn
+  Zap, Star, CheckCircle, ChevronDown, LogIn,
+  Building2, Smartphone
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -91,6 +92,22 @@ export default function LandingPage() {
       border: "border-teal-800/30",
       title: "Rastreo de cualquier vuelo",
       desc: "Seguí el estado de cualquier vuelo del mundo en tiempo real, con estado del aeropuerto de salida incluido.",
+    },
+    {
+      icon: Building2,
+      color: "text-pink-400",
+      bg: "bg-pink-950/40",
+      border: "border-pink-800/30",
+      title: "Hospedaje integrado",
+      desc: "Agregá tus hoteles al itinerario. TripCopilot te avisa el día anterior del check-in y te notifica cuando es la hora exacta.",
+    },
+    {
+      icon: Zap,
+      color: "text-red-400",
+      bg: "bg-red-950/40",
+      border: "border-red-800/30",
+      title: "Alertas en tiempo real",
+      desc: "2-4 horas antes del despegue, TripCopilot consulta el estado real de tu vuelo. Si fue cancelado o tiene demora, te llega al toque.",
     },
   ];
 
@@ -201,7 +218,7 @@ export default function LandingPage() {
                 {" "}— sin tipear nada.
               </p>
               <p className="text-sm text-gray-500 leading-relaxed mb-8 max-w-lg">
-                Después monitorea la FAA en tiempo real, calcula el riesgo de conexión y te avisa si algo cambia.
+                Después monitorea la FAA en tiempo real, calcula el riesgo de conexión, trackea tus hoteles y te avisa si algo cambia.
               </p>
 
               {/* CTAs */}
@@ -465,46 +482,57 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-[11px] font-bold uppercase tracking-widest text-gray-600 mb-3">Notificaciones</p>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">Solo lo que necesitás saber</h2>
-            <p className="text-sm text-gray-500 mt-3">Sin spam. Tres alertas críticas, en el momento justo.</p>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">7 alertas que te cuidan el viaje</h2>
+            <p className="text-sm text-gray-500 mt-3">Sin spam. Cada notificación llega en el momento exacto en que la necesitás.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          {/* Notification type grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-16">
             {[
-              {
-                icon: "✈️",
-                color: "text-violet-400",
-                bg: "bg-violet-950/40",
-                border: "border-violet-800/30",
-                timing: "24hs antes",
-                title: "Check-in",
-                desc: "Recordatorio para hacer el check-in online antes de que cierren los mostradores.",
-              },
-              {
-                icon: "🛫",
-                color: "text-blue-400",
-                bg: "bg-blue-950/40",
-                border: "border-blue-800/30",
-                timing: "3hs antes",
-                title: "Pre-vuelo",
-                desc: "Estado actual del aeropuerto de salida incluido — sabés si hay demoras antes de salir de casa.",
-              },
-              {
-                icon: "⚠️",
-                color: "text-amber-400",
-                bg: "bg-amber-950/40",
-                border: "border-amber-800/30",
-                timing: "Hasta 3 días antes",
-                title: "Delays y cierres",
-                desc: "Alerta inmediata si tu aeropuerto de salida tiene demoras moderadas, severas o un cierre.",
-              },
+              { icon: "🌅", color: "text-yellow-400", bg: "bg-yellow-950/30", border: "border-yellow-800/25", timing: "Día del vuelo · mañana", title: "Morning briefing", desc: "Resumen del día con estado del aeropuerto y hora de salida." },
+              { icon: "✈️", color: "text-violet-400", bg: "bg-violet-950/40", border: "border-violet-800/30", timing: "24hs antes", title: "Check-in vuelo", desc: "Recordatorio para hacer el check-in online a tiempo." },
+              { icon: "🛫", color: "text-blue-400", bg: "bg-blue-950/40", border: "border-blue-800/30", timing: "3hs antes", title: "Pre-vuelo", desc: "Estado del aeropuerto incluido — sabés si hay demoras antes de salir." },
+              { icon: "⚠️", color: "text-amber-400", bg: "bg-amber-950/40", border: "border-amber-800/30", timing: "Hasta 3 días antes", title: "Alerta aeropuerto", desc: "Demoras moderadas, severas o cierres en tu aeropuerto." },
+              { icon: "🟡", color: "text-orange-400", bg: "bg-orange-950/30", border: "border-orange-800/25", timing: "2-4hs antes", title: "Demora real", desc: "TripCopilot consulta el estado real del vuelo y te avisa si hay atraso." },
+              { icon: "🚫", color: "text-red-400", bg: "bg-red-950/30", border: "border-red-800/25", timing: "2-4hs antes", title: "Vuelo cancelado", desc: "Alerta inmediata si tu vuelo fue cancelado — con tiempo de reaccionar." },
+              { icon: "🏨", color: "text-pink-400", bg: "bg-pink-950/30", border: "border-pink-800/25", timing: "Día anterior", title: "Reminder hotel", desc: "Recordatorio de check-in con documentos y código de reserva." },
+              { icon: "🔑", color: "text-emerald-400", bg: "bg-emerald-950/30", border: "border-emerald-800/25", timing: "Hora exacta", title: "Check-in hotel", desc: "Te avisa cuando es la hora de check-in o check-out de tu hospedaje." },
             ].map((n) => (
-              <div key={n.title} className={`rounded-2xl border ${n.border} ${n.bg} p-5 space-y-3 flex flex-col items-center text-center`}>
-                <div className={`flex items-center justify-center h-9 w-9 rounded-xl ${n.bg} border ${n.border} text-lg`}>
+              <div key={n.title} className={`rounded-2xl border ${n.border} ${n.bg} p-4 space-y-2 flex flex-col items-center text-center`}>
+                <div className={`flex items-center justify-center h-8 w-8 rounded-xl ${n.bg} border ${n.border} text-base`}>
                   {n.icon}
                 </div>
                 <p className={`text-[10px] font-bold uppercase tracking-widest ${n.color}`}>{n.timing}</p>
-                <h3 className="text-sm font-bold text-white">{n.title}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">{n.desc}</p>
+                <h3 className="text-xs font-bold text-white">{n.title}</h3>
+                <p className="text-[11px] text-gray-500 leading-relaxed">{n.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Phone screenshots */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-xs text-gray-400 mb-4">
+              <Smartphone className="h-3.5 w-3.5" />
+              Así llegan en tu celular
+            </div>
+          </div>
+          <div className="flex gap-3 sm:gap-4 justify-center items-end overflow-x-auto pb-4 snap-x snap-mandatory">
+            {[
+              { src: "/morning-briefing.jpeg", label: "Morning briefing" },
+              { src: "/vuelo-demorado.jpeg", label: "Demora real" },
+              { src: "/vuelo-cancelado.jpeg", label: "Cancelación" },
+              { src: "/check-in-24hs.jpeg", label: "Check-in vuelo" },
+              { src: "/mañana-check-in.jpeg", label: "Reminder hotel" },
+              { src: "/check-in-hoy-hotel.jpeg", label: "Check-in hotel" },
+            ].map((s, i) => (
+              <div key={s.src} className={`shrink-0 snap-center ${i === 2 ? "relative z-10" : ""}`}>
+                <div
+                  className={`relative rounded-3xl overflow-hidden shadow-2xl ${i === 2 ? "border border-blue-500/20 shadow-blue-900/30" : "border border-white/[0.08] shadow-black/60"}`}
+                  style={{ width: i === 2 ? "min(180px, 48vw)" : "min(155px, 42vw)" }}
+                >
+                  <img src={s.src} alt={s.label} className="w-full h-auto block" />
+                </div>
+                <p className={`text-center text-[11px] mt-2 ${i === 2 ? "text-blue-500 font-medium" : "text-gray-600"}`}>{s.label}</p>
               </div>
             ))}
           </div>
