@@ -198,6 +198,44 @@ export async function GET(request: Request) {
         notificationsSent++;
       }
     }
+
+    // D: Real-time flight status (2–4h before) — 1 API call per flight, ever
+    if (hoursUntil !== null && hoursUntil >= 2 && hoursUntil <= 4 && rapidApiKey) {
+      const alreadyFetched = await checkLog(supabase, flight.id, "flight_status_fetched", Infinity);
+      if (!alreadyFetched) {
+        // Log immediately so parallel cron runs don't double-fetch
+        await supabase.from("notification_log").insert({
+          flight_id: flight.id,
+          user_id: userId,
+          type: "flight_status_fetched",
+          sent_at: new Date().toISOString(),
+        });
+
+        const flightStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey);
+
+        if (flightStatus) {
+          if (flightStatus.cancelled) {
+            await sendAndLog(supabase, subs, flight, userId, "flight_cancelled", {
+              title: `Vuelo cancelado ⛔ — ${flight.flight_code}`,
+              body: `Tu vuelo ${flight.flight_code} ${originCode}→${flight.destination_code} fue cancelado. Contactá a la aerolínea.`,
+              url: "/app",
+            });
+            notificationsSent++;
+          } else if (flightStatus.delayMinutes >= 20) {
+            const delayText = flightStatus.delayMinutes >= 60
+              ? `${Math.floor(flightStatus.delayMinutes / 60)}h ${flightStatus.delayMinutes % 60}min`
+              : `${flightStatus.delayMinutes} min`;
+            const gateText = flightStatus.gate ? ` · Puerta ${flightStatus.gate}` : "";
+            await sendAndLog(supabase, subs, flight, userId, "flight_delay_real", {
+              title: `${flight.flight_code} con ${delayText} de demora 🟠`,
+              body: `Sale aprox. a las ${flightStatus.estimatedDeparture ?? departureTime}${gateText}. ${originCode}→${flight.destination_code}.`,
+              url: "/app",
+            });
+            notificationsSent++;
+          }
+        }
+      }
+    }
   }
 
   return Response.json({
@@ -205,6 +243,41 @@ export async function GET(request: Request) {
     processed: flights.length,
     sent: notificationsSent,
   });
+}
+
+/** Fetch real-time status for a specific flight from AeroDataBox */
+async function fetchFlightStatus(
+  flightCode: string,
+  isoDate: string,
+  rapidApiKey: string,
+): Promise<{ delayMinutes: number; estimatedDeparture: string | null; gate: string | null; cancelled: boolean } | null> {
+  try {
+    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${flightCode}/${isoDate}`;
+    const res = await fetch(url, {
+      headers: {
+        "X-RapidAPI-Key": rapidApiKey,
+        "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com",
+      },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as any[];
+    if (!Array.isArray(data) || data.length === 0) return null;
+
+    const leg = data[0];
+    const status: string = leg.status ?? "";
+    const cancelled = status === "Cancelled";
+    const delayMinutes: number = leg.departure?.delay ?? 0;
+    const gate: string | null = leg.departure?.gate ?? null;
+
+    // Estimated departure from actualTime local, fallback to scheduledTime
+    const actualLocal: string | null = leg.departure?.actualTime?.local ?? null;
+    const estimatedDeparture = actualLocal ? actualLocal.slice(11, 16) : null;
+
+    return { delayMinutes, estimatedDeparture, gate, cancelled };
+  } catch {
+    return null;
+  }
 }
 
 /** Returns true if we already sent this notification type for this flight within withinHours */
