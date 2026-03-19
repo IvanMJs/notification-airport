@@ -471,8 +471,8 @@ export function TripAdvisor({ flights, locale }: TripAdvisorProps) {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {isLoadingAi && <TripCopilotIcon spinning size={28} />}
-          {aiStatus === "done" && <TripCopilotIcon size={28} />}
+          {isLoadingAi && <TripCopilotIcon spinning size={40} />}
+          {aiStatus === "done" && <TripCopilotIcon size={40} />}
           <div className="flex gap-1">
             {stays.map((s) => (
               <span key={s.code} className="text-base">{s.flag}</span>
@@ -490,7 +490,7 @@ export function TripAdvisor({ flights, locale }: TripAdvisorProps) {
           {/* AI summary banner */}
           {aiData?.summary && (
             <div className="px-4 py-3 border-b border-white/[0.04] flex items-start gap-2">
-              <TripCopilotIcon size={22} />
+              <TripCopilotIcon size={32} />
               <p className="text-xs text-gray-300 leading-relaxed">{aiData.summary}</p>
             </div>
           )}
