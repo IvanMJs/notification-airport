@@ -13,6 +13,15 @@ export function useServiceWorker() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
 
+    // When a new SW takes control, reload once to get the latest assets
+    let reloading = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!reloading) {
+        reloading = true;
+        window.location.reload();
+      }
+    });
+
     navigator.serviceWorker.ready
       .then((reg) => {
         regRef.current = reg;
