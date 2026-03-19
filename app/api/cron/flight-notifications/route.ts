@@ -58,9 +58,9 @@ export async function GET(request: Request) {
   }
 
   // Collect unique origin airports
-  const uniqueAirports = [
-    ...new Set(flights.map((f: any) => f.origin_code as string)),
-  ];
+  const uniqueAirports = Array.from(
+    new Set(flights.map((f: any) => f.origin_code as string)),
+  );
 
   // Fetch airport statuses (FAA + international)
   const statusMap: Record<string, string> = {};
