@@ -11,6 +11,8 @@ export interface ParsedFlight {
   destinationCode: string;
   isoDate:       string;
   departureTime: string;
+  arrivalDate?:  string;
+  arrivalTime?:  string;
   arrivalBuffer: number;
   confidence:    "high" | "medium" | "low";
 }

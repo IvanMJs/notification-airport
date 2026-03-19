@@ -25,6 +25,8 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
       "destinationCode": "MIA",
       "isoDate": "2026-03-29",
       "departureTime": "20:30",
+      "arrivalDate": "2026-03-30",
+      "arrivalTime": "06:45",
       "missing": []
     }
   ]
@@ -37,8 +39,10 @@ Rules:
 - flightNumber: just the digits (e.g. "900")
 - originCode: IATA airport code, 3 uppercase letters
 - destinationCode: IATA airport code, 3 uppercase letters
-- isoDate: format "YYYY-MM-DD"
-- departureTime: 24h format "HH:MM", or "" if not found
+- isoDate: departure date, format "YYYY-MM-DD"
+- departureTime: 24h format "HH:MM", or "" if not found. Convert 12h to 24h (e.g. "8:30 PM" → "20:30").
+- arrivalDate: arrival date, format "YYYY-MM-DD". May differ from isoDate for overnight flights. Leave "" if not found.
+- arrivalTime: arrival time in local time at destination, 24h format "HH:MM". Leave "" if not found. Convert 12h to 24h.
 - missing: array of field names you could not find, e.g. ["departureTime"] or []
 
 If a field is missing or uncertain, leave it as empty string "" and add the field name to "missing".

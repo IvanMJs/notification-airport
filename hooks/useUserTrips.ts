@@ -44,6 +44,8 @@ interface DbFlight {
   destination_code: string;
   iso_date: string;
   departure_time: string | null;
+  arrival_date: string | null;
+  arrival_time: string | null;
   arrival_buffer: number;
   sort_order: number;
 }
@@ -60,6 +62,8 @@ function toTripFlight(f: DbFlight): TripFlight {
     destinationCode: f.destination_code,
     isoDate:         f.iso_date,
     departureTime:   f.departure_time ?? "",
+    arrivalDate:     f.arrival_date ?? undefined,
+    arrivalTime:     f.arrival_time ?? undefined,
     arrivalBuffer:   f.arrival_buffer,
   };
 }
@@ -157,6 +161,8 @@ export function useUserTrips() {
         destination_code: flight.destinationCode,
         iso_date:         flight.isoDate,
         departure_time:   flight.departureTime || null,
+        arrival_date:     flight.arrivalDate ?? null,
+        arrival_time:     flight.arrivalTime ?? null,
         arrival_buffer:   flight.arrivalBuffer,
         sort_order,
       })
@@ -343,6 +349,8 @@ export function useUserTrips() {
         destination_code: flight.destinationCode,
         iso_date: flight.isoDate,
         departure_time: flight.departureTime || null,
+        arrival_date: flight.arrivalDate ?? null,
+        arrival_time: flight.arrivalTime ?? null,
         arrival_buffer: flight.arrivalBuffer,
         sort_order,
       }).select("id").single();

@@ -97,6 +97,8 @@ function buildParsedFlight(raw: {
   destinationCode: string;
   isoDate: string;
   departureTime: string;
+  arrivalDate?: string;
+  arrivalTime?: string;
   missing: string[];
 }): EditableFlight {
   const airline = AIRLINES[raw.airlineCode.toUpperCase()];
@@ -110,6 +112,8 @@ function buildParsedFlight(raw: {
     destinationCode: raw.destinationCode.toUpperCase(),
     isoDate:         raw.isoDate,
     departureTime:   raw.departureTime ?? "",
+    arrivalDate:     raw.arrivalDate || undefined,
+    arrivalTime:     raw.arrivalTime || undefined,
     arrivalBuffer:   2,
     confidence:      raw.missing.length === 0 ? "high"
                    : raw.missing.length <= 1   ? "medium"
@@ -503,6 +507,12 @@ function FlightEditCard({
               <span className="text-xs text-blue-400 font-medium">{flight.departureTime}</span>
             </>
           )}
+          {flight.arrivalTime && (
+            <>
+              <span className="text-gray-600">→</span>
+              <span className="text-xs text-emerald-400 font-medium">{flight.arrivalTime}</span>
+            </>
+          )}
         </div>
         {flight.missing.length > 0 && (
           <span className="ml-auto text-[10px] font-semibold text-orange-400 bg-orange-950/40 border border-orange-800/30 rounded-full px-2 py-0.5 shrink-0">
@@ -559,6 +569,28 @@ function FlightEditCard({
               onChange={(e) => onChange("departureTime", e.target.value)}
               placeholder="20:30"
               className={fieldCls("departureTime")}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-600 mb-1 block">
+              {locale === "es" ? "Llegada (hora)" : "Arrival time"}
+            </label>
+            <input
+              value={flight.arrivalTime ?? ""}
+              onChange={(e) => onChange("arrivalTime", e.target.value)}
+              placeholder="06:45"
+              className={fieldCls("arrivalTime")}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-600 mb-1 block">
+              {locale === "es" ? "Llegada (fecha)" : "Arrival date"}
+            </label>
+            <input
+              value={flight.arrivalDate ?? ""}
+              onChange={(e) => onChange("arrivalDate", e.target.value)}
+              placeholder="2026-03-30"
+              className={fieldCls("arrivalDate")}
             />
           </div>
           <div>

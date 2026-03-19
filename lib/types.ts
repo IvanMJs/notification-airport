@@ -54,6 +54,8 @@ export interface TripFlight {
   destinationCode: string;  // "MIA"
   isoDate: string;          // "2026-03-29"
   departureTime: string;    // "20:30"
+  arrivalDate?: string;     // "2026-03-30" (may differ for overnight flights)
+  arrivalTime?: string;     // "06:45" local at destination
   arrivalBuffer: number;    // hours: 1, 1.5, 2, 2.5, 3
 }
 
