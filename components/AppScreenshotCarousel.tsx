@@ -2,11 +2,10 @@
 
 import { useState, useCallback } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination, A11y } from "swiper/modules";
+import { A11y } from "swiper/modules";
 import type { Swiper as SwiperType } from "swiper";
 
 import "swiper/css";
-import "swiper/css/pagination";
 
 const SLIDES = [
   {
@@ -45,7 +44,7 @@ export function AppScreenshotCarousel() {
   return (
     <div className="select-none">
       <Swiper
-        modules={[Pagination, A11y]}
+        modules={[A11y]}
         onSwiper={(sw) => { setSwiperRef(sw); sw.slideTo(1, 0); }}
         onSlideChange={handleSlideChange}
         initialSlide={1}

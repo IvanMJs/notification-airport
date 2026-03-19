@@ -2,11 +2,11 @@
 
 import { useState, useCallback } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, A11y } from "swiper/modules";
+import { EffectCards, A11y } from "swiper/modules";
 import type { Swiper as SwiperType } from "swiper";
 
-// Swiper core styles
 import "swiper/css";
+import "swiper/css/effect-cards";
 
 interface NotifCarouselProps {
   screenshots: { src: string; label: string }[];
@@ -26,9 +26,52 @@ export function NotifCarousel({ screenshots }: NotifCarouselProps) {
   );
 
   return (
-    <div className="select-none">
+    <div className="select-none flex flex-col items-center">
+      {/* Card stack swiper */}
+      <div style={{ width: "clamp(200px, 52vw, 300px)", paddingBottom: "2rem" }}>
+        <Swiper
+          modules={[EffectCards, A11y]}
+          effect="cards"
+          onSwiper={setSwiperRef}
+          onSlideChange={handleSlideChange}
+          grabCursor
+          centeredSlides
+          loop
+          a11y={{ prevSlideMessage: "Anterior", nextSlideMessage: "Siguiente" }}
+          cardsEffect={{
+            slideShadows: true,
+            rotate: true,
+            perSlideOffset: 10,
+            perSlideRotate: 4,
+          }}
+        >
+          {screenshots.map((s) => (
+            <SwiperSlide key={s.src}>
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+                <img
+                  src={s.src}
+                  alt={s.label}
+                  className="w-full h-auto block"
+                  draggable={false}
+                />
+                {/* Bottom label overlay */}
+                <div
+                  className="absolute bottom-0 inset-x-0 py-3 px-4 text-center"
+                  style={{
+                    background:
+                      "linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 100%)",
+                  }}
+                >
+                  <p className="text-xs font-bold text-white">{s.label}</p>
+                </div>
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
+      </div>
+
       {/* Dot indicators */}
-      <div className="flex justify-center gap-1.5 mb-8">
+      <div className="flex justify-center gap-1.5">
         {screenshots.map((_, i) => (
           <button
             key={i}
@@ -41,74 +84,6 @@ export function NotifCarousel({ screenshots }: NotifCarouselProps) {
             }`}
           />
         ))}
-      </div>
-
-      {/* Swiper */}
-      <div className="pb-10">
-        <Swiper
-          modules={[Autoplay, A11y]}
-          onSwiper={setSwiperRef}
-          onSlideChange={handleSlideChange}
-          centeredSlides
-          loop
-          grabCursor
-          slidesPerView="auto"
-          spaceBetween={20}
-          autoplay={{ delay: 3200, disableOnInteraction: false, pauseOnMouseEnter: true }}
-          a11y={{ prevSlideMessage: "Anterior", nextSlideMessage: "Siguiente" }}
-          style={{ overflow: "visible" }}
-        >
-          {screenshots.map((s, i) => {
-            const isActive = i === activeIndex;
-            return (
-              <SwiperSlide
-                key={s.src}
-                onClick={() => goTo(i)}
-                style={{ width: "clamp(160px, 28vw, 260px)", cursor: "pointer" }}
-              >
-                <div className="flex flex-col items-center">
-                  <div
-                    className="relative w-full rounded-3xl overflow-hidden shadow-2xl"
-                    style={{
-                      transform:  isActive ? "scale(1.12)" : "scale(0.82)",
-                      transition: "transform 0.4s cubic-bezier(.4,0,.2,1), opacity 0.4s, box-shadow 0.4s",
-                      opacity:    isActive ? 1 : 0.45,
-                      border:     isActive
-                        ? "2px solid rgba(59,130,246,0.6)"
-                        : "1px solid rgba(255,255,255,0.08)",
-                      boxShadow: isActive
-                        ? "0 20px 60px rgba(59,130,246,0.25), 0 8px 24px rgba(0,0,0,0.6)"
-                        : "0 4px 16px rgba(0,0,0,0.4)",
-                    }}
-                  >
-                    <img
-                      src={s.src}
-                      alt={s.label}
-                      className="w-full h-auto block"
-                      draggable={false}
-                    />
-                    {isActive && (
-                      <div
-                        className="absolute bottom-0 inset-x-0 py-3 px-3 text-center"
-                        style={{
-                          background:
-                            "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)",
-                        }}
-                      >
-                        <p className="text-xs font-bold text-white">{s.label}</p>
-                      </div>
-                    )}
-                  </div>
-                  {!isActive && (
-                    <p className="text-[10px] text-gray-600 mt-3 transition-opacity duration-300">
-                      {s.label}
-                    </p>
-                  )}
-                </div>
-              </SwiperSlide>
-            );
-          })}
-        </Swiper>
       </div>
     </div>
   );
