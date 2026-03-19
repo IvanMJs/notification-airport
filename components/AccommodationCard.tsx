@@ -1,7 +1,20 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Hotel, Pencil, Trash2, X, Plus, Sparkles, Upload, RotateCcw, MapPin, Hash } from "lucide-react";
+import { Hotel, Pencil, Trash2, X, Plus, Upload, RotateCcw, MapPin, Hash } from "lucide-react";
+
+function TripCopilotIcon({ spinning, size = 16 }: { spinning?: boolean; size?: number }) {
+  return (
+    <img
+      src="/tripcopliot-avatar.svg"
+      alt="TripCopilot"
+      width={size}
+      height={size}
+      className={`shrink-0 rounded-full ${spinning ? "animate-spin" : ""}`}
+      style={spinning ? { animationDuration: "2s" } : undefined}
+    />
+  );
+}
 import { Accommodation } from "@/lib/types";
 
 // ── Labels ────────────────────────────────────────────────────────────────────
@@ -283,7 +296,7 @@ export function AddAccommodationInlineForm({
             tab === "ai" ? "bg-violet-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-300"
           }`}
         >
-          <Sparkles className="h-3 w-3" />
+          <TripCopilotIcon size={12} />
           {L.accTabAI}
         </button>
         <button
@@ -300,49 +313,48 @@ export function AddAccommodationInlineForm({
       {/* ── AI TAB ── */}
       {tab === "ai" && !parsed && (
         <div className="space-y-2">
-          <textarea
-            value={aiText}
-            onChange={(e) => setAiText(e.target.value)}
-            placeholder={L.accAIPlaceholder}
-            rows={3}
-            className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-violet-500/60 transition-colors resize-none leading-relaxed"
-          />
+          {aiLoading ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-6">
+              <TripCopilotIcon spinning size={36} />
+              <p className="text-xs text-violet-300 font-medium">{L.accAILoading}</p>
+            </div>
+          ) : (
+            <>
+              <textarea
+                value={aiText}
+                onChange={(e) => setAiText(e.target.value)}
+                placeholder={L.accAIPlaceholder}
+                rows={3}
+                className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-violet-500/60 transition-colors resize-none leading-relaxed"
+              />
 
-          {aiError && (
-            <p className="text-[11px] text-red-400 flex items-center gap-1">
-              <span>{aiError}</span>
-            </p>
-          )}
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => aiText.trim() && handleAIParse(aiText)}
-              disabled={aiLoading || !aiText.trim()}
-              className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 py-2 text-xs font-bold text-white transition-colors"
-            >
-              {aiLoading ? (
-                <span className="flex items-center gap-1.5">
-                  <span className="h-3 w-3 rounded-full border-2 border-white/30 border-t-white animate-spin block" />
-                  {L.accAILoading}
-                </span>
-              ) : (
-                <>
-                  <Sparkles className="h-3.5 w-3.5" />
-                  {L.accTabAI}
-                </>
+              {aiError && (
+                <p className="text-[11px] text-red-400 flex items-center gap-1">
+                  <span>{aiError}</span>
+                </p>
               )}
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={aiLoading}
-              className="flex items-center gap-1.5 rounded-lg border border-white/[0.10] bg-white/[0.04] hover:bg-white/[0.08] disabled:opacity-40 px-3 py-2 text-xs text-gray-300 transition-colors"
-              title={L.accAIPhoto}
-            >
-              <Upload className="h-3.5 w-3.5" />
-              {L.accAIPhoto}
-            </button>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-          </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => aiText.trim() && handleAIParse(aiText)}
+                  disabled={!aiText.trim()}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 py-2 text-xs font-bold text-white transition-colors"
+                >
+                  <TripCopilotIcon size={13} />
+                  {L.accTabAI}
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 rounded-lg border border-white/[0.10] bg-white/[0.04] hover:bg-white/[0.08] px-3 py-2 text-xs text-gray-300 transition-colors"
+                  title={L.accAIPhoto}
+                >
+                  <Upload className="h-3.5 w-3.5" />
+                  {L.accAIPhoto}
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -351,7 +363,7 @@ export function AddAccommodationInlineForm({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-bold text-violet-400 uppercase tracking-wider flex items-center gap-1">
-              <Sparkles className="h-3 w-3" />
+              <TripCopilotIcon size={12} />
               {L.accAIReview}
             </p>
             <button
