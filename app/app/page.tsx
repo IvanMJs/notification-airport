@@ -73,6 +73,7 @@ export default function HomePage() {
     addAccommodation: addAccommodationDB,
     removeAccommodation: removeAccommodationDB,
     updateAccommodation: updateAccommodationDB,
+    saveDraftTrip: saveDraftTripDB,
     duplicateTrip: duplicateTripDB,
   } = useUserTrips();
 
@@ -218,18 +219,9 @@ export default function HomePage() {
 
   async function saveDraftTrip() {
     if (!draftTrip) return;
-    const id = await createTripDB(draftTrip.name);
+    // Single atomic PostgreSQL transaction via RPC — no partial saves
+    const id = await saveDraftTripDB(draftTrip.name, draftTrip.flights, draftTrip.accommodations);
     if (id) {
-      const flightIdMap: Record<string, string> = {};
-      for (const flight of draftTrip.flights) {
-        const realId = await addFlightDB(id, flight);
-        if (realId) flightIdMap[flight.id] = realId;
-      }
-      for (const acc of draftTrip.accommodations) {
-        const { id: _id, tripId: _tid, ...accData } = acc;
-        const realFlightId = accData.flightId ? flightIdMap[accData.flightId] : undefined;
-        await addAccommodationDB(id, { ...accData, flightId: realFlightId });
-      }
       setDraftTrip(null);
       setActiveTab(id);
     }

@@ -2,11 +2,19 @@ export const dynamic = "force-dynamic";
 
 import { AIRPORTS } from "@/lib/airports";
 import { parseAeroDataBox } from "@/lib/aerodatabox";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
+
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
 
 function formatDateTime(d: Date): string {
-  // "YYYY-MM-DDTHH:mm" — AeroDataBox expects local airport time; we pass UTC and
-  // use a wide enough window so that flights are captured regardless of timezone offset.
   return d.toISOString().slice(0, 16);
+}
+
+function getServiceClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
 }
 
 export async function GET(request: Request) {
@@ -20,33 +28,50 @@ export async function GET(request: Request) {
     .filter(Boolean);
 
   const key = process.env.AERODATABOX_RAPIDAPI_KEY;
+  if (!key) return Response.json({});
 
-  // No key configured → return empty object (graceful degradation)
-  if (!key) {
-    return Response.json({});
-  }
-
-  // Only query airports that are non-FAA and known in our list
   const intlAirports = iatas.filter(
     (iata) => AIRPORTS[iata] && AIRPORTS[iata].isFAA === false,
   );
+  if (intlAirports.length === 0) return Response.json({});
 
-  if (intlAirports.length === 0) {
-    return Response.json({});
-  }
-
-  // Wide time window: now-1h to now+4h so we capture current flights
-  // regardless of the airport's local timezone offset
   const now = new Date();
-  const from = formatDateTime(new Date(now.getTime() - 60 * 60 * 1000));
-  const to = formatDateTime(new Date(now.getTime() + 4 * 60 * 60 * 1000));
+  const supabase = getServiceClient();
+  const cacheThreshold = new Date(now.getTime() - CACHE_TTL_MS).toISOString();
+
+  // Read fresh cache entries
+  const { data: cachedRows } = await supabase
+    .from("airport_status_cache")
+    .select("iata, data")
+    .in("iata", intlAirports)
+    .gte("cached_at", cacheThreshold);
+
+  const cachedMap = new Map<string, object>(
+    (cachedRows ?? []).map((row: { iata: string; data: object }) => [row.iata, row.data]),
+  );
 
   const results: Record<string, object> = {};
+  const toFetch: string[] = [];
 
-  let quotaExceeded = false;
-
-  // Sequential: stops immediately on 429/402 to avoid burning remaining quota
   for (const iata of intlAirports) {
+    const hit = cachedMap.get(iata);
+    if (hit) {
+      results[iata] = hit;
+    } else {
+      toFetch.push(iata);
+    }
+  }
+
+  // All served from cache — zero AeroDataBox calls
+  if (toFetch.length === 0) {
+    return Response.json(results, { headers: { "Cache-Control": "no-store" } });
+  }
+
+  // Fetch fresh data for stale/missing airports
+  const from = formatDateTime(new Date(now.getTime() - 60 * 60 * 1000));
+  const to   = formatDateTime(new Date(now.getTime() + 4 * 60 * 60 * 1000));
+
+  for (const iata of toFetch) {
     try {
       const url =
         `https://aerodatabox.p.rapidapi.com/flights/airports/iata/${iata}/${from}/${to}` +
@@ -62,21 +87,28 @@ export async function GET(request: Request) {
       });
 
       if (res.status === 429 || res.status === 402) {
-        quotaExceeded = true;
-        break;
+        // Quota hit — return what we have (cache hits + any fresh fetches so far)
+        return Response.json(
+          Object.keys(results).length > 0 ? results : { quotaExceeded: true },
+          { headers: { "Cache-Control": "no-store" } },
+        );
       }
       if (!res.ok) continue;
 
       const data = await res.json();
       const status = parseAeroDataBox(iata, data, locale);
-      if (status) results[iata] = status;
+      if (status) {
+        results[iata] = status;
+        // Write to cache — fire-and-forget, don't block response
+        supabase
+          .from("airport_status_cache")
+          .upsert({ iata, data: status, cached_at: now.toISOString() })
+          .then(() => {});
+      }
     } catch {
-      // Silently skip — individual airport failure shouldn't break others
+      // Individual airport failure doesn't break others
     }
   }
 
-  return Response.json(
-    quotaExceeded ? { quotaExceeded: true } : results,
-    { headers: { "Cache-Control": "no-store" } },
-  );
+  return Response.json(results, { headers: { "Cache-Control": "no-store" } });
 }

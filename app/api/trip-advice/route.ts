@@ -42,6 +42,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
   }
 
+  // Rate limit: 5 advice requests per hour per user (more expensive than parse-flight)
+  const { data: allowed } = await supabase.rpc("check_rate_limit", {
+    p_user_id:      user.id,
+    p_endpoint:     "trip-advice",
+    p_max_per_hour: 5,
+  });
+  if (!allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded — try again later" }, { status: 429 });
+  }
+
   const raw = await req.json();
   const parsed = BodySchema.safeParse(raw);
   if (!parsed.success) {

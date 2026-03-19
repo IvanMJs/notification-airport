@@ -257,6 +257,50 @@ export function useUserTrips() {
     }).eq("id", accId);
   }, []);
 
+  /**
+   * Saves a draft trip atomically via a Postgres RPC (single transaction).
+   * Returns the new trip ID, or null on failure.
+   */
+  const saveDraftTrip = useCallback(async (
+    name: string,
+    flights: TripFlight[],
+    accommodations: Accommodation[],
+  ): Promise<string | null> => {
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("save_draft_trip", {
+      p_name:           name,
+      p_flights:        flights,
+      p_accommodations: accommodations,
+    });
+
+    if (error || !data) return null;
+
+    const newTripId = data as string;
+
+    // Fetch the newly created trip with its real DB IDs
+    const { data: tripRow } = await supabase
+      .from("trips")
+      .select("id, name, flights(*), accommodations(*)")
+      .eq("id", newTripId)
+      .single();
+
+    if (tripRow) {
+      const newTrip: TripTab = {
+        id:   tripRow.id,
+        name: tripRow.name,
+        flights: [...(tripRow.flights as DbFlight[])]
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map(toTripFlight),
+        accommodations: (tripRow.accommodations as DbAccommodation[])
+          .sort((a, b) => (a.check_in_date ?? "").localeCompare(b.check_in_date ?? ""))
+          .map(toAccommodation),
+      };
+      setTrips((prev) => [...prev, newTrip]);
+    }
+
+    return newTripId;
+  }, []);
+
   const duplicateTrip = useCallback(async (tripId: string): Promise<string | null> => {
     const supabase = createClient();
     const source = trips.find((t) => t.id === tripId);
@@ -326,5 +370,5 @@ export function useUserTrips() {
     return newTrip.id;
   }, [trips]);
 
-  return { trips, loading, createTrip, deleteTrip, renameTrip, addFlight, removeFlight, addAccommodation, removeAccommodation, updateAccommodation, duplicateTrip };
+  return { trips, loading, createTrip, deleteTrip, renameTrip, addFlight, removeFlight, addAccommodation, removeAccommodation, updateAccommodation, saveDraftTrip, duplicateTrip };
 }

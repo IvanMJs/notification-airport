@@ -29,6 +29,9 @@ const ALERT_STATUSES = new Set([
 ]);
 
 export async function GET(request: Request) {
+  const cronStart = Date.now();
+  const cronErrors: string[] = [];
+
   // Vercel sets CRON_SECRET automatically for cron job requests
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -53,7 +56,12 @@ export async function GET(request: Request) {
     .gte("iso_date", todayISO)
     .lte("iso_date", threeDaysISO);
 
+  if (error) cronErrors.push(`flights query: ${error.message}`);
   if (error || !flights?.length) {
+    await supabase.from("cron_runs").insert({
+      flights_processed: 0, notifications_sent: 0,
+      errors: cronErrors, duration_ms: Date.now() - cronStart,
+    });
     return Response.json({ ok: true, processed: 0, sent: 0 });
   }
 
@@ -95,33 +103,64 @@ export async function GET(request: Request) {
   );
   const rapidApiKey = process.env.AERODATABOX_RAPIDAPI_KEY;
   if (intlAirports.length > 0 && rapidApiKey) {
-    const fromStr = new Date(now.getTime() - 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 16);
-    const toStr = new Date(now.getTime() + 4 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 16);
+    const CACHE_TTL_MS = 30 * 60 * 1000;
+    const cacheThreshold = new Date(now.getTime() - CACHE_TTL_MS).toISOString();
 
-    // Sequential to detect quota-exceeded (429/402) and stop immediately
+    // Check cache first
+    const { data: cachedRows } = await supabase
+      .from("airport_status_cache")
+      .select("iata, data")
+      .in("iata", intlAirports)
+      .gte("cached_at", cacheThreshold);
+
+    const cachedMap = new Map<string, string>(
+      (cachedRows ?? []).map((r: { iata: string; data: { status?: string } }) => [
+        r.iata,
+        r.data?.status ?? "ok",
+      ]),
+    );
+
+    // Serve from cache
     for (const iata of intlAirports) {
-      try {
-        const url =
-          `https://aerodatabox.p.rapidapi.com/flights/airports/iata/${iata}/${fromStr}/${toStr}` +
-          `?direction=Departure&withLeg=false&withCancelled=true&withCodeshared=true&withCargo=false&withPrivate=false&withLocation=false`;
-        const res = await fetch(url, {
-          headers: {
-            "X-RapidAPI-Key": rapidApiKey,
-            "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com",
-          },
-          signal: AbortSignal.timeout(8000),
-        });
-        // Quota exceeded — stop all remaining calls for this run
-        if (res.status === 429 || res.status === 402) break;
-        if (!res.ok) continue;
-        const data = await res.json();
-        const status = parseAeroDataBox(iata, data, "es");
-        if (status) statusMap[iata] = status.status;
-      } catch {}
+      if (cachedMap.has(iata)) statusMap[iata] = cachedMap.get(iata)!;
+    }
+
+    // Only call AeroDataBox for airports not in cache
+    const toFetch = intlAirports.filter((iata) => !cachedMap.has(iata));
+    if (toFetch.length > 0) {
+      const fromStr = new Date(now.getTime() - 60 * 60 * 1000).toISOString().slice(0, 16);
+      const toStr   = new Date(now.getTime() + 4 * 60 * 60 * 1000).toISOString().slice(0, 16);
+
+      for (const iata of toFetch) {
+        try {
+          const url =
+            `https://aerodatabox.p.rapidapi.com/flights/airports/iata/${iata}/${fromStr}/${toStr}` +
+            `?direction=Departure&withLeg=false&withCancelled=true&withCodeshared=true&withCargo=false&withPrivate=false&withLocation=false`;
+          const res = await fetch(url, {
+            headers: {
+              "X-RapidAPI-Key": rapidApiKey,
+              "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com",
+            },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (res.status === 429 || res.status === 402) {
+            cronErrors.push(`AeroDataBox quota exceeded for ${iata}`);
+            break;
+          }
+          if (!res.ok) continue;
+          const data = await res.json();
+          const status = parseAeroDataBox(iata, data, "es");
+          if (status) {
+            statusMap[iata] = status.status;
+            // Write to shared cache
+            await supabase
+              .from("airport_status_cache")
+              .upsert({ iata, data: status, cached_at: now.toISOString() });
+          }
+        } catch (e) {
+          cronErrors.push(`AeroDataBox ${iata}: ${String(e)}`);
+        }
+      }
     }
   }
 
@@ -334,10 +373,18 @@ export async function GET(request: Request) {
     }
   }
 
+  await supabase.from("cron_runs").insert({
+    flights_processed: flights.length,
+    notifications_sent: notificationsSent,
+    errors: cronErrors,
+    duration_ms: Date.now() - cronStart,
+  });
+
   return Response.json({
     ok: true,
     processed: flights.length,
     sent: notificationsSent,
+    errors: cronErrors.length,
   });
 }
 

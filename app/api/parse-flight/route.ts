@@ -50,6 +50,16 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Rate limit: 10 parses per hour per user
+  const { data: allowed } = await supabase.rpc("check_rate_limit", {
+    p_user_id:      user.id,
+    p_endpoint:     "parse-flight",
+    p_max_per_hour: 10,
+  });
+  if (!allowed) {
+    return NextResponse.json({ error: "Rate limit exceeded — try again later" }, { status: 429 });
+  }
+
   try {
     const raw = await req.json();
     const parsed = BodySchema.safeParse(raw);
