@@ -402,6 +402,30 @@ function PackingSection({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
+const CACHE_PREFIX = "tc_advice_";
+
+function readCache(key: string): TripAdviceResult | null {
+  try {
+    const raw = localStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const entry = JSON.parse(raw) as { data: TripAdviceResult; timestamp: number };
+    if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
+      localStorage.removeItem(CACHE_PREFIX + key);
+      return null;
+    }
+    return entry.data;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(key: string, data: TripAdviceResult) {
+  try {
+    localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch {}
+}
+
 export function TripAdvisor({ flights, locale }: TripAdvisorProps) {
   const [expanded, setExpanded] = useState(true);
   const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "done" | "failed">("idle");
@@ -414,6 +438,14 @@ export function TripAdvisor({ flights, locale }: TripAdvisorProps) {
   useEffect(() => {
     if (stays.length === 0 || fetchedKey.current === key) return;
     fetchedKey.current = key;
+
+    // Check localStorage cache first
+    const cached = readCache(key);
+    if (cached) {
+      setAiData(cached);
+      setAiStatus("done");
+      return;
+    }
 
     setAiStatus("loading");
 
@@ -436,6 +468,7 @@ export function TripAdvisor({ flights, locale }: TripAdvisorProps) {
       .then((r) => r.json())
       .then((body: { data?: TripAdviceResult; error?: string }) => {
         if (body.data) {
+          writeCache(key, body.data);
           setAiData(body.data);
           setAiStatus("done");
         } else {
