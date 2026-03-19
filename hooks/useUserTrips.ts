@@ -2,7 +2,31 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { TripTab, TripFlight } from "@/lib/types";
+import { TripTab, TripFlight, Accommodation } from "@/lib/types";
+
+interface DbAccommodation {
+  id: string;
+  trip_id: string;
+  name: string;
+  check_in_date: string;
+  check_in_time: string | null;
+  check_out_date: string;
+  check_out_time: string | null;
+  confirmation_code: string | null;
+}
+
+function toAccommodation(a: DbAccommodation): Accommodation {
+  return {
+    id:               a.id,
+    tripId:           a.trip_id,
+    name:             a.name,
+    checkInDate:      a.check_in_date,
+    checkInTime:      a.check_in_time ?? undefined,
+    checkOutDate:     a.check_out_date,
+    checkOutTime:     a.check_out_time ?? undefined,
+    confirmationCode: a.confirmation_code ?? undefined,
+  };
+}
 
 // Shape of a flights row returned by Supabase
 interface DbFlight {
@@ -46,7 +70,7 @@ export function useUserTrips() {
     async function load() {
       const { data, error } = await supabase
         .from("trips")
-        .select("id, name, flights(*)")
+        .select("id, name, flights(*), accommodations(*)")
         .order("created_at", { ascending: true });
 
       if (!error && data) {
@@ -56,6 +80,9 @@ export function useUserTrips() {
           flights: [...(t.flights as DbFlight[])]
             .sort((a, b) => a.sort_order - b.sort_order)
             .map(toTripFlight),
+          accommodations: (t.accommodations as DbAccommodation[])
+            .sort((a, b) => a.check_in_date.localeCompare(b.check_in_date))
+            .map(toAccommodation),
         }));
         setTrips(userTrips);
       }
@@ -77,7 +104,7 @@ export function useUserTrips() {
       .single();
 
     if (!error && data) {
-      setTrips((prev) => [...prev, { id: data.id, name, flights: [] }]);
+      setTrips((prev) => [...prev, { id: data.id, name, flights: [], accommodations: [] }]);
       return data.id;
     }
     return null;
@@ -155,5 +182,53 @@ export function useUserTrips() {
     await supabase.from("flights").delete().eq("id", flightId);
   }, []);
 
-  return { trips, loading, createTrip, deleteTrip, renameTrip, addFlight, removeFlight };
+  const addAccommodation = useCallback(async (
+    tripId: string,
+    acc: Omit<Accommodation, "id" | "tripId">,
+  ) => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("accommodations")
+      .insert({
+        trip_id:          tripId,
+        name:             acc.name,
+        check_in_date:    acc.checkInDate,
+        check_in_time:    acc.checkInTime ?? null,
+        check_out_date:   acc.checkOutDate,
+        check_out_time:   acc.checkOutTime ?? null,
+        confirmation_code: acc.confirmationCode ?? null,
+      })
+      .select("id")
+      .single();
+
+    if (!error && data) {
+      const newAcc: Accommodation = { ...acc, id: data.id, tripId };
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.id === tripId
+            ? {
+                ...t,
+                accommodations: [...t.accommodations, newAcc].sort((a, b) =>
+                  a.checkInDate.localeCompare(b.checkInDate),
+                ),
+              }
+            : t,
+        ),
+      );
+    }
+  }, []);
+
+  const removeAccommodation = useCallback(async (tripId: string, accId: string) => {
+    setTrips((prev) =>
+      prev.map((t) =>
+        t.id === tripId
+          ? { ...t, accommodations: t.accommodations.filter((a) => a.id !== accId) }
+          : t,
+      ),
+    );
+    const supabase = createClient();
+    await supabase.from("accommodations").delete().eq("id", accId);
+  }, []);
+
+  return { trips, loading, createTrip, deleteTrip, renameTrip, addFlight, removeFlight, addAccommodation, removeAccommodation };
 }

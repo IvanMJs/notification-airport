@@ -5,8 +5,9 @@ import {
   Plus, X, ExternalLink, Clock, MapPin, Plane,
   AlertTriangle, Search, Calendar, Share2, CheckCheck,
   Upload, Radar, Globe, Zap, DoorOpen, Trash2, BookmarkCheck, Pencil,
+  Hotel, Copy,
 } from "lucide-react";
-import { AirportStatusMap, TripFlight, TripTab } from "@/lib/types";
+import { AirportStatusMap, TripFlight, TripTab, Accommodation } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
 import { AIRLINES, parseFlightCode, subtractHours, buildArrivalNote } from "@/lib/flightUtils";
 import { StatusBadge } from "./StatusBadge";
@@ -75,6 +76,18 @@ const LABELS = {
       `Hay otro vuelo (${code}) a solo ${mins} min de diferencia. ¿Querés agregarlo igual?`,
     confirmAnyway: "Agregar de todas formas",
     addMoreFlights: "Agregar vuelo",
+    accSection: "Alojamiento",
+    accAdd: "Agregar alojamiento",
+    accNamePlaceholder: "Hotel / Airbnb / nombre del lugar",
+    accCheckIn: "Check-in",
+    accCheckOut: "Check-out",
+    accTime: "Hora",
+    accConfCode: "Código de reserva (opcional)",
+    accRemove: "Eliminar alojamiento",
+    accNights: (n: number) => `${n} noche${n !== 1 ? "s" : ""}`,
+    accErrName: "Ingresá el nombre del alojamiento.",
+    accErrDates: "La fecha de check-out debe ser posterior al check-in.",
+    accCopied: "¡Copiado!",
     sectionSigmet: "SIGMET activo en ruta",
     sectionGate:    "Puerta / Terminal",
     gateNotAssigned: "Las puertas se asignan 24–48h antes de la salida",
@@ -138,6 +151,18 @@ const LABELS = {
       `Another flight (${code}) is only ${mins} min apart. Add anyway?`,
     confirmAnyway: "Add anyway",
     addMoreFlights: "Add flight",
+    accSection: "Accommodation",
+    accAdd: "Add accommodation",
+    accNamePlaceholder: "Hotel / Airbnb / place name",
+    accCheckIn: "Check-in",
+    accCheckOut: "Check-out",
+    accTime: "Time",
+    accConfCode: "Booking code (optional)",
+    accRemove: "Remove accommodation",
+    accNights: (n: number) => `${n} night${n !== 1 ? "s" : ""}`,
+    accErrName: "Enter the accommodation name.",
+    accErrDates: "Check-out must be after check-in.",
+    accCopied: "Copied!",
     sectionSigmet: "SIGMET active on route",
     sectionGate:    "Gate / Terminal",
     gateNotAssigned: "Gates typically assigned 24–48h before departure",
@@ -1081,12 +1106,182 @@ function FlightCard({
 
 // ── TripPanel ─────────────────────────────────────────────────────────────────
 
+// ── Accommodation helpers ────────────────────────────────────────────────────
+
+function nightsBetween(isoA: string, isoB: string): number {
+  return Math.round(
+    (new Date(isoB + "T00:00:00").getTime() - new Date(isoA + "T00:00:00").getTime()) /
+      (1000 * 60 * 60 * 24),
+  );
+}
+
+function fmtAccDate(iso: string, locale: "es" | "en"): string {
+  return new Date(iso + "T12:00:00").toLocaleDateString(
+    locale === "es" ? "es-AR" : "en-US",
+    { day: "numeric", month: "short" },
+  );
+}
+
+// ── AccommodationCard ─────────────────────────────────────────────────────────
+
+function AccommodationCard({
+  acc,
+  locale,
+  onRemove,
+  L,
+}: {
+  acc: Accommodation;
+  locale: "es" | "en";
+  onRemove: () => void;
+  L: typeof LABELS["es"];
+}) {
+  const [copied, setCopied] = useState(false);
+  const nights = nightsBetween(acc.checkInDate, acc.checkOutDate);
+
+  async function copyCode() {
+    if (!acc.confirmationCode) return;
+    try { await navigator.clipboard.writeText(acc.confirmationCode); } catch {}
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3 flex items-start gap-3">
+      <Hotel className="h-4 w-4 text-blue-400 shrink-0 mt-0.5" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-white truncate">{acc.name}</p>
+        <p className="text-xs text-gray-400 mt-0.5">
+          {fmtAccDate(acc.checkInDate, locale)}
+          {acc.checkInTime ? ` · ${acc.checkInTime}` : ""}
+          {" → "}
+          {fmtAccDate(acc.checkOutDate, locale)}
+          {acc.checkOutTime ? ` · ${acc.checkOutTime}` : ""}
+          <span className="text-gray-600 ml-1.5">· {L.accNights(nights)}</span>
+        </p>
+        {acc.confirmationCode && (
+          <button
+            onClick={copyCode}
+            className="mt-1.5 flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            {copied
+              ? <CheckCheck className="h-3 w-3 text-emerald-400" />
+              : <Copy className="h-3 w-3" />}
+            <span className={copied ? "text-emerald-400" : ""}>
+              {copied ? L.accCopied : acc.confirmationCode}
+            </span>
+          </button>
+        )}
+      </div>
+      <button
+        onClick={onRemove}
+        title={L.accRemove}
+        className="shrink-0 p-1.5 rounded-lg text-gray-600 hover:text-red-400 transition-colors"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+// ── AddAccommodationForm ──────────────────────────────────────────────────────
+
+function AddAccommodationForm({
+  onAdd,
+  onClose,
+  locale,
+  L,
+}: {
+  onAdd: (acc: Omit<Accommodation, "id" | "tripId">) => void;
+  onClose: () => void;
+  locale: "es" | "en";
+  L: typeof LABELS["es"];
+}) {
+  const [name, setName]           = useState("");
+  const [checkInDate, setCheckInDate]   = useState("");
+  const [checkInTime, setCheckInTime]   = useState("");
+  const [checkOutDate, setCheckOutDate] = useState("");
+  const [checkOutTime, setCheckOutTime] = useState("");
+  const [confCode, setConfCode]   = useState("");
+  const [err, setErr]             = useState<string | null>(null);
+
+  function handleSubmit() {
+    if (!name.trim()) { setErr(L.accErrName); return; }
+    if (!checkInDate || !checkOutDate || checkOutDate <= checkInDate) { setErr(L.accErrDates); return; }
+    onAdd({
+      name: name.trim(),
+      checkInDate,
+      checkInTime:  checkInTime  || undefined,
+      checkOutDate,
+      checkOutTime: checkOutTime || undefined,
+      confirmationCode: confCode.trim() || undefined,
+    });
+    onClose();
+  }
+
+  const inputCls = "w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-gray-600 outline-none focus:border-blue-500/60 focus:bg-white/[0.06] transition-colors";
+
+  return (
+    <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-3">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs font-bold uppercase tracking-wider text-gray-500">{L.accAdd}</span>
+        <button onClick={onClose} className="p-1 rounded-lg text-gray-600 hover:text-gray-300 transition-colors">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <input
+        autoFocus
+        value={name}
+        onChange={(e) => { setName(e.target.value); setErr(null); }}
+        placeholder={L.accNamePlaceholder}
+        className={inputCls}
+      />
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-600">{L.accCheckIn}</label>
+          <input type="date" value={checkInDate} onChange={(e) => { setCheckInDate(e.target.value); setErr(null); }}
+            className={inputCls} />
+          <input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)}
+            placeholder={L.accTime} className={inputCls} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-600">{L.accCheckOut}</label>
+          <input type="date" value={checkOutDate} onChange={(e) => { setCheckOutDate(e.target.value); setErr(null); }}
+            className={inputCls} />
+          <input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)}
+            placeholder={L.accTime} className={inputCls} />
+        </div>
+      </div>
+
+      <input
+        value={confCode}
+        onChange={(e) => setConfCode(e.target.value)}
+        placeholder={L.accConfCode}
+        className={inputCls}
+      />
+
+      {err && <p className="text-xs text-red-400">{err}</p>}
+
+      <button
+        onClick={handleSubmit}
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-sm font-bold px-4 py-2.5 transition-all"
+      >
+        <Plus className="h-4 w-4" />
+        {L.accAdd}
+      </button>
+    </div>
+  );
+}
+
 interface TripPanelProps {
   trip: TripTab;
   statusMap: AirportStatusMap;
   weatherMap: Record<string, WeatherData>;
   onAddFlight: (tripId: string, flight: TripFlight) => void;
   onRemoveFlight: (tripId: string, flightId: string) => void;
+  onAddAccommodation: (tripId: string, acc: Omit<Accommodation, "id" | "tripId">) => void;
+  onRemoveAccommodation: (tripId: string, accId: string) => void;
   onDeleteTrip?: () => void;
   onRenameTrip?: (name: string) => void;
   isDraft?: boolean;
@@ -1099,6 +1294,8 @@ export function TripPanel({
   weatherMap,
   onAddFlight,
   onRemoveFlight,
+  onAddAccommodation,
+  onRemoveAccommodation,
   onDeleteTrip,
   onRenameTrip,
   isDraft,
@@ -1108,9 +1305,10 @@ export function TripPanel({
   const L = LABELS[locale];
   const [copied, setCopied]         = useState(false);
   const [waCopied, setWaCopied]     = useState(false);
-  const [showGcal, setShowGcal]     = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [showGcal, setShowGcal]         = useState(false);
+  const [showImport, setShowImport]     = useState(false);
+  const [showAddForm, setShowAddForm]   = useState(false);
+  const [showAccForm, setShowAccForm]   = useState(false);
   const [isRenamingTrip, setIsRenamingTrip] = useState(false);
   const [renamingTripName, setRenamingTripName] = useState("");
 
@@ -1435,6 +1633,46 @@ export function TripPanel({
               ? (locale === "en" ? "Copied!" : "¡Copiado!")
               : (locale === "en" ? "Copy link" : "Copiar link")}
           </button>
+        </div>
+      )}
+
+      {/* Accommodation section */}
+      {sorted.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
+              <Hotel className="h-3 w-3" />
+              {L.accSection}
+            </p>
+            {!showAccForm && (
+              <button
+                onClick={() => setShowAccForm(true)}
+                className="flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300 transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+                {L.accAdd}
+              </button>
+            )}
+          </div>
+
+          {trip.accommodations.map((acc) => (
+            <AccommodationCard
+              key={acc.id}
+              acc={acc}
+              locale={locale}
+              L={L}
+              onRemove={() => onRemoveAccommodation(trip.id, acc.id)}
+            />
+          ))}
+
+          {showAccForm && (
+            <AddAccommodationForm
+              locale={locale}
+              L={L}
+              onAdd={(acc) => onAddAccommodation(trip.id, acc)}
+              onClose={() => setShowAccForm(false)}
+            />
+          )}
         </div>
       )}
 

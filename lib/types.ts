@@ -57,8 +57,20 @@ export interface TripFlight {
   arrivalBuffer: number;    // hours: 1, 1.5, 2, 2.5, 3
 }
 
+export interface Accommodation {
+  id: string;
+  tripId: string;
+  name: string;
+  checkInDate: string;
+  checkInTime?: string;
+  checkOutDate: string;
+  checkOutTime?: string;
+  confirmationCode?: string;
+}
+
 export interface TripTab {
   id: string;
   name: string;
   flights: TripFlight[];
+  accommodations: Accommodation[];
 }

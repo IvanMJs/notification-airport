@@ -15,7 +15,7 @@ import { TripPanel } from "@/components/TripPanel";
 import { TripListView } from "@/components/TripListView";
 import { HelpPanel } from "@/components/HelpPanel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AirportStatusMap, DelayStatus, TripFlight, TripTab } from "@/lib/types";
+import { AirportStatusMap, DelayStatus, TripFlight, TripTab, Accommodation } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Locale } from "@/lib/i18n";
@@ -66,6 +66,8 @@ export default function HomePage() {
     renameTrip: renameTripDB,
     addFlight:  addFlightDB,
     removeFlight: removeFlightDB,
+    addAccommodation: addAccommodationDB,
+    removeAccommodation: removeAccommodationDB,
   } = useUserTrips();
 
   // Tab rename state
@@ -79,7 +81,7 @@ export default function HomePage() {
   const createModalInputRef = useRef<HTMLInputElement>(null);
 
   // Draft trip — local only, not persisted until "Guardar viaje"
-  const [draftTrip, setDraftTrip] = useState<{ name: string; flights: TripFlight[] } | null>(null);
+  const [draftTrip, setDraftTrip] = useState<{ name: string; flights: TripFlight[]; accommodations: Accommodation[] } | null>(null);
 
   // Delete confirmation modal
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; flightCount: number } | null>(null);
@@ -227,7 +229,7 @@ export default function HomePage() {
     const tripName =
       newTripName.trim() ||
       (locale === "en" ? `Trip ${userTrips.length + 1}` : `Viaje ${userTrips.length + 1}`);
-    setDraftTrip({ name: tripName, flights: [] });
+    setDraftTrip({ name: tripName, flights: [], accommodations: [] });
     setActiveTab(DRAFT_ID);
     setShowCreateModal(false);
   }
@@ -238,6 +240,10 @@ export default function HomePage() {
     if (id) {
       for (const flight of draftTrip.flights) {
         await addFlightDB(id, flight);
+      }
+      for (const acc of draftTrip.accommodations) {
+        const { id: _id, tripId: _tid, ...accData } = acc;
+        await addAccommodationDB(id, accData);
       }
       setDraftTrip(null);
       setActiveTab(id);
@@ -255,6 +261,26 @@ export default function HomePage() {
 
   function removeFlightFromDraft(_tripId: string, flightId: string) {
     setDraftTrip((prev) => prev ? { ...prev, flights: prev.flights.filter((f) => f.id !== flightId) } : prev);
+  }
+
+  function addAccommodationToDraft(_tripId: string, acc: Omit<Accommodation, "id" | "tripId">) {
+    const newAcc: Accommodation = { ...acc, id: `draft-acc-${Date.now()}`, tripId: DRAFT_ID };
+    setDraftTrip((prev) => prev ? {
+      ...prev,
+      accommodations: [...prev.accommodations, newAcc].sort((a, b) => a.checkInDate.localeCompare(b.checkInDate)),
+    } : prev);
+  }
+
+  function removeAccommodationFromDraft(_tripId: string, accId: string) {
+    setDraftTrip((prev) => prev ? { ...prev, accommodations: prev.accommodations.filter((a) => a.id !== accId) } : prev);
+  }
+
+  function addAccommodationToTrip(tripId: string, acc: Omit<Accommodation, "id" | "tripId">) {
+    addAccommodationDB(tripId, acc);
+  }
+
+  function removeAccommodationFromTrip(tripId: string, accId: string) {
+    removeAccommodationDB(tripId, accId);
   }
 
   function renameTrip(id: string, newName: string) { renameTripDB(id, newName); }
@@ -842,11 +868,13 @@ export default function HomePage() {
             {draftTrip && activeTab === DRAFT_ID && (
               <TripPanel
                 key={DRAFT_ID}
-                trip={{ id: DRAFT_ID, name: draftTrip.name, flights: draftTrip.flights }}
+                trip={{ id: DRAFT_ID, name: draftTrip.name, flights: draftTrip.flights, accommodations: draftTrip.accommodations }}
                 statusMap={statusMap}
                 weatherMap={weatherMap}
                 onAddFlight={addFlightToDraft}
                 onRemoveFlight={removeFlightFromDraft}
+                onAddAccommodation={addAccommodationToDraft}
+                onRemoveAccommodation={removeAccommodationFromDraft}
                 onDeleteTrip={discardDraft}
                 onRenameTrip={(name) => renameTripFromPanel(DRAFT_ID, name)}
                 isDraft={true}
@@ -864,6 +892,8 @@ export default function HomePage() {
                   weatherMap={weatherMap}
                   onAddFlight={addFlightToTrip}
                   onRemoveFlight={removeFlightFromTrip}
+                  onAddAccommodation={(_, acc) => addAccommodationToTrip(trip.id, acc)}
+                  onRemoveAccommodation={(_, accId) => removeAccommodationFromTrip(trip.id, accId)}
                   onDeleteTrip={() => deleteTrip(trip.id)}
                   onRenameTrip={(name) => renameTripFromPanel(trip.id, name)}
                 />

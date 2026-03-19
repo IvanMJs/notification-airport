@@ -41,7 +41,16 @@
       "Bash(node -e \":*)",
       "Bash(grep -E \"\\\\.\\(tsx?|json|css\\)$\")",
       "Bash(find /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport/components /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport/hooks /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport/lib -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))",
-      "Bash(node -e \"require\\(''@supabase/supabase-js''\\); console.log\\(''ok''\\)\")"
+      "Bash(node -e \"require\\(''@supabase/supabase-js''\\); console.log\\(''ok''\\)\")",
+      "Bash(find /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport/app/api -type f \\\\\\(-name *.ts -o -name *.tsx \\\\\\))",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(ls C:/Users/ivanm/OneDrive/Escritorio/Development/notification-airport/.env*)",
+      "Bash(npx web-push:*)",
+      "Bash(grep -r from.*trips /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=*.ts --include=*.tsx)",
+      "Bash(find /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport/app -type f -name *[Tt]rip*)",
+      "Bash(find /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport -type f -name *[Ff]orm*)",
+      "Bash(grep -r \"departure_time\\\\|iso_date\\\\|arrival_buffer\" /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=*.ts --include=*.tsx)"
     ]
   }
 }

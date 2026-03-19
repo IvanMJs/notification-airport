@@ -238,6 +238,37 @@ export async function GET(request: Request) {
     }
   }
 
+  // ── Hotel check-in notifications (tomorrow) ────────────────────────────────
+  const tomorrowISO = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  const { data: checkIns } = await supabase
+    .from("accommodations")
+    .select("*, trips!inner(user_id)")
+    .eq("check_in_date", tomorrowISO);
+
+  for (const acc of (checkIns ?? []) as any[]) {
+    const userId: string = acc.trips.user_id;
+    const { data: subs } = await supabase
+      .from("push_subscriptions")
+      .select("endpoint, p256dh, auth")
+      .eq("user_id", userId);
+    if (!subs?.length) continue;
+
+    const alreadySent = await checkLog(supabase, acc.id, "hotel_checkin", Infinity);
+    if (alreadySent) continue;
+
+    const timeText = acc.check_in_time ? ` a las ${acc.check_in_time}` : "";
+    const codeText = acc.confirmation_code ? ` · Conf: ${acc.confirmation_code}` : "";
+    await sendAndLog(supabase, subs, { id: acc.id }, userId, "hotel_checkin", {
+      title: `🏨 Mañana check-in en ${acc.name}`,
+      body: `Check-in${timeText}${codeText}.`,
+      url: "/app",
+    });
+    notificationsSent++;
+  }
+
   return Response.json({
     ok: true,
     processed: flights.length,
