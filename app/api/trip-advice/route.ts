@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TripAdviceResult } from "@/lib/types/tripAdvice";
-
-export const runtime = "edge";
+import { createClient } from "@/utils/supabase/server";
 
 interface StayPayload {
   code: string;
@@ -33,6 +32,10 @@ const SCHEMA_HINT = `{
 }`;
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: "ANTHROPIC_API_KEY not configured" }, { status: 500 });
@@ -43,6 +46,11 @@ export async function POST(req: NextRequest) {
 
   if (!stays?.length) {
     return NextResponse.json({ error: "No stays provided" }, { status: 400 });
+  }
+
+  // Guard: max 15 stays to prevent runaway token usage
+  if (stays.length > 15) {
+    return NextResponse.json({ error: "Too many stays" }, { status: 400 });
   }
 
   const staysText = stays
