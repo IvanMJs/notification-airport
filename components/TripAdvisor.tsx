@@ -9,20 +9,14 @@ import { TripAdviceResult } from "@/lib/types/tripAdvice";
 
 function TripCopilotIcon({ spinning, size = 16 }: { spinning?: boolean; size?: number }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 512 512"
+    <img
+      src="/tripcopliot-avatar.svg"
+      alt="TripCopilot"
       width={size}
       height={size}
-      className={`shrink-0 rounded-md ${spinning ? "animate-spin" : ""}`}
+      className={`shrink-0 rounded-full ${spinning ? "animate-spin" : ""}`}
       style={spinning ? { animationDuration: "2s" } : undefined}
-    >
-      <rect width="512" height="512" rx="96" fill="#1e3a5f" />
-      <path
-        d="M256 96c-8.8 0-16 7.2-16 16v128L112 304v32l128-32v80l-32 24v24l48-16 48 16v-24l-32-24v-80l128 32v-32L272 240V112c0-8.8-7.2-16-16-16z"
-        fill="#60a5fa"
-      />
-    </svg>
+    />
   );
 }
 
