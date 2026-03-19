@@ -84,10 +84,14 @@ const LABELS = {
     accTime: "Hora",
     accConfCode: "Código de reserva (opcional)",
     accRemove: "Eliminar alojamiento",
-    accNights: (n: number) => `${n} noche${n !== 1 ? "s" : ""}`,
+    accEdit: "Editar alojamiento",
+    accSave: "Guardar",
+    accCancel: "Cancelar",
+    accNights: (n: number) => n === 0 ? "Mismo día" : `${n} noche${n !== 1 ? "s" : ""}`,
     accErrName: "Ingresá el nombre del alojamiento.",
     accErrDates: "La fecha de check-out debe ser posterior al check-in.",
     accCopied: "¡Copiado!",
+    duplicateTrip: "Duplicar viaje",
     sectionSigmet: "SIGMET activo en ruta",
     sectionGate:    "Puerta / Terminal",
     gateNotAssigned: "Las puertas se asignan 24–48h antes de la salida",
@@ -159,10 +163,14 @@ const LABELS = {
     accTime: "Time",
     accConfCode: "Booking code (optional)",
     accRemove: "Remove accommodation",
-    accNights: (n: number) => `${n} night${n !== 1 ? "s" : ""}`,
+    accEdit: "Edit accommodation",
+    accSave: "Save",
+    accCancel: "Cancel",
+    accNights: (n: number) => n === 0 ? "Same day" : `${n} night${n !== 1 ? "s" : ""}`,
     accErrName: "Enter the accommodation name.",
     accErrDates: "Check-out must be after check-in.",
     accCopied: "Copied!",
+    duplicateTrip: "Duplicate trip",
     sectionSigmet: "SIGMET active on route",
     sectionGate:    "Gate / Terminal",
     gateNotAssigned: "Gates typically assigned 24–48h before departure",
@@ -645,6 +653,7 @@ interface FlightCardProps {
   accommodation?: Accommodation | null;
   onAddAccommodation: (name: string, checkInTime?: string, checkOutTime?: string) => void;
   onRemoveAccommodation: () => void;
+  onEditAccommodation: (name: string, checkInTime?: string, checkOutTime?: string) => void;
 }
 
 function FlightCard({
@@ -663,6 +672,7 @@ function FlightCard({
   accommodation,
   onAddAccommodation,
   onRemoveAccommodation,
+  onEditAccommodation,
 }: FlightCardProps) {
   const L = LABELS[locale];
   const [showHotelForm, setShowHotelForm] = useState(false);
@@ -1116,6 +1126,7 @@ function FlightCard({
               locale={locale}
               L={L}
               onRemove={onRemoveAccommodation}
+              onEdit={onEditAccommodation}
             />
           ) : showHotelForm ? (
             <AddAccommodationInlineForm
@@ -1170,6 +1181,7 @@ function AccommodationInline({
   checkOutDate,
   locale,
   onRemove,
+  onEdit,
   L,
 }: {
   acc: Accommodation;
@@ -1177,9 +1189,48 @@ function AccommodationInline({
   checkOutDate?: string;
   locale: "es" | "en";
   onRemove: () => void;
+  onEdit: (name: string, checkInTime?: string, checkOutTime?: string) => void;
   L: typeof LABELS["es"];
 }) {
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(acc.name);
+  const [editCheckIn, setEditCheckIn] = useState(acc.checkInTime ?? "");
+  const [editCheckOut, setEditCheckOut] = useState(acc.checkOutTime ?? "");
   const nights = checkOutDate ? nightsBetween(checkInDate, checkOutDate) : null;
+  const inputCls = "flex-1 rounded-lg border border-white/[0.08] bg-white/[0.04] px-2 py-1.5 text-xs text-white placeholder-gray-600 outline-none focus:border-blue-500/60 transition-colors";
+
+  if (editing) {
+    return (
+      <div className="mt-3 pt-3 border-t border-white/[0.05] space-y-2">
+        <input
+          autoFocus
+          value={editName}
+          onChange={(e) => setEditName(e.target.value)}
+          placeholder={L.accNamePlaceholder}
+          className={inputCls + " w-full"}
+          onKeyDown={(e) => { if (e.key === "Enter") { onEdit(editName.trim(), editCheckIn || undefined, editCheckOut || undefined); setEditing(false); } if (e.key === "Escape") setEditing(false); }}
+        />
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <p className="text-[10px] text-gray-600 mb-1">{L.accCheckIn}</p>
+            <input type="time" value={editCheckIn} onChange={(e) => setEditCheckIn(e.target.value)} className={inputCls} />
+          </div>
+          <div className="flex-1">
+            <p className="text-[10px] text-gray-600 mb-1">{L.accCheckOut}</p>
+            <input type="time" value={editCheckOut} onChange={(e) => setEditCheckOut(e.target.value)} className={inputCls} />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { onEdit(editName.trim(), editCheckIn || undefined, editCheckOut || undefined); setEditing(false); }}
+            className="flex-1 rounded-lg bg-blue-600 hover:bg-blue-500 py-1.5 text-xs font-medium text-white transition-colors"
+          >{L.accSave}</button>
+          <button onClick={() => setEditing(false)} className="px-3 rounded-lg border border-white/[0.08] py-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors">{L.accCancel}</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-3 pt-3 border-t border-white/[0.05] flex items-center gap-2">
       <Hotel className="h-3.5 w-3.5 text-blue-400 shrink-0" />
@@ -1193,11 +1244,10 @@ function AccommodationInline({
           ) : null}
         </p>
       </div>
-      <button
-        onClick={onRemove}
-        title={L.accRemove}
-        className="shrink-0 p-1 rounded-md text-gray-600 hover:text-red-400 transition-colors"
-      >
+      <button onClick={() => setEditing(true)} title={L.accEdit} className="shrink-0 p-1 rounded-md text-gray-600 hover:text-blue-400 transition-colors">
+        <Pencil className="h-3 w-3" />
+      </button>
+      <button onClick={onRemove} title={L.accRemove} className="shrink-0 p-1 rounded-md text-gray-600 hover:text-red-400 transition-colors">
         <Trash2 className="h-3 w-3" />
       </button>
     </div>
@@ -1279,8 +1329,10 @@ interface TripPanelProps {
   onRemoveFlight: (tripId: string, flightId: string) => void;
   onAddAccommodation: (tripId: string, acc: Omit<Accommodation, "id" | "tripId">) => void;
   onRemoveAccommodation: (tripId: string, accId: string) => void;
+  onUpdateAccommodation: (tripId: string, accId: string, updates: Pick<Accommodation, "name" | "checkInTime" | "checkOutTime">) => void;
   onDeleteTrip?: () => void;
   onRenameTrip?: (name: string) => void;
+  onDuplicateTrip?: () => void;
   isDraft?: boolean;
   onSave?: () => void;
 }
@@ -1293,8 +1345,10 @@ export function TripPanel({
   onRemoveFlight,
   onAddAccommodation,
   onRemoveAccommodation,
+  onUpdateAccommodation,
   onDeleteTrip,
   onRenameTrip,
+  onDuplicateTrip,
   isDraft,
   onSave,
 }: TripPanelProps) {
@@ -1485,14 +1539,38 @@ export function TripPanel({
             </div>
           )}
         </div>
-        {onDeleteTrip && !isRenamingTrip && (
+        {!isRenamingTrip && !isDraft && (
+          <div className="flex items-center gap-2">
+            {onDuplicateTrip && (
+              <button
+                onClick={onDuplicateTrip}
+                title={locale === "es" ? "Duplicar viaje" : "Duplicate trip"}
+                className="shrink-0 flex items-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs font-semibold text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{locale === "es" ? "Duplicar" : "Duplicate"}</span>
+              </button>
+            )}
+            {onDeleteTrip && (
+              <button
+                onClick={onDeleteTrip}
+                title={locale === "es" ? "Eliminar viaje" : "Delete trip"}
+                className="shrink-0 flex items-center gap-1.5 rounded-xl border border-red-900/40 bg-red-950/20 px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-950/40 hover:text-red-400 transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{locale === "es" ? "Eliminar" : "Delete"}</span>
+              </button>
+            )}
+          </div>
+        )}
+        {isDraft && onDeleteTrip && !isRenamingTrip && (
           <button
             onClick={onDeleteTrip}
             title={locale === "es" ? "Eliminar viaje" : "Delete trip"}
             className="shrink-0 flex items-center gap-1.5 rounded-xl border border-red-900/40 bg-red-950/20 px-3 py-2 text-xs font-semibold text-red-500 hover:bg-red-950/40 hover:text-red-400 transition-colors"
           >
             <Trash2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{locale === "es" ? "Eliminar viaje" : "Delete trip"}</span>
+            <span className="hidden sm:inline">{locale === "es" ? "Eliminar" : "Delete"}</span>
           </button>
         )}
       </div>
@@ -1574,6 +1652,9 @@ export function TripPanel({
                   })
                 }
                 onRemoveAccommodation={() => acc && onRemoveAccommodation(trip.id, acc.id)}
+                onEditAccommodation={(name, checkInTime, checkOutTime) =>
+                  acc && onUpdateAccommodation(trip.id, acc.id, { name, checkInTime, checkOutTime })
+                }
               />
             );
           })}

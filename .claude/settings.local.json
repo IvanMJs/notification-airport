@@ -50,7 +50,11 @@
       "Bash(grep -r from.*trips /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=*.ts --include=*.tsx)",
       "Bash(find /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport/app -type f -name *[Tt]rip*)",
       "Bash(find /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport -type f -name *[Ff]orm*)",
-      "Bash(grep -r \"departure_time\\\\|iso_date\\\\|arrival_buffer\" /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=*.ts --include=*.tsx)"
+      "Bash(grep -r \"departure_time\\\\|iso_date\\\\|arrival_buffer\" /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=*.ts --include=*.tsx)",
+      "Bash(git push:*)",
+      "Bash(grep -rn \"notification_log\\\\|accommodations\" /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=*.sql)",
+      "Bash(grep -rn \"CREATE TABLE\\\\|flight_id\\\\|accommodations\" /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=\"*.ts\" --include=\"*.tsx\" --include=\"*.js\" ! -path \"*/node_modules/*\")",
+      "Bash(grep -rn notification_log /c/Users/ivanm/OneDrive/Escritorio/Development/notification-airport --include=*.ts --include=*.tsx)"
     ]
   }
 }

@@ -68,6 +68,8 @@ export default function HomePage() {
     removeFlight: removeFlightDB,
     addAccommodation: addAccommodationDB,
     removeAccommodation: removeAccommodationDB,
+    updateAccommodation: updateAccommodationDB,
+    duplicateTrip: duplicateTripDB,
   } = useUserTrips();
 
   // Tab rename state
@@ -285,6 +287,19 @@ export default function HomePage() {
 
   function removeAccommodationFromTrip(tripId: string, accId: string) {
     removeAccommodationDB(tripId, accId);
+  }
+
+  function updateAccommodationInTrip(
+    tripId: string,
+    accId: string,
+    updates: Pick<Accommodation, "name" | "checkInTime" | "checkOutTime">,
+  ) {
+    updateAccommodationDB(tripId, accId, updates);
+  }
+
+  async function handleDuplicateTrip(tripId: string) {
+    const newId = await duplicateTripDB(tripId);
+    if (newId) setActiveTab(newId);
   }
 
   function renameTrip(id: string, newName: string) { renameTripDB(id, newName); }
@@ -879,6 +894,7 @@ export default function HomePage() {
                 onRemoveFlight={removeFlightFromDraft}
                 onAddAccommodation={addAccommodationToDraft}
                 onRemoveAccommodation={removeAccommodationFromDraft}
+                onUpdateAccommodation={() => {}}
                 onDeleteTrip={discardDraft}
                 onRenameTrip={(name) => renameTripFromPanel(DRAFT_ID, name)}
                 isDraft={true}
@@ -898,6 +914,8 @@ export default function HomePage() {
                   onRemoveFlight={removeFlightFromTrip}
                   onAddAccommodation={(_, acc) => addAccommodationToTrip(trip.id, acc)}
                   onRemoveAccommodation={(_, accId) => removeAccommodationFromTrip(trip.id, accId)}
+                  onUpdateAccommodation={(_, accId, updates) => updateAccommodationInTrip(trip.id, accId, updates)}
+                  onDuplicateTrip={() => handleDuplicateTrip(trip.id)}
                   onDeleteTrip={() => deleteTrip(trip.id)}
                   onRenameTrip={(name) => renameTripFromPanel(trip.id, name)}
                 />

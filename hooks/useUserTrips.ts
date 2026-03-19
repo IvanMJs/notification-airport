@@ -232,5 +232,99 @@ export function useUserTrips() {
     await supabase.from("accommodations").delete().eq("id", accId);
   }, []);
 
-  return { trips, loading, createTrip, deleteTrip, renameTrip, addFlight, removeFlight, addAccommodation, removeAccommodation };
+  const updateAccommodation = useCallback(async (
+    tripId: string,
+    accId: string,
+    updates: Pick<Accommodation, "name" | "checkInTime" | "checkOutTime">,
+  ) => {
+    setTrips((prev) =>
+      prev.map((t) =>
+        t.id === tripId
+          ? {
+              ...t,
+              accommodations: t.accommodations.map((a) =>
+                a.id === accId ? { ...a, ...updates } : a,
+              ),
+            }
+          : t,
+      ),
+    );
+    const supabase = createClient();
+    await supabase.from("accommodations").update({
+      name:           updates.name,
+      check_in_time:  updates.checkInTime ?? null,
+      check_out_time: updates.checkOutTime ?? null,
+    }).eq("id", accId);
+  }, []);
+
+  const duplicateTrip = useCallback(async (tripId: string): Promise<string | null> => {
+    const supabase = createClient();
+    const source = trips.find((t) => t.id === tripId);
+    if (!source) return null;
+
+    const newName = `${source.name} (copia)`;
+    const { data: newTrip, error } = await supabase
+      .from("trips")
+      .insert({ name: newName })
+      .select("id")
+      .single();
+    if (error || !newTrip) return null;
+
+    const flightIdMap: Record<string, string> = {};
+    for (const flight of source.flights) {
+      const { data: last } = await supabase
+        .from("flights")
+        .select("sort_order")
+        .eq("trip_id", newTrip.id)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const sort_order = (last?.sort_order ?? -1) + 1;
+      const { data: f } = await supabase.from("flights").insert({
+        trip_id: newTrip.id,
+        flight_code: flight.flightCode,
+        airline_code: flight.airlineCode,
+        airline_name: flight.airlineName,
+        airline_icao: flight.airlineIcao,
+        flight_number: flight.flightNumber,
+        origin_code: flight.originCode,
+        destination_code: flight.destinationCode,
+        iso_date: flight.isoDate,
+        departure_time: flight.departureTime || null,
+        arrival_buffer: flight.arrivalBuffer,
+        sort_order,
+      }).select("id").single();
+      if (f) flightIdMap[flight.id] = f.id;
+    }
+
+    const newFlights = source.flights.map((f) => ({ ...f, id: flightIdMap[f.id] ?? f.id }));
+
+    for (const acc of source.accommodations) {
+      const realFlightId = acc.flightId ? flightIdMap[acc.flightId] : null;
+      await supabase.from("accommodations").insert({
+        trip_id: newTrip.id,
+        flight_id: realFlightId ?? null,
+        name: acc.name,
+        check_in_date: acc.checkInDate ?? null,
+        check_in_time: acc.checkInTime ?? null,
+        check_out_date: acc.checkOutDate ?? null,
+        check_out_time: acc.checkOutTime ?? null,
+      });
+    }
+
+    setTrips((prev) => [...prev, {
+      id: newTrip.id,
+      name: newName,
+      flights: newFlights,
+      accommodations: source.accommodations.map((a) => ({
+        ...a,
+        tripId: newTrip.id,
+        flightId: a.flightId ? flightIdMap[a.flightId] : undefined,
+      })),
+    }]);
+
+    return newTrip.id;
+  }, [trips]);
+
+  return { trips, loading, createTrip, deleteTrip, renameTrip, addFlight, removeFlight, addAccommodation, removeAccommodation, updateAccommodation, duplicateTrip };
 }

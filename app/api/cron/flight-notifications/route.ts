@@ -247,7 +247,7 @@ export async function GET(request: Request) {
   const { data: hotelAccs } = await supabase
     .from("accommodations")
     .select("*, trips!inner(user_id)")
-    .or(`check_in_date.eq.${todayStr},check_in_date.eq.${tomorrowISO},check_out_date.eq.${todayStr}`);
+    .or(`check_in_date.eq.${todayStr},check_in_date.eq.${tomorrowISO},check_out_date.eq.${todayStr},check_out_date.eq.${tomorrowISO}`);
 
   for (const acc of (hotelAccs ?? []) as any[]) {
     const userId: string = acc.trips.user_id;
@@ -283,6 +283,19 @@ export async function GET(request: Request) {
           });
           notificationsSent++;
         }
+      }
+    }
+
+    // C0: Check-out reminder (day before, if no specific time set)
+    if (acc.check_out_date === tomorrowISO && !acc.check_out_time) {
+      const alreadySent = await checkLog(supabase, acc.id, "hotel_checkout_reminder", Infinity);
+      if (!alreadySent) {
+        await sendAndLog(supabase, subs, { id: acc.id }, userId, "hotel_checkout_reminder", {
+          title: `🏨 Mañana check-out en ${acc.name}`,
+          body: "Recordá dejar la habitación a tiempo y tener listo el equipaje.",
+          url: "/app",
+        });
+        notificationsSent++;
       }
     }
 
