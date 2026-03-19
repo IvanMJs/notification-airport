@@ -474,60 +474,9 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── AI SECTION ────────────────────────────────────────────────────── */}
+      {/* ── ALOJAMIENTO IA ──────────────────────────────────────────────────── */}
       <section className="py-16 px-4">
-        <div className="max-w-5xl mx-auto space-y-6">
-
-          {/* Vuelos IA */}
-          <div className="rounded-3xl border border-violet-800/30 overflow-hidden"
-            style={{ background: "linear-gradient(135deg, rgba(88,28,135,0.15) 0%, rgba(14,14,28,0.97) 50%, rgba(30,27,75,0.15) 100%)" }}>
-            <div className="grid md:grid-cols-2 gap-0">
-              {/* Text */}
-              <div className="p-8 sm:p-10 flex flex-col justify-center">
-                <div className="inline-flex items-center gap-2 rounded-full border border-violet-700/40 bg-violet-950/30 px-3 py-1 text-[11px] text-violet-400 font-bold uppercase tracking-wider mb-5 w-fit">
-                  <Brain className="h-3 w-3" />
-                  TripCopilot IA · Vuelos
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-4 leading-tight">
-                  Cargá tu viaje en<br />
-                  <span className="text-violet-400">segundos, no minutos</span>
-                </h2>
-                <p className="text-sm text-gray-400 leading-relaxed mb-6">
-                  Tenés el email de confirmación de tu aerolínea. Pegalo. Sacá una foto. Lo que sea.
-                  TripCopilot lee el texto o la imagen, identifica cada vuelo y los carga automáticamente.
-                  Sin formularios, sin errores de tipeo, sin perder tiempo.
-                </p>
-                <ul className="space-y-2.5">
-                  {[
-                    "Texto, screenshot o foto — cualquier formato",
-                    "Detecta código, aerolínea, origen, destino, fecha y hora",
-                    "Carga múltiples vuelos de una sola confirmación",
-                    "Valida inconsistencias antes de guardar",
-                  ].map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-sm text-gray-300">
-                      <CheckCircle className="h-4 w-4 text-violet-400 shrink-0 mt-0.5" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              {/* Video */}
-              <div className="relative p-6 sm:p-8 flex items-center justify-center">
-                <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl max-w-xs w-full">
-                  <video
-                    src="/ia-import-text-screenshot.mp4"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    className="w-full h-auto block"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Alojamiento IA */}
+        <div className="max-w-5xl mx-auto">
           <div className="rounded-3xl border border-pink-800/30 overflow-hidden"
             style={{ background: "linear-gradient(135deg, rgba(131,24,67,0.12) 0%, rgba(14,14,28,0.97) 50%, rgba(76,29,149,0.10) 100%)" }}>
             <div className="grid md:grid-cols-2 gap-0">
@@ -575,7 +524,6 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-
         </div>
       </section>
 
