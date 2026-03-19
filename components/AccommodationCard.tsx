@@ -95,6 +95,7 @@ export function AccommodationInline({
   const [editAddress, setEditAddress] = useState(acc.address ?? "");
   const nights = checkOutDate ? nightsBetween(checkInDate, checkOutDate) : null;
   const inputCls = "w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-2 py-1.5 text-xs text-white placeholder-gray-600 outline-none focus:border-blue-500/60 transition-colors";
+  const timeCls  = "w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-1.5 py-1 text-[11px] text-white outline-none focus:border-blue-500/60 transition-colors";
 
   void locale;
 
@@ -111,13 +112,13 @@ export function AccommodationInline({
           onKeyDown={(e) => { if (e.key === "Enter") saveEdit(); if (e.key === "Escape") setEditing(false); }}
         />
         <div className="flex gap-2">
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-[10px] text-gray-600 mb-1">{L.accCheckIn}</p>
-            <input type="time" value={editCheckIn} onChange={(e) => setEditCheckIn(e.target.value)} className={inputCls} />
+            <input type="time" value={editCheckIn} onChange={(e) => setEditCheckIn(e.target.value)} className={timeCls} />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <p className="text-[10px] text-gray-600 mb-1">{L.accCheckOut}</p>
-            <input type="time" value={editCheckOut} onChange={(e) => setEditCheckOut(e.target.value)} className={inputCls} />
+            <input type="time" value={editCheckOut} onChange={(e) => setEditCheckOut(e.target.value)} className={timeCls} />
           </div>
         </div>
         <input value={editConfCode} onChange={(e) => setEditConfCode(e.target.value)}
@@ -212,6 +213,7 @@ export function AddAccommodationInlineForm({
   const [err, setErr] = useState<string | null>(null);
 
   const inputCls = "w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-2 text-xs text-white placeholder-gray-600 outline-none focus:border-blue-500/60 transition-colors";
+  const timeCls  = "w-full rounded-lg border border-white/[0.08] bg-white/[0.04] px-1.5 py-1 text-[11px] text-white outline-none focus:border-blue-500/60 transition-colors";
 
   void locale;
 
@@ -379,13 +381,13 @@ export function AddAccommodationInlineForm({
             placeholder={L.accNamePlaceholder} className={inputCls} autoFocus />
 
           <div className="flex gap-2">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-[10px] text-gray-600 mb-1">{L.accCheckIn}</p>
-              <input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} className={inputCls} />
+              <input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} className={timeCls} />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-[10px] text-gray-600 mb-1">{L.accCheckOut}</p>
-              <input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} className={inputCls} />
+              <input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} className={timeCls} />
             </div>
           </div>
           <input value={confCode} onChange={(e) => setConfCode(e.target.value)}
@@ -411,13 +413,13 @@ export function AddAccommodationInlineForm({
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           />
           <div className="flex gap-2">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-[10px] text-gray-600 mb-1">{L.accCheckIn}</p>
-              <input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} className={inputCls} />
+              <input type="time" value={checkInTime} onChange={(e) => setCheckInTime(e.target.value)} className={timeCls} />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <p className="text-[10px] text-gray-600 mb-1">{L.accCheckOut}</p>
-              <input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} className={inputCls} />
+              <input type="time" value={checkOutTime} onChange={(e) => setCheckOutTime(e.target.value)} className={timeCls} />
             </div>
           </div>
           <input value={confCode} onChange={(e) => setConfCode(e.target.value)}
