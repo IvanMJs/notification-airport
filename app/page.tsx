@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import {
   Plane, Shield, Brain, Bell, Calendar, Search,
@@ -42,6 +42,43 @@ export default function LandingPage() {
     if (error) setError(error.message);
     else setSent(true);
   }
+
+  // Notification screenshots carousel
+  const notifScreenshots = [
+    { src: "/morning-briefing.jpeg", label: "Morning briefing" },
+    { src: "/vuelo-demorado.jpeg", label: "Demora real" },
+    { src: "/vuelo-cancelado.jpeg", label: "Cancelación" },
+    { src: "/check-in-24hs.jpeg", label: "Check-in vuelo" },
+    { src: "/mañana-check-in.jpeg", label: "Reminder hotel" },
+    { src: "/check-in-hoy-hotel.jpeg", label: "Check-in hotel" },
+  ];
+  const [activeNotif, setActiveNotif] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // IntersectionObserver: detect centered item on mobile swipe
+  useEffect(() => {
+    const container = carouselRef.current;
+    if (!container) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+            const idx = itemRefs.current.indexOf(entry.target as HTMLDivElement);
+            if (idx !== -1) setActiveNotif(idx);
+          }
+        });
+      },
+      { root: container, threshold: 0.6 },
+    );
+    itemRefs.current.forEach((el) => el && observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToNotif = useCallback((idx: number) => {
+    setActiveNotif(idx);
+    itemRefs.current[idx]?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, []);
 
   // Features data
   const features = [
@@ -509,32 +546,70 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Phone screenshots */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-xs text-gray-400 mb-4">
+          {/* Phone screenshots carousel */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-4 py-1.5 text-xs text-gray-400">
               <Smartphone className="h-3.5 w-3.5" />
-              Así llegan en tu celular
+              Así llegan en tu celular — deslizá o hacé click
             </div>
           </div>
-          <div className="flex gap-3 sm:gap-4 justify-center items-end overflow-x-auto pb-4 snap-x snap-mandatory">
-            {[
-              { src: "/morning-briefing.jpeg", label: "Morning briefing" },
-              { src: "/vuelo-demorado.jpeg", label: "Demora real" },
-              { src: "/vuelo-cancelado.jpeg", label: "Cancelación" },
-              { src: "/check-in-24hs.jpeg", label: "Check-in vuelo" },
-              { src: "/mañana-check-in.jpeg", label: "Reminder hotel" },
-              { src: "/check-in-hoy-hotel.jpeg", label: "Check-in hotel" },
-            ].map((s, i) => (
-              <div key={s.src} className={`shrink-0 snap-center ${i === 2 ? "relative z-10" : ""}`}>
-                <div
-                  className={`relative rounded-3xl overflow-hidden shadow-2xl ${i === 2 ? "border border-blue-500/20 shadow-blue-900/30" : "border border-white/[0.08] shadow-black/60"}`}
-                  style={{ width: i === 2 ? "min(180px, 48vw)" : "min(155px, 42vw)" }}
-                >
-                  <img src={s.src} alt={s.label} className="w-full h-auto block" />
-                </div>
-                <p className={`text-center text-[11px] mt-2 ${i === 2 ? "text-blue-500 font-medium" : "text-gray-600"}`}>{s.label}</p>
-              </div>
+
+          {/* Dot indicators */}
+          <div className="flex justify-center gap-1.5 mb-6">
+            {notifScreenshots.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => scrollToNotif(i)}
+                className={`rounded-full transition-all duration-300 ${
+                  i === activeNotif
+                    ? "w-5 h-1.5 bg-blue-500"
+                    : "w-1.5 h-1.5 bg-white/20 hover:bg-white/40"
+                }`}
+              />
             ))}
+          </div>
+
+          {/* Carousel */}
+          <div
+            ref={carouselRef}
+            className="flex gap-3 sm:gap-5 justify-start sm:justify-center items-end overflow-x-auto pb-6 snap-x snap-mandatory px-[calc(50%-80px)] sm:px-0"
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {notifScreenshots.map((s, i) => {
+              const isActive = i === activeNotif;
+              return (
+                <div
+                  key={s.src}
+                  ref={(el) => { itemRefs.current[i] = el; }}
+                  className="shrink-0 snap-center cursor-pointer"
+                  style={{ transition: "transform 0.35s cubic-bezier(.4,0,.2,1)" }}
+                  onClick={() => scrollToNotif(i)}
+                >
+                  <div
+                    className={`relative rounded-3xl overflow-hidden shadow-2xl transition-all duration-350 ${
+                      isActive
+                        ? "border-2 border-blue-500/60 shadow-blue-900/50"
+                        : "border border-white/[0.08] shadow-black/60 opacity-50 hover:opacity-75"
+                    }`}
+                    style={{
+                      width: isActive ? "min(210px, 56vw)" : "min(140px, 38vw)",
+                      transition: "width 0.35s cubic-bezier(.4,0,.2,1), opacity 0.35s, border-color 0.35s",
+                    }}
+                  >
+                    <img src={s.src} alt={s.label} className="w-full h-auto block" />
+                    {isActive && (
+                      <div className="absolute bottom-0 inset-x-0 py-2 px-3 text-center"
+                        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)" }}>
+                        <p className="text-[11px] font-bold text-white">{s.label}</p>
+                      </div>
+                    )}
+                  </div>
+                  {!isActive && (
+                    <p className="text-center text-[10px] text-gray-600 mt-2">{s.label}</p>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
