@@ -8,19 +8,19 @@ const SLIDES = [
   { src: "/tripcopilot-ia.jpg",              alt: "TripCopilot IA",                 label: "IA integrada" },
 ];
 
-// Fixed slide width — track translates by index * STEP, perfectly smooth
 const SLIDE_W = 220;
-const GAP = 20;
-const STEP = SLIDE_W + GAP;
+const GAP     = 20;
+const STEP    = SLIDE_W + GAP;
 const AUTOPLAY_MS = 3500;
 
 export function AppScreenshotCarousel() {
   const [index, setIndex] = useState(1);
   const [dragX, setDragX] = useState(0);
-  const startX = useRef<number | null>(null);
+
+  const startX   = useRef<number | null>(null);
   const dragging = useRef(false);
-  const hovered = useRef(false);
-  const total = SLIDES.length;
+  const hovered  = useRef(false);
+  const total    = SLIDES.length;
 
   const advance = useCallback(
     () => setIndex((i) => (i + 1) % total),
@@ -28,50 +28,59 @@ export function AppScreenshotCarousel() {
   );
 
   useEffect(() => {
-    const tick = setInterval(() => {
+    const t = setInterval(() => {
       if (!hovered.current && !dragging.current) advance();
     }, AUTOPLAY_MS);
-    return () => clearInterval(tick);
+    return () => clearInterval(t);
   }, [advance]);
 
-  function pointerDown(x: number) { startX.current = x; dragging.current = true; }
-  function pointerMove(x: number) {
-    if (!dragging.current || startX.current === null) return;
-    setDragX(x - startX.current);
-  }
-  function pointerUp(x: number) {
-    if (!dragging.current || startX.current === null) return;
-    const delta = x - startX.current;
-    dragging.current = false;
-    startX.current = null;
-    setDragX(0);
-    if (Math.abs(delta) > 50)
-      delta < 0
-        ? setIndex((i) => (i + 1) % total)
-        : setIndex((i) => (i - 1 + total) % total);
-  }
-  function pointerCancel() { dragging.current = false; startX.current = null; setDragX(0); }
+  // ── Drag — global listeners so events never escape the element ────────────
+  function pDown(clientX: number) {
+    startX.current = clientX;
+    dragging.current = true;
 
-  const isDragging = dragging.current;
+    function onMouseMove(e: MouseEvent) {
+      setDragX(e.clientX - startX.current!);
+    }
+    function onTouchMove(e: TouchEvent) {
+      e.preventDefault();
+      setDragX(e.touches[0].clientX - startX.current!);
+    }
+    function finalize(x: number) {
+      const delta = x - (startX.current ?? x);
+      startX.current = null;
+      dragging.current = false;
+      setDragX(0);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      if (Math.abs(delta) > 50)
+        delta < 0
+          ? setIndex((i) => (i + 1) % total)
+          : setIndex((i) => (i - 1 + total) % total);
+    }
+    function onMouseUp(e: MouseEvent) { finalize(e.clientX); }
+    function onTouchEnd(e: TouchEvent) { finalize(e.changedTouches[0].clientX); }
 
-  // Track offset: center active slide in container (50% = container center)
-  // Active slide center = index * STEP + SLIDE_W/2
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", onTouchEnd);
+  }
+
+  const isDragging  = dragging.current;
   const trackOffset = -index * STEP + dragX;
 
   return (
     <div
       style={{ overflow: "hidden", cursor: isDragging ? "grabbing" : "grab", touchAction: "none" }}
       onMouseEnter={() => { hovered.current = true; }}
-      onMouseLeave={() => { hovered.current = false; pointerCancel(); }}
-      onMouseDown={(e) => pointerDown(e.clientX)}
-      onMouseMove={(e) => pointerMove(e.clientX)}
-      onMouseUp={(e) => pointerUp(e.clientX)}
-      onTouchStart={(e) => { e.preventDefault(); pointerDown(e.touches[0].clientX); }}
-      onTouchMove={(e) => { e.preventDefault(); pointerMove(e.touches[0].clientX); }}
-      onTouchEnd={(e) => pointerUp(e.changedTouches[0].clientX)}
-      onTouchCancel={pointerCancel}
+      onMouseLeave={() => { hovered.current = false; }}
+      onMouseDown={(e) => pDown(e.clientX)}
+      onTouchStart={(e) => pDown(e.touches[0].clientX)}
     >
-      {/* Track — centered via calc(50% - SLIDE_W/2) + offset */}
+      {/* Track */}
       <div
         style={{
           display: "flex",
@@ -90,8 +99,7 @@ export function AppScreenshotCarousel() {
               key={slide.src}
               onClick={() => { if (!isDragging) setIndex(i); }}
               style={{
-                flexShrink: 0,
-                width: SLIDE_W,
+                flexShrink: 0, width: SLIDE_W,
                 transform: isActive ? "translateY(0) scale(1)" : "translateY(18px) scale(0.9)",
                 opacity: isActive ? 1 : 0.45,
                 transition: isDragging
@@ -102,8 +110,7 @@ export function AppScreenshotCarousel() {
             >
               <div
                 style={{
-                  borderRadius: 22,
-                  overflow: "hidden",
+                  borderRadius: 22, overflow: "hidden",
                   boxShadow: isActive
                     ? "0 24px 64px rgba(59,130,246,0.2), 0 8px 32px rgba(0,0,0,0.65)"
                     : "0 6px 20px rgba(0,0,0,0.4)",
@@ -114,22 +121,15 @@ export function AppScreenshotCarousel() {
                 }}
               >
                 <img
-                  src={slide.src}
-                  alt={slide.alt}
-                  draggable={false}
+                  src={slide.src} alt={slide.alt} draggable={false}
                   style={{ width: "100%", height: "auto", display: "block" }}
                 />
               </div>
-              <p
-                style={{
-                  textAlign: "center",
-                  fontSize: 12,
-                  fontWeight: 500,
-                  marginTop: 10,
-                  color: isActive ? "#60a5fa" : "#4b5563",
-                  transition: "color 0.4s",
-                }}
-              >
+              <p style={{
+                textAlign: "center", fontSize: 12, fontWeight: 500,
+                marginTop: 10, transition: "color 0.4s",
+                color: isActive ? "#60a5fa" : "#4b5563",
+              }}>
                 {slide.label}
               </p>
             </div>
@@ -155,8 +155,7 @@ export function AppScreenshotCarousel() {
               display: "block", borderRadius: 999,
               height: 6, width: i === index ? 20 : 6,
               background: i === index ? "#3b82f6" : "rgba(255,255,255,0.18)",
-              transition: "all 0.35s ease",
-              flexShrink: 0,
+              transition: "all 0.35s ease", flexShrink: 0,
             }} />
           </button>
         ))}
