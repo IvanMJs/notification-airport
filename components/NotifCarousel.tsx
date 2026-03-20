@@ -33,9 +33,8 @@ export function NotifCarousel({ screenshots }: Props) {
     [busy, total],
   );
 
-  // Keep a ref so closures always call the latest version
   const doAdvanceRef = useRef(doAdvance);
-  useEffect(() => { doAdvanceRef.current = doAdvance; }, [doAdvance]);
+  doAdvanceRef.current = doAdvance;
 
   // ── Autoplay ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -45,37 +44,32 @@ export function NotifCarousel({ screenshots }: Props) {
     return () => clearInterval(t);
   }, []);
 
-  // ── Drag — attach global listeners so events don't escape the element ─────
-  function pDown(clientX: number) {
+  // ── Pointer events (mouse + touch unified, setPointerCapture keeps focus) ─
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if (busy) return;
-    startX.current = clientX;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    startX.current = e.clientX;
     dragging.current = true;
+  }
 
-    function onMouseMove(e: MouseEvent) {
-      setDragX(e.clientX - startX.current!);
-    }
-    function onTouchMove(e: TouchEvent) {
-      e.preventDefault(); // stops iOS scroll — works because listener is non-passive
-      setDragX(e.touches[0].clientX - startX.current!);
-    }
-    function finalize(x: number) {
-      const delta = x - (startX.current ?? x);
-      startX.current = null;
-      dragging.current = false;
-      setDragX(0);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
-      if (Math.abs(delta) > 50) doAdvanceRef.current(delta < 0 ? "left" : "right");
-    }
-    function onMouseUp(e: MouseEvent) { finalize(e.clientX); }
-    function onTouchEnd(e: TouchEvent) { finalize(e.changedTouches[0].clientX); }
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging.current || startX.current === null) return;
+    setDragX(e.clientX - startX.current);
+  }
 
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", onTouchEnd);
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging.current || startX.current === null) return;
+    const delta = e.clientX - startX.current;
+    dragging.current = false;
+    startX.current = null;
+    setDragX(0);
+    if (Math.abs(delta) > 50) doAdvanceRef.current(delta < 0 ? "left" : "right");
+  }
+
+  function onPointerCancel() {
+    dragging.current = false;
+    startX.current = null;
+    setDragX(0);
   }
 
   const isDragging   = dragging.current;
@@ -99,9 +93,12 @@ export function NotifCarousel({ screenshots }: Props) {
           height: "min(500px, 138vw)",
           position: "relative",
           touchAction: "none",
+          cursor: busy ? "default" : "grab",
         }}
-        onMouseDown={(e) => pDown(e.clientX)}
-        onTouchStart={(e) => pDown(e.touches[0].clientX)}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
       >
         {[...cards].reverse().map(({ dataIndex, s }) => {
           const isFront = s === 0;
@@ -139,7 +136,7 @@ export function NotifCarousel({ screenshots }: Props) {
                 position: "absolute", inset: 0,
                 borderRadius: 28, overflow: "hidden",
                 zIndex: isFront ? 20 : 10 - s,
-                cursor: isFront && !exitState ? "grab" : "default",
+                pointerEvents: "none",
                 transform: `translateX(${tx}px) translateY(${ty}px) rotate(${rot}deg) scale(${sc})`,
                 transformOrigin: "bottom center",
                 transition: tr, opacity: op,

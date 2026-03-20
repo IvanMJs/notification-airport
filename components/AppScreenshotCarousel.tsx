@@ -34,39 +34,34 @@ export function AppScreenshotCarousel() {
     return () => clearInterval(t);
   }, [advance]);
 
-  // ── Drag — global listeners so events never escape the element ────────────
-  function pDown(clientX: number) {
-    startX.current = clientX;
+  // ── Pointer events ────────────────────────────────────────────────────────
+  function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
+    startX.current = e.clientX;
     dragging.current = true;
+  }
 
-    function onMouseMove(e: MouseEvent) {
-      setDragX(e.clientX - startX.current!);
-    }
-    function onTouchMove(e: TouchEvent) {
-      e.preventDefault();
-      setDragX(e.touches[0].clientX - startX.current!);
-    }
-    function finalize(x: number) {
-      const delta = x - (startX.current ?? x);
-      startX.current = null;
-      dragging.current = false;
-      setDragX(0);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
-      if (Math.abs(delta) > 50)
-        delta < 0
-          ? setIndex((i) => (i + 1) % total)
-          : setIndex((i) => (i - 1 + total) % total);
-    }
-    function onMouseUp(e: MouseEvent) { finalize(e.clientX); }
-    function onTouchEnd(e: TouchEvent) { finalize(e.changedTouches[0].clientX); }
+  function onPointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging.current || startX.current === null) return;
+    setDragX(e.clientX - startX.current);
+  }
 
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", onTouchEnd);
+  function onPointerUp(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging.current || startX.current === null) return;
+    const delta = e.clientX - startX.current;
+    dragging.current = false;
+    startX.current = null;
+    setDragX(0);
+    if (Math.abs(delta) > 50)
+      delta < 0
+        ? setIndex((i) => (i + 1) % total)
+        : setIndex((i) => (i - 1 + total) % total);
+  }
+
+  function onPointerCancel() {
+    dragging.current = false;
+    startX.current = null;
+    setDragX(0);
   }
 
   const isDragging  = dragging.current;
@@ -74,11 +69,13 @@ export function AppScreenshotCarousel() {
 
   return (
     <div
-      style={{ overflow: "hidden", cursor: isDragging ? "grabbing" : "grab", touchAction: "none" }}
+      style={{ overflow: "hidden", touchAction: "none", cursor: isDragging ? "grabbing" : "grab" }}
       onMouseEnter={() => { hovered.current = true; }}
       onMouseLeave={() => { hovered.current = false; }}
-      onMouseDown={(e) => pDown(e.clientX)}
-      onTouchStart={(e) => pDown(e.touches[0].clientX)}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
     >
       {/* Track */}
       <div
@@ -90,6 +87,7 @@ export function AppScreenshotCarousel() {
           transition: isDragging ? "none" : "transform 0.55s cubic-bezier(.4,0,.2,1)",
           paddingBottom: 24,
           willChange: "transform",
+          pointerEvents: "none",
         }}
       >
         {SLIDES.map((slide, i) => {
@@ -97,7 +95,6 @@ export function AppScreenshotCarousel() {
           return (
             <div
               key={slide.src}
-              onClick={() => { if (!isDragging) setIndex(i); }}
               style={{
                 flexShrink: 0, width: SLIDE_W,
                 transform: isActive ? "translateY(0) scale(1)" : "translateY(18px) scale(0.9)",
@@ -105,7 +102,6 @@ export function AppScreenshotCarousel() {
                 transition: isDragging
                   ? "none"
                   : "transform 0.55s cubic-bezier(.4,0,.2,1), opacity 0.55s",
-                cursor: isActive ? "inherit" : "pointer",
               }}
             >
               <div
@@ -138,7 +134,7 @@ export function AppScreenshotCarousel() {
       </div>
 
       {/* Dots */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 2, paddingBottom: 8 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 2, paddingBottom: 8, pointerEvents: "auto" }}>
         {SLIDES.map((_, i) => (
           <button
             key={i}
