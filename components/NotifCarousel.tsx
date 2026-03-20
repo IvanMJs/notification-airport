@@ -25,15 +25,20 @@ export function NotifCarousel({ screenshots }: Props) {
     setIndex((i) => dir === "left" ? (i + 1) % total : (i - 1 + total) % total);
   }
 
-  function onTouchStart(e: React.TouchEvent) {
-    startX.current = e.touches[0].clientX;
-  }
-  function onTouchEnd(e: React.TouchEvent) {
+  function handleStart(x: number) { startX.current = x; }
+
+  function handleEnd(x: number) {
     if (startX.current === null) return;
-    const d = e.changedTouches[0].clientX - startX.current;
+    const d = x - startX.current;
     startX.current = null;
     if (Math.abs(d) > 50) advance(d < 0 ? "left" : "right");
+    else advance("left"); // treat short move / click as next
   }
+
+  function onTouchStart(e: React.TouchEvent) { handleStart(e.touches[0].clientX); }
+  function onTouchEnd(e: React.TouchEvent)   { handleEnd(e.changedTouches[0].clientX); }
+  function onMouseDown(e: React.MouseEvent)  { handleStart(e.clientX); }
+  function onMouseUp(e: React.MouseEvent)    { handleEnd(e.clientX); }
 
   return (
     <div
@@ -48,10 +53,13 @@ export function NotifCarousel({ screenshots }: Props) {
           height: "min(500px, 138vw)",
           position: "relative",
           touchAction: "pan-y",
+        cursor: "grab",
         }}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onMouseLeave={() => { startX.current = null; }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        onClick={() => advance("left")}
       >
         {screenshots.map((shot, i) => {
           const offset = (i - index + total) % total;
