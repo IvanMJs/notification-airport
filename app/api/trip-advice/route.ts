@@ -15,8 +15,9 @@ const StaySchema = z.object({
 });
 
 const BodySchema = z.object({
-  stays:  z.array(StaySchema).min(1).max(15),
-  locale: z.enum(["es", "en"]),
+  stays:      z.array(StaySchema).min(1).max(15),
+  locale:     z.enum(["es", "en"]),
+  activities: z.array(z.string().max(50)).max(10).optional(),
 });
 
 const SCHEMA_HINT = `{
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
-  const { stays, locale } = parsed.data;
+  const { stays, locale, activities } = parsed.data;
 
   const staysText = stays
     .map((s) =>
@@ -67,12 +68,18 @@ export async function POST(req: NextRequest) {
     )
     .join("\n");
 
+  const activitiesLine = activities && activities.length > 0
+    ? locale === "es"
+      ? `\nActividades del usuario: ${activities.join(", ")}. Personaliza el packing list y los tips según estas actividades.`
+      : `\nUser activities: ${activities.join(", ")}. Customize the packing list and tips based on these activities.`
+    : "";
+
   const prompt =
     locale === "es"
       ? `Analiza este itinerario y devuelve SOLO JSON válido.
 
 Itinerario:
-${staysText}
+${staysText}${activitiesLine}
 
 Contexto: viajero argentino con vuelos internacionales, mezcla de climas (tropical → primavera fría).
 
@@ -91,7 +98,7 @@ ${SCHEMA_HINT}`
       : `Analyze this itinerary and return ONLY valid JSON.
 
 Itinerary:
-${staysText}
+${staysText}${activitiesLine}
 
 Context: Argentine traveler, international flights, mixed climates (tropical → cool spring).
 

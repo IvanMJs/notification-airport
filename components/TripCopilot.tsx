@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   ChevronDown,
   Moon,
   Thermometer,
   RefreshCw,
   AlertTriangle,
+  Send,
+  MessageCircle,
 } from "lucide-react";
 
 function TripCopilotLogo({ className }: { className?: string }) {
@@ -46,6 +48,14 @@ interface StayInfo {
 interface TripCopilotProps {
   flights: FlightItem[];
   locale: "es" | "en";
+  tripName?: string;
+}
+
+// ── Chat types ─────────────────────────────────────────────────────────────────
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -429,9 +439,149 @@ function LegNotes({
   );
 }
 
+// ── Chat section ──────────────────────────────────────────────────────────────
+
+function ChatSection({
+  flights,
+  tripName,
+  locale,
+}: {
+  flights: FlightItem[];
+  tripName: string;
+  locale: "es" | "en";
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function handleSend() {
+    const q = input.trim();
+    if (!q || loading) return;
+
+    const newMessages: ChatMessage[] = [...messages, { role: "user", text: q }];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/trip-copilot", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          question: q,
+          tripContext: {
+            flights: flights.map((f) => ({
+              flightCode:      "",
+              originCode:      f.originCode,
+              destinationCode: f.destinationCode,
+              isoDate:         f.isoDate,
+            })),
+            tripName,
+          },
+        }),
+      });
+
+      const body = await res.json() as { answer?: string; error?: string };
+      const answer = body.answer ?? body.error ?? (locale === "es" ? "No se pudo obtener respuesta." : "Could not get a response.");
+      // Keep last 5 exchanges (10 messages total: the new user msg was already added)
+      setMessages((prev) => {
+        const updated = [...prev, { role: "assistant" as const, text: answer }];
+        return updated.slice(-10);
+      });
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: locale === "es" ? "Error al conectar con el asistente." : "Error connecting to assistant." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
+  return (
+    <div className="border-t border-white/[0.04]">
+      {/* Section header */}
+      <div className="flex items-center gap-2 px-4 py-2">
+        <MessageCircle className="h-3 w-3 text-purple-400 shrink-0" />
+        <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 flex-1">
+          {locale === "es" ? "Preguntar al copiloto" : "Ask copilot"}
+        </span>
+        <TripCopilotLogo className="h-4 w-auto opacity-60" />
+      </div>
+
+      {/* Message list */}
+      {messages.length > 0 && (
+        <div className="px-4 pb-2 space-y-2 max-h-56 overflow-y-auto">
+          {messages.slice(-10).map((m, i) => (
+            <div
+              key={i}
+              className={`flex gap-2 ${m.role === "user" ? "justify-end" : "justify-start"}`}
+            >
+              {m.role === "assistant" && (
+                <TripCopilotLogo className="h-4 w-auto shrink-0 mt-0.5 opacity-80" />
+              )}
+              <div
+                className={`rounded-xl px-3 py-1.5 text-xs leading-relaxed max-w-[85%] ${
+                  m.role === "user"
+                    ? "bg-purple-900/40 text-purple-100 border border-purple-700/30"
+                    : "bg-white/[0.04] text-gray-300 border border-white/[0.06]"
+                }`}
+              >
+                {m.text}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="flex gap-2 justify-start">
+              <TripCopilotLogo className="h-4 w-auto shrink-0 mt-0.5 opacity-80" />
+              <div className="rounded-xl px-3 py-1.5 text-xs text-gray-500 bg-white/[0.04] border border-white/[0.06] animate-pulse">
+                {locale === "es" ? "Pensando…" : "Thinking…"}
+              </div>
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+      )}
+
+      {/* Input row */}
+      <div className="px-4 pb-3 flex items-center gap-2">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={locale === "es" ? "Preguntá algo sobre tu viaje…" : "Ask something about your trip…"}
+          disabled={loading}
+          className="flex-1 min-w-0 bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5 text-xs text-gray-200 placeholder-gray-600 outline-none focus:border-purple-700/50 transition-colors disabled:opacity-50"
+        />
+        <button
+          onClick={handleSend}
+          disabled={!input.trim() || loading}
+          className="p-1.5 rounded-lg bg-purple-800/40 border border-purple-700/30 text-purple-300 hover:bg-purple-800/60 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          aria-label={locale === "es" ? "Enviar pregunta" : "Send question"}
+        >
+          <Send className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
-export function TripCopilot({ flights, locale }: TripCopilotProps) {
+export function TripCopilot({ flights, locale, tripName = "Mi viaje" }: TripCopilotProps) {
   const [expanded, setExpanded] = useState(false);
   const { data, status, error, refresh } = useTripAdvice(flights, locale);
 
@@ -590,6 +740,9 @@ export function TripCopilot({ flights, locale }: TripCopilotProps) {
 
           {/* By-leg notes */}
           <LegNotes data={data} locale={locale} />
+
+          {/* Chat */}
+          <ChatSection flights={flights} tripName={tripName} locale={locale} />
         </div>
       )}
     </div>

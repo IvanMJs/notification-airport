@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 import { createClient } from "@/utils/supabase/client";
 import { TripTab, TripFlight, Accommodation } from "@/lib/types";
@@ -69,9 +69,86 @@ function toTripFlight(f: DbFlight): TripFlight {
   };
 }
 
+// ── Itinerary inconsistency checker ───────────────────────────────────────────
+
+function checkItineraryConsistency(trips: TripTab[]) {
+  for (const trip of trips) {
+    const flights = trip.flights;
+    if (flights.length < 2) continue;
+
+    // Check 1: date order issues (flights not in chronological order)
+    for (let i = 0; i < flights.length - 1; i++) {
+      const a = flights[i];
+      const b = flights[i + 1];
+      if (a.isoDate > b.isoDate) {
+        toast(
+          `"${trip.name}": los vuelos no están en orden cronológico. Considerá reordenarlos.`,
+          {
+            icon: "ℹ️",
+            duration: 5000,
+            style: { background: "#1e293b", color: "#cbd5e1", fontSize: "13px" },
+          },
+        );
+        break; // one info toast per trip is enough
+      }
+    }
+
+    // Check 2: duplicate flights (same flightCode + isoDate)
+    const seen = new Set<string>();
+    for (const f of flights) {
+      const key = `${f.flightCode}|${f.isoDate}`;
+      if (seen.has(key)) {
+        toast.error(
+          `"${trip.name}": vuelo duplicado ${f.flightCode} el ${f.isoDate}.`,
+          { duration: 6000 },
+        );
+        break;
+      }
+      seen.add(key);
+    }
+
+    // Check 3: impossible connections (< 45 min between consecutive flights at same airport)
+    for (let i = 0; i < flights.length - 1; i++) {
+      const curr = flights[i];
+      const next = flights[i + 1];
+
+      // Only relevant if the connection is at the same airport
+      if (curr.destinationCode !== next.originCode) continue;
+
+      // Need both times to compare
+      const arrDate = curr.arrivalDate ?? curr.isoDate;
+      const arrTime = curr.arrivalTime;
+      const depTime = next.departureTime;
+
+      if (!arrTime || !depTime) continue;
+
+      const arrMs = new Date(`${arrDate}T${arrTime}:00`).getTime();
+      const depMs = new Date(`${next.isoDate}T${depTime}:00`).getTime();
+
+      if (isNaN(arrMs) || isNaN(depMs)) continue;
+
+      const diffMin = (depMs - arrMs) / 60000;
+
+      if (diffMin < 45 && diffMin >= 0) {
+        toast.error(
+          `"${trip.name}": conexión imposible en ${curr.destinationCode} — solo ${Math.round(diffMin)} min entre ${curr.flightCode} y ${next.flightCode}.`,
+          { duration: 7000 },
+        );
+      } else if (diffMin < 0) {
+        // Arrival after next departure
+        toast.error(
+          `"${trip.name}": ${curr.flightCode} llega después de que sale ${next.flightCode} en ${curr.destinationCode}.`,
+          { duration: 7000 },
+        );
+      }
+    }
+  }
+}
+
 export function useUserTrips() {
   const [trips, setTrips] = useState<TripTab[]>([]);
   const [loading, setLoading] = useState(true);
+  const consistencyChecked = useRef(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -101,6 +178,13 @@ export function useUserTrips() {
 
     load();
   }, []);
+
+  // Run inconsistency check once after trips first load
+  useEffect(() => {
+    if (loading || consistencyChecked.current || trips.length === 0) return;
+    consistencyChecked.current = true;
+    checkItineraryConsistency(trips);
+  }, [loading, trips]);
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
 

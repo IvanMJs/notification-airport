@@ -402,6 +402,19 @@ function PackingSection({
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
+// ── Activity chips ────────────────────────────────────────────────────────────
+
+const ACTIVITY_CHIPS: { id: string; label: string; labelEn: string; emoji: string }[] = [
+  { id: "playa",    label: "Playa",    labelEn: "Beach",    emoji: "🏖️" },
+  { id: "trabajo",  label: "Trabajo",  labelEn: "Work",     emoji: "💼" },
+  { id: "montana",  label: "Montaña",  labelEn: "Mountain", emoji: "🏔️" },
+  { id: "ciudad",   label: "Ciudad",   labelEn: "City",     emoji: "🏙️" },
+  { id: "deportes", label: "Deportes", labelEn: "Sports",   emoji: "⚽" },
+  { id: "formal",   label: "Formal",   labelEn: "Formal",   emoji: "👔" },
+];
+
+// ── Cache ─────────────────────────────────────────────────────────────────────
+
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 horas
 const CACHE_PREFIX = "tc_advice_";
 
@@ -430,17 +443,32 @@ export function TripAdvisor({ flights, locale }: TripAdvisorProps) {
   const [expanded, setExpanded] = useState(true);
   const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "done" | "failed">("idle");
   const [aiData, setAiData] = useState<TripAdviceResult | null>(null);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+  const [activitiesConfirmed, setActivitiesConfirmed] = useState(false);
   const fetchedKey = useRef<string>("");
 
   const stays = computeStays(flights);
   const key = staysKey(stays);
 
+  function toggleActivity(id: string) {
+    setSelectedActivities((prev) =>
+      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id],
+    );
+  }
+
+  function handleGenerateAdvice() {
+    setActivitiesConfirmed(true);
+  }
+
   useEffect(() => {
+    if (!activitiesConfirmed) return;
     if (stays.length === 0 || fetchedKey.current === key) return;
     fetchedKey.current = key;
 
-    // Check localStorage cache first
-    const cached = readCache(key);
+    // Check localStorage cache first (activities change the cache key)
+    const activitySuffix = selectedActivities.sort().join(",");
+    const cacheKey = activitySuffix ? `${key}|${activitySuffix}` : key;
+    const cached = readCache(cacheKey);
     if (cached) {
       setAiData(cached);
       setAiStatus("done");
@@ -463,12 +491,12 @@ export function TripAdvisor({ flights, locale }: TripAdvisorProps) {
     fetch("/api/trip-advice", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ stays: payload, locale }),
+      body: JSON.stringify({ stays: payload, locale, activities: selectedActivities }),
     })
       .then((r) => r.json())
       .then((body: { data?: TripAdviceResult; error?: string }) => {
         if (body.data) {
-          writeCache(key, body.data);
+          writeCache(cacheKey, body.data);
           setAiData(body.data);
           setAiStatus("done");
         } else {
@@ -476,7 +504,7 @@ export function TripAdvisor({ flights, locale }: TripAdvisorProps) {
         }
       })
       .catch(() => setAiStatus("failed"));
-  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activitiesConfirmed, key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (stays.length === 0) return null;
 
@@ -520,6 +548,40 @@ export function TripAdvisor({ flights, locale }: TripAdvisorProps) {
       {/* Content */}
       {expanded && (
         <div className="border-t border-white/[0.05]">
+          {/* Activity chip selector — only before first fetch */}
+          {!activitiesConfirmed && (
+            <div className="px-4 py-3 border-b border-white/[0.04]">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-2">
+                {locale === "es" ? "¿Qué vas a hacer en este viaje?" : "What are you doing on this trip?"}
+              </p>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {ACTIVITY_CHIPS.map((chip) => {
+                  const selected = selectedActivities.includes(chip.id);
+                  return (
+                    <button
+                      key={chip.id}
+                      onClick={() => toggleActivity(chip.id)}
+                      className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-full border transition-colors ${
+                        selected
+                          ? "bg-blue-900/50 text-blue-200 border-blue-600/50"
+                          : "bg-white/[0.04] text-gray-400 border-white/[0.08] hover:border-white/20"
+                      }`}
+                    >
+                      <span>{chip.emoji}</span>
+                      <span>{locale === "es" ? chip.label : chip.labelEn}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={handleGenerateAdvice}
+                className="w-full py-1.5 rounded-lg bg-blue-800/40 border border-blue-700/40 text-xs font-medium text-blue-200 hover:bg-blue-800/60 transition-colors"
+              >
+                {locale === "es" ? "Generar recomendaciones →" : "Generate recommendations →"}
+              </button>
+            </div>
+          )}
+
           {/* AI summary banner */}
           {aiData?.summary && (
             <div className="px-4 py-3 border-b border-white/[0.04] flex items-start gap-2">
