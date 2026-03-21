@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   ExternalLink, Clock, MapPin, Plane,
   AlertTriangle, Globe, Zap, DoorOpen, Trash2,
-  Hotel, Radar, Bell, ChevronDown, ChevronUp,
+  Hotel, Radar, Bell, ChevronDown, ChevronUp, Pencil,
 } from "lucide-react";
 import { useNotificationLog } from "@/hooks/useNotificationLog";
+import { useFlightNotes } from "@/hooks/useFlightNotes";
 import { AirportStatusMap, TripFlight, Accommodation } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
 import { subtractHours, buildArrivalNote } from "@/lib/flightUtils";
@@ -111,6 +112,14 @@ export function FlightCard({
   const [showHotelForm, setShowHotelForm] = useState(false);
   const [showNotifLog, setShowNotifLog] = useState(false);
   const { logs: notifLogs, loading: notifLoading } = useNotificationLog(flight.id, showNotifLog);
+
+  // Flight notes
+  const flightKey = flight.id;
+  const { notesMap, updateNote } = useFlightNotes();
+  const currentNote = notesMap[flightKey]?.notes ?? "";
+  const [showNoteInput, setShowNoteInput] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const originInfo  = AIRPORTS[flight.originCode];
   const destInfo    = AIRPORTS[flight.destinationCode];
@@ -343,6 +352,59 @@ export function FlightCard({
             </div>
           )}
         </div>
+      </div>
+
+      {/* SECTION 3n: Flight notes */}
+      <div className="px-4 py-2.5 border-t border-white/5">
+        {currentNote && !showNoteInput && (
+          <div className="flex items-start gap-1.5 mb-1.5">
+            <Pencil className="h-3 w-3 text-gray-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-gray-500 leading-relaxed">{currentNote}</p>
+          </div>
+        )}
+        {showNoteInput ? (
+          <div className="space-y-1.5">
+            <textarea
+              ref={noteTextareaRef}
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              onBlur={() => {
+                const trimmed = noteText.trim();
+                updateNote(flightKey, "notes", trimmed);
+                setShowNoteInput(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  const trimmed = noteText.trim();
+                  updateNote(flightKey, "notes", trimmed);
+                  setShowNoteInput(false);
+                }
+              }}
+              placeholder={locale === "es" ? "Agregar nota…" : "Add note…"}
+              rows={2}
+              className="w-full text-xs bg-white/[0.04] border border-white/[0.1] rounded-lg px-3 py-2 text-gray-300 placeholder-gray-600 resize-none focus:outline-none focus:border-violet-600/50"
+              autoFocus
+            />
+            <p className="text-[10px] text-gray-600">
+              {locale === "es" ? "Enter para guardar · Shift+Enter nueva línea" : "Enter to save · Shift+Enter new line"}
+            </p>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              setNoteText(currentNote);
+              setShowNoteInput(true);
+              setTimeout(() => noteTextareaRef.current?.focus(), 0);
+            }}
+            className="flex items-center gap-1.5 text-[11px] text-gray-600 hover:text-gray-400 transition-colors"
+          >
+            <Pencil className="h-3 w-3" />
+            {currentNote
+              ? (locale === "es" ? "Editar nota" : "Edit note")
+              : (locale === "es" ? "Agregar nota" : "Add note")}
+          </button>
+        )}
       </div>
 
       {/* SECTION 3c: Gate / Terminal */}

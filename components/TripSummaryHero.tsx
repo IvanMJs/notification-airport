@@ -100,9 +100,12 @@ export function TripSummaryHero({ statusMap, locale, flights }: TripSummaryHeroP
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().slice(0, 10);
   const nextFlight = flights.find(
     (f) => new Date(f.isoDate + "T00:00:00") >= today,
   );
+  const totalFlights = flights.length;
+  const completedFlights = flights.filter((f) => f.isoDate < todayStr).length;
   const daysUntil = nextFlight ? getDaysUntil(nextFlight.isoDate) : null;
 
   const worstConn = Array.from(connectionMap.values())
@@ -179,6 +182,22 @@ export function TripSummaryHero({ statusMap, locale, flights }: TripSummaryHeroP
           </p>
         )}
       </div>
+
+      {/* ── PROGRESS BAR ─────────────────────────────────────────────────────── */}
+      {totalFlights > 0 && (
+        <div className="px-4 pb-3 sm:px-5 mt-2 space-y-1">
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>{completedFlights}/{totalFlights} {locale === "es" ? "vuelos" : "flights"}</span>
+            <span>{Math.round((completedFlights / totalFlights) * 100)}%</span>
+          </div>
+          <div className="h-1 bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-violet-500 rounded-full transition-all"
+              style={{ width: `${(completedFlights / totalFlights) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* ── STATUS BAND — full width ─────────────────────────────────────────── */}
       <div className={`mx-3 sm:mx-4 mb-3 rounded-xl border ${cfg.statusBorder} ${cfg.statusBg} px-4 py-3 flex items-center gap-3`}>
