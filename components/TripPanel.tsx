@@ -5,7 +5,7 @@ import toast from "react-hot-toast";
 import {
   Plus, X, Calendar, Share2, CheckCheck,
   Plane, Trash2, Pencil, Copy,
-  Save, PlaneTakeoff, ChevronRight, AlertTriangle, Clock, CheckCircle,
+  Save, PlaneTakeoff, ChevronRight, AlertTriangle, Clock, CheckCircle, Link,
 } from "lucide-react";
 import { AirportStatusMap, TripFlight, TripTab, Accommodation } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
@@ -77,6 +77,7 @@ export function TripPanel({
   const L = TRIP_PANEL_LABELS[locale];
   const [copied, setCopied]             = useState(false);
   const [waCopied, setWaCopied]         = useState(false);
+  const [linkCopied, setLinkCopied]     = useState(false);
   const [showGcal, setShowGcal]         = useState(false);
   const [showImport, setShowImport]     = useState(false);
   const [showAddForm, setShowAddForm]   = useState(false);
@@ -205,10 +206,12 @@ export function TripPanel({
       destinationCity: AIRPORTS[f.destinationCode]?.city ?? f.destinationCode,
       isoDate:         f.isoDate,
       departureTime:   f.departureTime || undefined,
+      arrivalTime:     f.arrivalTime   || undefined,
+      arrivalDate:     f.arrivalDate   || undefined,
       arrivalBuffer:   f.arrivalBuffer,
       arrivalRec:      f.departureTime ? subtractHours(f.departureTime, f.arrivalBuffer) : undefined,
     }));
-    const msg = buildWhatsAppMessage(trip.name, waFlights, locale);
+    const msg = buildWhatsAppMessage(trip.name, waFlights, locale, trip.accommodations);
     try {
       await navigator.clipboard.writeText(msg);
       setWaCopied(true);
@@ -224,6 +227,27 @@ export function TripPanel({
     if (ok) analytics.sharedLink();
     setCopied(ok);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleFamilyLink() {
+    try {
+      const res = await fetch("/api/share/trip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tripId: trip.id }),
+      });
+      if (!res.ok) throw new Error("Failed to create share token");
+      const json = await res.json() as { token?: string };
+      if (!json.token) throw new Error("No token returned");
+      const url = `${window.location.origin}/share/${json.token}`;
+      const ok = await copyToClipboard(url);
+      if (ok) {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 3000);
+      }
+    } catch {
+      toast.error(locale === "es" ? "No se pudo crear el link familiar" : "Could not create family link");
+    }
   }
 
   function handleImportFlights(parsedFlights: ParsedFlight[]) {
@@ -522,6 +546,19 @@ export function TripPanel({
               ? (locale === "en" ? "Copied! Paste in WhatsApp" : "¡Copiado! Pegalo en WhatsApp")
               : "WhatsApp"}
           </button>
+
+          {!isDraft && (
+            <button
+              onClick={handleFamilyLink}
+              title={locale === "es" ? "Genera un link de seguimiento en tiempo real para tu familia" : "Generate a real-time tracking link for your family"}
+              className="flex items-center gap-1.5 rounded-lg border border-violet-800/50 bg-violet-950/20 px-3 py-1.5 text-xs text-violet-400 hover:bg-violet-950/40 hover:text-violet-300 transition-colors"
+            >
+              <Link className="h-3.5 w-3.5" />
+              {linkCopied
+                ? (locale === "en" ? "Link copied!" : "¡Link copiado!")
+                : (locale === "en" ? "Family link" : "Link familiar")}
+            </button>
+          )}
 
           <button
             onClick={handleShareLink}
