@@ -101,7 +101,27 @@ export function useServiceWorker() {
     }
   }, []);
 
-  return { showSwNotification, subscribeToPush };
+  /**
+   * Unsubscribe this device from push notifications and remove from server.
+   * Call when the user explicitly disables notifications in-app so the cron
+   * stops sending push alerts to this device.
+   */
+  const unsubscribeFromPush = useCallback(async (): Promise<void> => {
+    try {
+      if (!regRef.current) return;
+      const sub = await regRef.current.pushManager.getSubscription();
+      if (!sub) return;
+      const endpoint = sub.endpoint;
+      await sub.unsubscribe();
+      await fetch("/api/push/subscribe", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint }),
+      });
+    } catch {}
+  }, []);
+
+  return { showSwNotification, subscribeToPush, unsubscribeFromPush };
 }
 
 // Helper: convert VAPID public key from base64 to Uint8Array

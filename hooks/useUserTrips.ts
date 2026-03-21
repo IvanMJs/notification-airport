@@ -265,13 +265,24 @@ export function useUserTrips() {
     accId: string,
     updates: Pick<Accommodation, "name" | "checkInTime" | "checkOutTime" | "confirmationCode" | "address">,
   ) => {
+    const trimmedName = updates.name?.trim();
+    if (!trimmedName) return; // reject empty name silently
+
+    const timeRx = /^\d{2}:\d{2}$/;
+    const validatedUpdates = {
+      ...updates,
+      name:         trimmedName,
+      checkInTime:  updates.checkInTime  && timeRx.test(updates.checkInTime)  ? updates.checkInTime  : undefined,
+      checkOutTime: updates.checkOutTime && timeRx.test(updates.checkOutTime) ? updates.checkOutTime : undefined,
+    };
+
     setTrips((prev) =>
       prev.map((t) =>
         t.id === tripId
           ? {
               ...t,
               accommodations: t.accommodations.map((a) =>
-                a.id === accId ? { ...a, ...updates } : a,
+                a.id === accId ? { ...a, ...validatedUpdates } : a,
               ),
             }
           : t,
@@ -279,11 +290,11 @@ export function useUserTrips() {
     );
     const supabase = createClient();
     await supabase.from("accommodations").update({
-      name:              updates.name,
-      check_in_time:     updates.checkInTime ?? null,
-      check_out_time:    updates.checkOutTime ?? null,
-      confirmation_code: updates.confirmationCode ?? null,
-      address:           updates.address ?? null,
+      name:              validatedUpdates.name,
+      check_in_time:     validatedUpdates.checkInTime  ?? null,
+      check_out_time:    validatedUpdates.checkOutTime ?? null,
+      confirmation_code: validatedUpdates.confirmationCode ?? null,
+      address:           validatedUpdates.address ?? null,
     }).eq("id", accId);
   }, []);
 

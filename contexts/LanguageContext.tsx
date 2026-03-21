@@ -20,16 +20,36 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>("es");
 
   useEffect(() => {
-    const saved = localStorage.getItem("airport-monitor-locale") as Locale | null;
-    if (saved === "es" || saved === "en") setLocaleState(saved);
+    async function load() {
+      const saved = localStorage.getItem("airport-monitor-locale") as Locale | null;
+      if (saved === "es" || saved === "en") {
+        setLocaleState(saved);
+        return;
+      }
+      // Fresh device: read locale from auth metadata (set by previous device/session)
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      const meta = data?.user?.user_metadata?.locale as Locale | undefined;
+      if (meta === "es" || meta === "en") {
+        setLocaleState(meta);
+        localStorage.setItem("airport-monitor-locale", meta);
+      }
+    }
+    load();
   }, []);
 
-  function setLocale(l: Locale) {
+  async function setLocale(l: Locale) {
     setLocaleState(l);
     localStorage.setItem("airport-monitor-locale", l);
-    // Persist locale in auth metadata so the cron can send bilingual notifications
+    // Persist in auth metadata so the cron sends notifications in the right language
     const supabase = createClient();
-    supabase.auth.updateUser({ data: { locale: l } }).catch(() => {});
+    const { error } = await supabase.auth.updateUser({ data: { locale: l } });
+    if (error) {
+      // Retry once after 3 seconds (handles transient network errors)
+      setTimeout(() => {
+        supabase.auth.updateUser({ data: { locale: l } }).catch(() => {});
+      }, 3000);
+    }
   }
 
   return (

@@ -55,7 +55,7 @@ const EXAMPLE_ID = "__example__";
 
 export default function HomePage() {
   const { t, locale, setLocale } = useLanguage();
-  const { showSwNotification, subscribeToPush } = useServiceWorker();
+  const { showSwNotification, subscribeToPush, unsubscribeFromPush } = useServiceWorker();
   const isOnline = useOnlineStatus();
   const router = useRouter();
   const [showNotifSheet, setShowNotifSheet] = useState(false);
@@ -460,6 +460,7 @@ export default function HomePage() {
                   onClick={() => {
                     if (notificationsEnabled) {
                       disableNotifications();
+                      unsubscribeFromPush(); // remove from server so cron stops sending
                     } else {
                       setShowNotifSheet(true);
                     }
