@@ -68,8 +68,12 @@ export const CRON_LABELS = {
       ({ title: `Tu vuelo ${code} sale en ~3hs`, body: `${origin}→${dest} a las ${time}. ${origin}: ${label}.` }),
     flightCancelled: (code: string, origin: string, dest: string) =>
       ({ title: `Vuelo cancelado ⛔ — ${code}`, body: `Tu vuelo ${code} ${origin}→${dest} fue cancelado. Contactá a la aerolínea.` }),
-    flightDelay: (code: string, delayText: string, estimatedDep: string | null, time: string, gateText: string, origin: string, dest: string) =>
-      ({ title: `${code} con ${delayText} de demora 🟠`, body: `Sale aprox. a las ${estimatedDep ?? time}${gateText}. ${origin}→${dest}.` }),
+    flightDelay: (code: string, delayText: string, estimatedDep: string | null, time: string, gateText: string, origin: string, dest: string, delayMins?: number) =>
+      ({ title: `${code} con ${delayText} de demora 🟠`, body: `Nueva hora: ${estimatedDep ?? time}${delayMins != null ? ` (+${delayMins} min)` : ""}${gateText} · ${origin}→${dest}.` }),
+    flightLanded: (code: string, origin: string, dest: string) =>
+      ({ title: `✅ ${code} aterrizó`, body: `${origin} → ${dest} · Buen viaje` }),
+    boardingOpen: (code: string, origin: string, dest: string, gateText: string) =>
+      ({ title: `🚪 Boarding abierto — ${code}`, body: `Dirigite a tu puerta${gateText} · ${origin} → ${dest}` }),
     hotelCheckinReminder: (name: string) =>
       ({ title: `🏨 Mañana check-in en ${name}`, body: "Recordá tener listos los documentos y código de reserva." }),
     hotelCheckinTime: (name: string, time: string) =>
@@ -99,8 +103,12 @@ export const CRON_LABELS = {
       ({ title: `Your flight ${code} departs in ~3h`, body: `${origin}→${dest} at ${time}. ${origin}: ${label}.` }),
     flightCancelled: (code: string, origin: string, dest: string) =>
       ({ title: `Flight cancelled ⛔ — ${code}`, body: `Your flight ${code} ${origin}→${dest} was cancelled. Contact the airline.` }),
-    flightDelay: (code: string, delayText: string, estimatedDep: string | null, time: string, gateText: string, origin: string, dest: string) =>
-      ({ title: `${code} delayed by ${delayText} 🟠`, body: `Now departing approx. ${estimatedDep ?? time}${gateText}. ${origin}→${dest}.` }),
+    flightDelay: (code: string, delayText: string, estimatedDep: string | null, time: string, gateText: string, origin: string, dest: string, delayMins?: number) =>
+      ({ title: `${code} delayed by ${delayText} 🟠`, body: `New time: ${estimatedDep ?? time}${delayMins != null ? ` (+${delayMins} min)` : ""}${gateText} · ${origin}→${dest}.` }),
+    flightLanded: (code: string, origin: string, dest: string) =>
+      ({ title: `✅ ${code} landed`, body: `${origin} → ${dest} · Safe travels` }),
+    boardingOpen: (code: string, origin: string, dest: string, gateText: string) =>
+      ({ title: `🚪 Boarding open — ${code}`, body: `Head to your gate${gateText} · ${origin} → ${dest}` }),
     hotelCheckinReminder: (name: string) =>
       ({ title: `🏨 Check-in tomorrow at ${name}`, body: "Remember to have your documents and booking code ready." }),
     hotelCheckinTime: (name: string, time: string) =>

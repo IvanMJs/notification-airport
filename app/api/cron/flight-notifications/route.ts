@@ -37,6 +37,11 @@ type AeroDataBoxFlightLeg = {
     delay?: number;
     gate?: string | null;
     actualTime?: { local?: string };
+    scheduledTime?: { local?: string };
+  };
+  arrival?: {
+    actualTime?: { local?: string };
+    scheduledTime?: { local?: string };
   };
 };
 
@@ -224,7 +229,12 @@ export async function GET(request: Request) {
         ? (departureDateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
         : null;
 
-    if (hoursUntil !== null && hoursUntil < 0) continue;
+    // Allow recently-departed flights through for landing check (up to 18h past departure)
+    // but skip everything else if departure was in the past
+    const isPastDeparture = hoursUntil !== null && hoursUntil < 0;
+    const isRecentlyDeparted = isPastDeparture && hoursUntil !== null && hoursUntil >= -18;
+
+    if (isPastDeparture && !isRecentlyDeparted) continue;
 
     const { data: subs } = await supabase
       .from("push_subscriptions")
@@ -235,6 +245,21 @@ export async function GET(request: Request) {
 
     const locale = await getUserLocale(userId);
     const L = CRON_LABELS[locale];
+
+    // A1: Landing notification — flight departed in the past, check if it has arrived
+    if (isRecentlyDeparted && rapidApiKey) {
+      const alreadySent = await checkFlightLog(supabase, flight.id, "flight_landed", Infinity);
+      if (!alreadySent) {
+        const landingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey);
+        if (landingStatus?.landed) {
+          const { title, body } = L.flightLanded(flight.flight_code, originCode, destCode);
+          await sendAndLogFlight(supabase, subs, flight.id, userId, "flight_landed", { title, body, url: "/app" });
+          notificationsSent++;
+        }
+      }
+      continue;
+    }
+
     const airportStatus = statusMap[originCode] ?? "ok";
     const statusLabel = L.statusLabel[airportStatus] ?? L.statusLabel["ok"];
 
@@ -304,11 +329,24 @@ export async function GET(request: Request) {
               ? `${Math.floor(flightStatus.delayMinutes / 60)}h ${flightStatus.delayMinutes % 60}min`
               : `${flightStatus.delayMinutes} min`;
             const gateText = flightStatus.gate ? ` · ${locale === "es" ? "Puerta" : "Gate"} ${flightStatus.gate}` : "";
-            const { title, body } = L.flightDelay(flight.flight_code, delayText, flightStatus.estimatedDeparture, departureTime ?? "?", gateText, originCode, destCode);
+            const { title, body } = L.flightDelay(flight.flight_code, delayText, flightStatus.estimatedDeparture, departureTime ?? "?", gateText, originCode, destCode, flightStatus.delayMinutes);
             await sendAndLogFlight(supabase, subs, flight.id, userId, "flight_delay_real", { title, body, url: "/app" });
             notificationsSent++;
           }
         }
+      }
+    }
+
+    // E: Boarding open — roughly 24–36 minutes before departure
+    if (hoursUntil !== null && hoursUntil >= 0.4 && hoursUntil <= 0.6 && rapidApiKey) {
+      const alreadySent = await checkFlightLog(supabase, flight.id, "boarding_open", Infinity);
+      if (!alreadySent) {
+        // Try to get gate info — re-use a recently-fetched status or make a fresh call
+        const boardingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey);
+        const gateText = boardingStatus?.gate ? ` — ${locale === "es" ? "Puerta" : "Gate"} ${boardingStatus.gate}` : "";
+        const { title, body } = L.boardingOpen(flight.flight_code, originCode, destCode, gateText);
+        await sendAndLogFlight(supabase, subs, flight.id, userId, "boarding_open", { title, body, url: "/app" });
+        notificationsSent++;
       }
     }
   }
@@ -451,7 +489,7 @@ async function fetchFlightStatus(
   flightCode: string,
   isoDate: string,
   rapidApiKey: string,
-): Promise<{ delayMinutes: number; estimatedDeparture: string | null; gate: string | null; cancelled: boolean } | null> {
+): Promise<{ delayMinutes: number; estimatedDeparture: string | null; gate: string | null; cancelled: boolean; landed: boolean } | null> {
   try {
     const url = `https://aerodatabox.p.rapidapi.com/flights/number/${flightCode}/${isoDate}`;
     const res = await fetch(url, {
@@ -466,13 +504,15 @@ async function fetchFlightStatus(
     if (!Array.isArray(data) || data.length === 0) return null;
 
     const leg: AeroDataBoxFlightLeg = data[0];
-    const cancelled = (leg.status ?? "") === "Cancelled";
+    const status = leg.status ?? "";
+    const cancelled = status === "Cancelled";
+    const landed = status === "Arrived" || status === "Landed";
     const delayMinutes: number = leg.departure?.delay ?? 0;
     const gate: string | null = leg.departure?.gate ?? null;
     const actualLocal: string | null = leg.departure?.actualTime?.local ?? null;
     const estimatedDeparture = actualLocal ? actualLocal.slice(11, 16) : null;
 
-    return { delayMinutes, estimatedDeparture, gate, cancelled };
+    return { delayMinutes, estimatedDeparture, gate, cancelled, landed };
   } catch {
     return null;
   }
