@@ -16,7 +16,6 @@ import { TafData, getTafAtTime } from "@/hooks/useTaf";
 import { SigmetFeature } from "@/hooks/useSigmet";
 import { LinkButton } from "./LinkButton";
 import { AccommodationInline, AddAccommodationInlineForm, estimateArrivalDate } from "./AccommodationCard";
-import { ConnectionRiskBanner } from "./ConnectionRiskBanner";
 import { ConnectionAnalysis } from "@/lib/connectionRisk";
 import { FlightStatusBadge } from "@/components/FlightStatusBadge";
 import { TsaAirportData } from "@/hooks/useTsaWait";
@@ -478,19 +477,6 @@ export function FlightCard({
           </div>
         </div>
       </div>
-
-      {/* Connection risk banner */}
-      {connectionToNext && connectionToNext.risk !== "safe" && (
-        <div className="px-4 pb-3 border-t border-white/5">
-          <ConnectionRiskBanner
-            analysis={connectionToNext}
-            locale={locale}
-            nextDestination={nextDestination}
-            nextDate={nextDate}
-            L={L}
-          />
-        </div>
-      )}
 
       {/* Notification log */}
       <div className="border-t border-white/5">

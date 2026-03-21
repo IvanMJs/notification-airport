@@ -28,7 +28,7 @@ interface AirportSearchProps {
 }
 
 export function AirportSearch({ watchedAirports, onAdd }: AirportSearchProps) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
@@ -87,6 +87,13 @@ export function AirportSearch({ watchedAirports, onAdd }: AirportSearchProps) {
 
   return (
     <div ref={containerRef} className="relative">
+      {watchedAirports.length === 0 && (
+        <p className="text-xs text-gray-600 mb-3 text-center">
+          {locale === "es"
+            ? "Agregá los aeropuertos de tu ruta para ver su estado en tiempo real"
+            : "Add your route airports to monitor their status in real-time"}
+        </p>
+      )}
       <button
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 rounded-lg border border-dashed border-gray-600 px-4 py-3 text-sm text-gray-400 hover:border-gray-400 hover:text-gray-200 transition-colors h-full min-h-[120px] w-full justify-center"
@@ -140,6 +147,13 @@ export function AirportSearch({ watchedAirports, onAdd }: AirportSearchProps) {
 
           {/* Results */}
           <div className="max-h-64 overflow-y-auto">
+            {!query && available.length > 0 && (
+              <p className="text-xs text-gray-500 text-center py-3">
+                {locale === "es"
+                  ? "Escribe el código IATA o nombre del aeropuerto"
+                  : "Type IATA code or airport name to search"}
+              </p>
+            )}
             {available.length === 0 ? (
               <p className="p-4 text-center text-xs text-gray-500">{t.noResults}</p>
             ) : (

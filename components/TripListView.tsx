@@ -18,12 +18,6 @@ interface TripListViewProps {
   onDismissExample?: () => void;
 }
 
-function getDaysUntil(isoDate: string): number {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.ceil((new Date(isoDate + "T00:00:00").getTime() - today.getTime()) / 86400000);
-}
-
 function isTripPast(trip: TripTab): boolean {
   if (trip.flights.length === 0) return false;
   const today = new Date();
@@ -48,6 +42,38 @@ function uniqueDestinations(trip: TripTab): string[] {
   return Array.from(new Set(trip.flights.map((f) => f.destinationCode)));
 }
 
+function buildRouteLabel(trip: TripTab): string {
+  const airports: string[] = [];
+  for (const f of trip.flights) {
+    if (!airports.includes(f.originCode)) airports.push(f.originCode);
+    if (!airports.includes(f.destinationCode)) airports.push(f.destinationCode);
+  }
+  if (airports.length === 0) return "";
+  if (airports.length <= 4) return airports.join(" → ");
+  return `${airports[0]} → ${airports[1]} → +${airports.length - 2} más`;
+}
+
+function getNextFlightLabel(trip: TripTab, locale: "es" | "en"): { label: string; isToday: boolean } | null {
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = trip.flights
+    .filter((f) => f.isoDate >= today)
+    .sort((a, b) => {
+      const d = a.isoDate.localeCompare(b.isoDate);
+      return d !== 0 ? d : (a.departureTime ?? "").localeCompare(b.departureTime ?? "");
+    });
+  if (upcoming.length === 0) return null;
+  const next = upcoming[0];
+  const isToday = next.isoDate === today;
+  const dateLabel = isToday
+    ? (locale === "es" ? "Hoy" : "Today")
+    : new Date(next.isoDate + "T00:00:00").toLocaleDateString(
+        locale === "en" ? "en-US" : "es-AR",
+        { day: "numeric", month: "short" },
+      );
+  const timeLabel = next.departureTime ? ` · ${next.departureTime}` : "";
+  return { label: `✈ ${dateLabel}${timeLabel}`, isToday };
+}
+
 const RISK_STYLE = {
   low:      { dot: "bg-emerald-400", text: "text-emerald-400", label: { es: "Sin alertas", en: "No alerts"  } },
   medium:   { dot: "bg-yellow-400",  text: "text-yellow-400",  label: { es: "Revisar",     en: "Review"     } },
@@ -67,9 +93,6 @@ export function TripListView({
   onDismissExample,
 }: TripListViewProps) {
   const [historyOpen, setHistoryOpen] = useState(false);
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
   const activeTrips = trips.filter((t) => !isTripPast(t));
   const pastTrips   = trips.filter((t) =>  isTripPast(t));
@@ -173,11 +196,6 @@ export function TripListView({
           : null;
         const riskStyle = risk ? RISK_STYLE[risk.level] : null;
 
-        const nextFlight = trip.flights.find(
-          (f) => new Date(f.isoDate + "T00:00:00") >= today,
-        );
-        const daysUntil = nextFlight ? getDaysUntil(nextFlight.isoDate) : null;
-
         const flightCount = trip.flights.length;
         const flightLabel =
           flightCount === 0
@@ -185,6 +203,9 @@ export function TripListView({
             : locale === "es"
             ? `${flightCount} vuelo${flightCount !== 1 ? "s" : ""}`
             : `${flightCount} flight${flightCount !== 1 ? "s" : ""}`;
+
+        const routeLabel = buildRouteLabel(trip);
+        const nextFlightLabel = getNextFlightLabel(trip, locale);
 
         return (
           <div
@@ -198,7 +219,7 @@ export function TripListView({
                 className="flex-1 min-w-0 text-left px-4 py-4 flex items-center gap-3 tap-scale"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span className="text-base font-bold text-white truncate">{trip.name}</span>
                     {riskStyle && (
                       <span className={`flex items-center gap-1 text-[10px] font-semibold shrink-0 ${riskStyle.text}`}>
@@ -207,30 +228,17 @@ export function TripListView({
                       </span>
                     )}
                   </div>
+                  {routeLabel && (
+                    <p className="text-xs text-gray-400 mb-1 truncate">{routeLabel}</p>
+                  )}
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="flex items-center gap-1 text-xs text-gray-500">
                       <Plane className="h-3 w-3" />
                       {flightLabel}
                     </span>
-                    {nextFlight && daysUntil !== null && (
-                      <span className={`text-xs font-medium ${
-                        daysUntil === 0 ? "text-red-400" :
-                        daysUntil <= 7  ? "text-yellow-400" :
-                                          "text-gray-500"
-                      }`}>
-                        {daysUntil === 0
-                          ? (locale === "es" ? "✈ HOY" : "✈ TODAY")
-                          : daysUntil === 1
-                          ? (locale === "es" ? "mañana" : "tomorrow")
-                          : locale === "es"
-                          ? `en ${daysUntil} días`
-                          : `in ${daysUntil} days`}
-                      </span>
-                    )}
-                    {nextFlight && (
-                      <span className="text-xs text-gray-600 flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {nextFlight.originCode} → {nextFlight.destinationCode}
+                    {nextFlightLabel && (
+                      <span className={`text-xs font-medium ${nextFlightLabel.isToday ? "text-red-400" : "text-violet-400"}`}>
+                        {nextFlightLabel.label}
                       </span>
                     )}
                   </div>

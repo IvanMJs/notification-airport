@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Pencil, X, Plus } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
+import { Pencil, X, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { TripTab } from "@/lib/types";
 
 interface Props {
@@ -29,6 +29,31 @@ export function TripTabBar({
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const editInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    function updateScrollState() {
+      if (!el) return;
+      setCanScrollLeft(el.scrollLeft > 0);
+      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    }
+
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState);
+
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      ro.disconnect();
+    };
+  }, [userTrips, draftTrip]);
 
   function startRename(trip: TripTab) {
     setEditingTabId(trip.id);
@@ -45,7 +70,24 @@ export function TripTabBar({
 
   return (
     <div className="hidden md:block border-b border-gray-800">
-      <div className="flex gap-1 overflow-x-auto overflow-y-hidden">
+      <div className="relative">
+        {canScrollLeft && (
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ left: -120, behavior: "smooth" })}
+            className="absolute left-0 top-0 h-full px-2 bg-gradient-to-r from-gray-950 to-transparent text-gray-400 hover:text-white z-10"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+        )}
+        {canScrollRight && (
+          <button
+            onClick={() => scrollRef.current?.scrollBy({ left: 120, behavior: "smooth" })}
+            className="absolute right-0 top-0 h-full px-2 bg-gradient-to-l from-gray-950 to-transparent text-gray-400 hover:text-white z-10"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        )}
+      <div ref={scrollRef} className="flex gap-1 overflow-x-auto overflow-y-hidden scrollbar-hide">
 
         {/* Static tabs */}
         {([
@@ -145,6 +187,7 @@ export function TripTabBar({
           <Plus className="h-3.5 w-3.5" />
         </button>
 
+      </div>
       </div>
     </div>
   );

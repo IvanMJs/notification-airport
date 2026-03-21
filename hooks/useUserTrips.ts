@@ -104,7 +104,7 @@ export function useUserTrips() {
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
 
-  const createTrip = useCallback(async (name: string): Promise<string | null> => {
+  const createTrip = useCallback(async (name: string, locale?: "es" | "en"): Promise<string | null> => {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("trips")
@@ -114,6 +114,7 @@ export function useUserTrips() {
 
     if (!error && data) {
       setTrips((prev) => [...prev, { id: data.id, name, flights: [], accommodations: [] }]);
+      toast.success(locale === "es" ? "Viaje creado" : "Trip created");
       return data.id;
     }
     return null;
@@ -132,13 +133,14 @@ export function useUserTrips() {
     }
   }, [trips]);
 
-  const renameTrip = useCallback(async (id: string, name: string) => {
+  const renameTrip = useCallback(async (id: string, name: string, locale?: "es" | "en") => {
     const trimmed = name.trim();
     if (!trimmed) return;
     setTrips((prev) => prev.map((t) => (t.id === id ? { ...t, name: trimmed } : t)));
 
     const supabase = createClient();
     await supabase.from("trips").update({ name: trimmed }).eq("id", id);
+    toast.success(locale === "es" ? "Nombre actualizado" : "Name updated");
   }, []);
 
   const addFlight = useCallback(async (tripId: string, flight: TripFlight): Promise<string | null> => {
@@ -422,5 +424,85 @@ export function useUserTrips() {
     return newTrip.id;
   }, [trips]);
 
-  return { trips, loading, createTrip, deleteTrip, renameTrip, addFlight, removeFlight, addAccommodation, removeAccommodation, updateAccommodation, saveDraftTrip, duplicateTrip };
+  const duplicateTripWithLocale = useCallback(async (tripId: string, locale?: "es" | "en"): Promise<string | null> => {
+    const supabase = createClient();
+    const source = trips.find((t) => t.id === tripId);
+    if (!source) return null;
+
+    const newName = `${source.name} (copia)`;
+    const { data: newTrip, error } = await supabase
+      .from("trips")
+      .insert({ name: newName })
+      .select("id")
+      .single();
+    if (error || !newTrip) return null;
+
+    const newTripId = newTrip.id;
+
+    async function rollbackTrip() {
+      await supabase.from("trips").delete().eq("id", newTripId);
+      toast.error("No se pudo duplicar el viaje / Could not duplicate trip");
+    }
+
+    const flightIdMap: Record<string, string> = {};
+    for (const flight of source.flights) {
+      const { data: last } = await supabase
+        .from("flights")
+        .select("sort_order")
+        .eq("trip_id", newTripId)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const sort_order = (last?.sort_order ?? -1) + 1;
+      const { data: f, error: fErr } = await supabase.from("flights").insert({
+        trip_id: newTripId,
+        flight_code: flight.flightCode,
+        airline_code: flight.airlineCode,
+        airline_name: flight.airlineName,
+        airline_icao: flight.airlineIcao,
+        flight_number: flight.flightNumber,
+        origin_code: flight.originCode,
+        destination_code: flight.destinationCode,
+        iso_date: flight.isoDate,
+        departure_time: flight.departureTime || null,
+        arrival_date: flight.arrivalDate ?? null,
+        arrival_time: flight.arrivalTime ?? null,
+        arrival_buffer: flight.arrivalBuffer,
+        sort_order,
+      }).select("id").single();
+      if (fErr || !f) { await rollbackTrip(); return null; }
+      flightIdMap[flight.id] = f.id;
+    }
+
+    for (const acc of source.accommodations) {
+      const realFlightId = acc.flightId ? flightIdMap[acc.flightId] : null;
+      const { error: aErr } = await supabase.from("accommodations").insert({
+        trip_id: newTripId,
+        flight_id: realFlightId ?? null,
+        name: acc.name,
+        check_in_date: acc.checkInDate ?? null,
+        check_in_time: acc.checkInTime ?? null,
+        check_out_date: acc.checkOutDate ?? null,
+        check_out_time: acc.checkOutTime ?? null,
+      });
+      if (aErr) { await rollbackTrip(); return null; }
+    }
+
+    const newFlights = source.flights.map((f) => ({ ...f, id: flightIdMap[f.id] ?? f.id }));
+    setTrips((prev) => [...prev, {
+      id: newTripId,
+      name: newName,
+      flights: newFlights,
+      accommodations: source.accommodations.map((a) => ({
+        ...a,
+        tripId: newTrip.id,
+        flightId: a.flightId ? flightIdMap[a.flightId] : undefined,
+      })),
+    }]);
+
+    toast.success(locale === "es" ? "Viaje duplicado ✓" : "Trip duplicated ✓");
+    return newTrip.id;
+  }, [trips]);
+
+  return { trips, loading, createTrip, deleteTrip, renameTrip, addFlight, removeFlight, addAccommodation, removeAccommodation, updateAccommodation, saveDraftTrip, duplicateTrip, duplicateTripWithLocale };
 }

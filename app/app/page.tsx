@@ -78,7 +78,7 @@ export default function HomePage() {
     removeAccommodation: removeAccommodationDB,
     updateAccommodation: updateAccommodationDB,
     saveDraftTrip: saveDraftTripDB,
-    duplicateTrip: duplicateTripDB,
+    duplicateTripWithLocale: duplicateTripWithLocaleDB,
   } = useUserTrips();
 
   // Create trip modal
@@ -275,6 +275,7 @@ export default function HomePage() {
     // Single atomic PostgreSQL transaction via RPC — no partial saves
     const id = await saveDraftTripDB(draftTrip.name, draftTrip.flights, draftTrip.accommodations);
     if (id) {
+      toast.success(locale === "es" ? "Viaje guardado ✓" : "Trip saved ✓");
       setDraftTrip(null);
       setActiveTab(id);
     }
@@ -310,7 +311,7 @@ export default function HomePage() {
       const trimmed = newName.trim();
       if (trimmed) setDraftTrip((prev) => prev ? { ...prev, name: trimmed } : prev);
     } else {
-      renameTripDB(id, newName);
+      renameTripDB(id, newName, locale);
     }
   }
 
@@ -328,7 +329,7 @@ export default function HomePage() {
   }
 
   async function handleDuplicateTrip(tripId: string) {
-    const newId = await duplicateTripDB(tripId);
+    const newId = await duplicateTripWithLocaleDB(tripId, locale);
     if (newId) setActiveTab(newId);
   }
 
@@ -564,7 +565,7 @@ export default function HomePage() {
             draftId={DRAFT_ID}
             tabLabels={{ airports: t.tabAirports, search: t.tabSearch }}
             onTabChange={setActiveTab}
-            onRenameTrip={renameTripDB}
+            onRenameTrip={(id, name) => renameTripDB(id, name, locale)}
             onDeleteTrip={deleteTrip}
             onDiscardDraft={discardDraft}
             onNewTrip={openCreateTripModal}
@@ -747,7 +748,7 @@ export default function HomePage() {
           onNewTrip={openCreateTripModal}
           onDiscardDraft={discardDraft}
           onDeleteTrip={deleteTrip}
-          onRenameTrip={renameTripDB}
+          onRenameTrip={(id, name) => renameTripDB(id, name, locale)}
           onRenameDraft={(name) => setDraftTrip((prev) => prev ? { ...prev, name } : prev)}
         />
       )}

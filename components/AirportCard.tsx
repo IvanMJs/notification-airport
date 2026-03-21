@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { AirportStatus } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
-import { X, TrendingUp, TrendingDown, Minus, Wind, Sparkles, Loader2, ChevronDown } from "lucide-react";
+import { X, TrendingUp, TrendingDown, Minus, Wind, Sparkles, Loader2, ChevronDown, Clock } from "lucide-react";
 import { AIRPORTS } from "@/lib/airports";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { WeatherData } from "@/hooks/useWeather";
@@ -246,23 +246,28 @@ function FaaExplainButton({
     <div className="mt-2">
       <button
         onClick={handleExplain}
-        className="inline-flex items-center gap-1.5 text-[11px] text-purple-400 hover:text-purple-300 transition-colors"
+        className="flex items-center gap-1.5 text-xs bg-violet-900/60 hover:bg-violet-800/80 text-violet-300 hover:text-violet-100 border border-violet-700/50 px-2.5 py-1 rounded-full transition-all"
       >
         {explainState === "loading" ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
+          <>
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span className="animate-pulse">{locale === "es" ? "Analizando..." : "Analyzing..."}</span>
+          </>
         ) : (
-          <Sparkles className="h-3 w-3" />
-        )}
-        {locale === "es" ? "¿Qué significa esto?" : "What does this mean?"}
-        {explanation && (
-          <ChevronDown
-            className={`h-3 w-3 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
-          />
+          <>
+            <Sparkles className="h-3 w-3" />
+            {locale === "es" ? "Explicar con IA" : "Explain with AI"}
+            {explanation && (
+              <ChevronDown
+                className={`h-3 w-3 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+              />
+            )}
+          </>
         )}
       </button>
 
       {open && explainState === "done" && explanation && (
-        <p className="mt-1.5 text-xs text-gray-300 leading-relaxed bg-purple-950/20 border border-purple-800/20 rounded-lg px-3 py-2">
+        <p className="mt-1.5 text-xs text-gray-300 leading-relaxed bg-violet-950/20 border border-violet-800/20 rounded-lg p-3">
           {explanation}
         </p>
       )}
@@ -392,12 +397,23 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight 
         <FaaExplainButton iata={iata} status={status} locale={locale} />
       )}
 
-      {status?.lastChecked && (
-        <p className="mt-3 text-[10px] text-gray-500 tabular">
-          {t.updated}:{" "}
-          {status.lastChecked.toLocaleTimeString(locale === "en" ? "en-US" : "es-AR", { hour: "2-digit", minute: "2-digit" })}
-        </p>
-      )}
+      {status?.lastChecked && (() => {
+        const minutesAgo = Math.floor((Date.now() - new Date(status.lastChecked).getTime()) / 60000);
+        return (
+          <>
+            <p className="mt-3 text-[10px] text-gray-500 tabular">
+              {t.updated}:{" "}
+              {status.lastChecked.toLocaleTimeString(locale === "en" ? "en-US" : "es-AR", { hour: "2-digit", minute: "2-digit" })}
+            </p>
+            {minutesAgo > 10 && (
+              <span className="mt-1 text-xs text-amber-400 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {locale === "es" ? `hace ${minutesAgo} min` : `${minutesAgo} min ago`}
+              </span>
+            )}
+          </>
+        );
+      })()}
       </div>
 
       {/* Bottom padding spacer */}
