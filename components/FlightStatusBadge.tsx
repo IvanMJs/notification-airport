@@ -69,9 +69,10 @@ export function FlightStatusBadge({ flightIata, isoDate, locale }: Props) {
             {locale === "en" ? cfg.en : cfg.es}
           </span>
 
+            {/* B2 — Departure gate (prominent) */}
           {data.departure.gate && (
-            <span className="inline-flex items-center gap-1 text-xs text-gray-300 bg-gray-800/60 border border-gray-700 px-2 py-0.5 rounded-full">
-              <DoorOpen className="h-3 w-3 text-gray-500" />
+            <span className="flex items-center gap-1 text-sm font-semibold text-white">
+              <DoorOpen className="w-3.5 h-3.5 text-violet-400" />
               {locale === "en" ? "Gate" : "Puerta"} {data.departure.gate}
               {data.departure.terminal ? ` · T${data.departure.terminal}` : ""}
             </span>
@@ -90,8 +91,9 @@ export function FlightStatusBadge({ flightIata, isoDate, locale }: Props) {
             </span>
           )}
 
+          {/* B1 — Aircraft type */}
           {data.aircraft?.iata && (
-            <span className="text-[11px] text-gray-600">
+            <span className="text-xs text-gray-400">
               {data.aircraft.iata}
               {data.aircraft.registration ? ` · ${data.aircraft.registration}` : ""}
             </span>
@@ -103,6 +105,28 @@ export function FlightStatusBadge({ flightIata, isoDate, locale }: Props) {
               {data.arrival.baggage ? ` · 🧳 ${data.arrival.baggage}` : ""}
             </span>
           )}
+
+          {/* B3 — Actual vs scheduled departure time */}
+          {(() => {
+            const scheduled = data.departure.scheduled;
+            const actual = data.departure.actual ?? data.departure.estimated;
+            if (!scheduled || !actual) return null;
+            const scheduledTime = new Date(scheduled).toLocaleTimeString(
+              locale === "en" ? "en-US" : "es-AR",
+              { hour: "2-digit", minute: "2-digit", hour12: false }
+            );
+            const actualTime = new Date(actual).toLocaleTimeString(
+              locale === "en" ? "en-US" : "es-AR",
+              { hour: "2-digit", minute: "2-digit", hour12: false }
+            );
+            if (scheduledTime === actualTime) return null;
+            return (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 line-through">{scheduledTime}</span>
+                <span className="text-sm font-medium text-amber-400">{actualTime}</span>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
