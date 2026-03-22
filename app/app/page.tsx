@@ -589,17 +589,16 @@ export default function HomePage() {
                   ))}
                 </div>
                 <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                  {sortedAirports.map((iata, idx) => (
-                    <div key={iata} className="animate-fade-in-up" style={{ animationDelay: `${idx * 0.05}s` }}>
-                      <AirportCard
-                        iata={iata}
-                        status={statusMap[iata]}
-                        onRemove={() => removeAirportDB(iata)}
-                        weather={weatherMap[iata]}
-                        metar={metarMap[iata]}
-                        highlight={changedAirports.has(iata)}
-                      />
-                    </div>
+                  {sortedAirports.map((iata) => (
+                    <AirportCard
+                      key={iata}
+                      iata={iata}
+                      status={statusMap[iata]}
+                      onRemove={() => removeAirportDB(iata)}
+                      weather={weatherMap[iata]}
+                      metar={metarMap[iata]}
+                      highlight={changedAirports.has(iata)}
+                    />
                   ))}
                   <AirportSearch watchedAirports={watchedAirports} onAdd={(iata) => addAirportDB(iata)} />
                 </div>

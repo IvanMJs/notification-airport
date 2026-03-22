@@ -40,40 +40,48 @@ function getDaysUntil(isoDate: string): number {
 const LEVEL_CONFIG = {
   low: {
     outerBorder: "border-emerald-800/30",
+    gradient:    "linear-gradient(150deg, rgba(6,30,20,0.98) 0%, rgba(8,8,16,0.99) 100%)",
     statusBg:    "bg-emerald-950/50",
     statusBorder:"border-emerald-800/40",
     dot:         "bg-emerald-400",
     text:        "text-emerald-400",
+    scoreColor:  "text-emerald-300",
     icon:        ShieldCheck,
     headline:    { es: "Tu viaje está en orden",          en: "Your trip looks good"             },
     sub:         { es: "Sin alertas en ningún tramo",     en: "No alerts on any leg"             },
   },
   medium: {
     outerBorder: "border-yellow-800/40",
+    gradient:    "linear-gradient(150deg, rgba(30,22,4,0.98) 0%, rgba(8,8,16,0.99) 100%)",
     statusBg:    "bg-yellow-950/50",
     statusBorder:"border-yellow-700/40",
     dot:         "bg-yellow-400 animate-pulse",
     text:        "text-yellow-400",
+    scoreColor:  "text-yellow-300",
     icon:        Shield,
     headline:    { es: "Hay algo que revisar",            en: "Worth a closer look"              },
     sub:         { es: "Revisá los vuelos abajo",         en: "Check the flights below"          },
   },
   high: {
     outerBorder: "border-orange-700/50",
+    gradient:    "linear-gradient(150deg, rgba(36,14,4,0.98) 0%, rgba(8,8,16,0.99) 100%)",
     statusBg:    "bg-orange-950/50",
     statusBorder:"border-orange-700/40",
     dot:         "bg-orange-400 animate-pulse",
     text:        "text-orange-400",
+    scoreColor:  "text-orange-300",
     icon:        ShieldAlert,
     headline:    { es: "Atención — hay alertas activas",  en: "Attention — active alerts"        },
     sub:         { es: "Revisá cada tramo",               en: "Review each leg below"            },
   },
   critical: {
     outerBorder: "border-red-700/50",
+    gradient:    "linear-gradient(150deg, rgba(36,4,4,0.99) 0%, rgba(8,8,16,0.99) 100%)",
     statusBg:    "bg-red-950/50",
     statusBorder:"border-red-700/40",
     dot:         "bg-red-400 animate-pulse",
     text:        "text-red-400",
+    scoreColor:  "text-red-300",
     icon:        ShieldOff,
     headline:    { es: "Riesgo crítico — actuá ya",       en: "Critical risk — act now"          },
     sub:         { es: "Contactá a tu aerolínea",         en: "Contact your airline now"         },
@@ -127,7 +135,7 @@ export function TripSummaryHero({ statusMap, locale, flights }: TripSummaryHeroP
   return (
     <div
       className={`rounded-2xl border ${cfg.outerBorder} overflow-hidden animate-fade-in-up`}
-      style={{ background: "linear-gradient(150deg, rgba(12,12,22,0.97) 0%, rgba(8,8,16,0.99) 100%)" }}
+      style={{ background: cfg.gradient }}
     >
       {/* ── PRÓXIMO VUELO — protagonista visual ─────────────────────────────── */}
       <div className="px-4 pt-5 pb-4 sm:px-5">
@@ -209,6 +217,15 @@ export function TripSummaryHero({ statusMap, locale, flights }: TripSummaryHeroP
           <p className={`text-[11px] leading-snug mt-0.5 ${cfg.text} opacity-60`}>
             {cfg.sub[locale]}
           </p>
+        </div>
+        {/* Risk score — prominent number */}
+        <div className="flex flex-col items-center shrink-0 mr-1">
+          <span className={`text-2xl font-black tabular leading-none ${cfg.scoreColor}`}>
+            {risk.score}
+          </span>
+          <span className={`text-[9px] font-bold uppercase tracking-wider ${cfg.text} opacity-50 leading-none mt-0.5`}>
+            {locale === "es" ? "riesgo" : "risk"}
+          </span>
         </div>
         <Icon className={`h-5 w-5 ${cfg.text} opacity-50 shrink-0`} />
       </div>

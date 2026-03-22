@@ -33,6 +33,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   function applyTheme(t: Theme) {
     if (typeof document !== "undefined") {
       document.documentElement.classList.toggle("light", t === "light");
+      document.documentElement.classList.toggle("dark", t === "dark");
     }
   }
 

@@ -332,8 +332,8 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
     <div
       className={cn(
         // Outer wrapper: border + bg + glow + hover lift
-        "relative rounded-xl border overflow-hidden transition-all duration-200",
-        "hover:-translate-y-0.5 hover:shadow-card-hover",
+        "relative rounded-xl border overflow-hidden transition-all duration-200 stagger-item",
+        "hover:-translate-y-1 hover:shadow-card-hover",
         cs.border, cs.bg, cs.glow,
         highlight && "animate-highlight-flash"
       )}
