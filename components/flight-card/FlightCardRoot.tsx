@@ -13,6 +13,7 @@ import { TsaAirportData } from "@/hooks/useTsaWait";
 import { TRIP_PANEL_LABELS } from "@/components/TripPanelLabels";
 import { formatRelativeDate } from "@/lib/formatDate";
 import { getTzAbbr, getDaysUntil } from "./helpers";
+import { convertFlightTime } from "@/lib/airportTimezone";
 import { FlightCardHeader } from "./FlightCardHeader";
 import { FlightCardBody } from "./FlightCardBody";
 import { FlightCardAccommodation } from "./FlightCardAccommodation";
@@ -35,6 +36,9 @@ export interface FlightCardProps {
   onAddAccommodation: (data: { name: string; checkInTime?: string; checkOutTime?: string; confirmationCode?: string; address?: string }) => void;
   onRemoveAccommodation: () => void;
   onEditAccommodation: (name: string, checkInTime?: string, checkOutTime?: string, confirmationCode?: string, address?: string) => void;
+  showDeviceTz?: boolean;
+  deviceTz?: string;
+  onToggleDeviceTz?: () => void;
 }
 
 export function FlightCard({
@@ -54,6 +58,9 @@ export function FlightCard({
   onAddAccommodation,
   onRemoveAccommodation,
   onEditAccommodation,
+  showDeviceTz,
+  deviceTz,
+  onToggleDeviceTz,
 }: FlightCardProps) {
   const L = TRIP_PANEL_LABELS[locale];
 
@@ -127,6 +134,20 @@ export function FlightCard({
   const originTz    = originInfo?.timezone ?? "UTC";
   const tzAbbr      = flight.departureTime ? getTzAbbr(originTz, flight.isoDate) : "";
 
+  const shouldShowDeviceTz = !!(showDeviceTz && deviceTz && deviceTz !== originTz);
+
+  const displayDepartureTime = shouldShowDeviceTz && flight.departureTime && deviceTz
+    ? convertFlightTime(flight.departureTime, flight.isoDate, originTz, deviceTz)
+    : flight.departureTime;
+
+  const displayArrivalTime = shouldShowDeviceTz && flight.arrivalTime && flight.arrivalDate && deviceTz
+    ? convertFlightTime(flight.arrivalTime, flight.arrivalDate, destInfo?.timezone ?? "UTC", deviceTz)
+    : flight.arrivalTime;
+
+  const displayTzAbbr = shouldShowDeviceTz && deviceTz
+    ? getTzAbbr(deviceTz, flight.isoDate)
+    : tzAbbr;
+
   const dateLabel = formatRelativeDate(flight.isoDate, locale);
   const daysUntil = getDaysUntil(flight.isoDate);
 
@@ -169,8 +190,8 @@ export function FlightCard({
     hoursUntilDep !== null && hoursUntilDep < 4 && hoursUntilDep > -1;
 
   const originStatus = statusMap[flight.originCode];
-  const status       = originStatus?.status ?? "ok";
-  const hasIssue     = status !== "ok";
+  const status       = originStatus?.status ?? "unknown";
+  const hasIssue     = status !== "ok" && status !== "unknown";
   const isImminent   = daysUntil >= 0 && daysUntil <= 1;
 
   const relevantTafPeriod = (() => {
@@ -198,7 +219,11 @@ export function FlightCard({
         onClick={handleDeleteTap}
         aria-label={locale === "es" ? "Eliminar vuelo" : "Delete flight"}
         className="absolute inset-y-0 right-0 bg-red-600 flex items-center px-4 rounded-r-xl z-0 transition-opacity"
-        style={{ opacity: swipeOffset >= 80 ? 1 : swipeOffset / 80 }}
+        style={{
+          opacity: swipeOffset >= 80 ? 1 : swipeOffset / 80,
+          pointerEvents: swipeOffset >= 40 ? "auto" : "none",
+          visibility: swipeOffset > 0 ? "visible" : "hidden",
+        }}
       >
         <Trash2 className="h-5 w-5 text-white" />
       </button>
@@ -227,6 +252,8 @@ export function FlightCard({
           onRemove={handleRemove}
           expanded={expanded}
           onToggleExpanded={() => setExpanded((v) => !v)}
+          displayDepartureTime={displayDepartureTime ?? undefined}
+          displayArrivalTime={displayArrivalTime ?? undefined}
         />
 
         <FlightCardBody
@@ -239,6 +266,8 @@ export function FlightCard({
           arrivalRec={arrivalRec}
           arrivalNote={arrivalNote}
           tzAbbr={tzAbbr}
+          displayTzAbbr={displayTzAbbr}
+          displayDepartureTime={displayDepartureTime ?? undefined}
           originName={originName}
           destName={destName}
           originInfo={originInfo}
@@ -255,6 +284,8 @@ export function FlightCard({
           activeSigmets={activeSigmets}
           tsaData={tsaData}
           connectionToNext={connectionToNext}
+          showDeviceTz={shouldShowDeviceTz}
+          onToggleDeviceTz={deviceTz && deviceTz !== originTz ? onToggleDeviceTz : undefined}
         />
 
         <FlightCardAccommodation

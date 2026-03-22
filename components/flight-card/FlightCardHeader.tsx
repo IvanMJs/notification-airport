@@ -28,6 +28,9 @@ export interface FlightCardHeaderProps {
   // expand toggle
   expanded: boolean;
   onToggleExpanded: () => void;
+  // device timezone display overrides
+  displayDepartureTime?: string;
+  displayArrivalTime?: string;
 }
 
 export function FlightCardHeader({
@@ -48,6 +51,8 @@ export function FlightCardHeader({
   onToggleUpgrade,
   expanded,
   onToggleExpanded,
+  displayDepartureTime,
+  displayArrivalTime,
 }: FlightCardHeaderProps) {
   const status = originStatus?.status ?? "ok";
 
@@ -135,8 +140,8 @@ export function FlightCardHeader({
           {/* Origin */}
           <div>
             <p className="text-2xl font-bold font-mono text-white leading-none">{flight.originCode}</p>
-            {flight.departureTime && (
-              <p className="text-lg font-semibold tabular-nums text-white mt-0.5">{flight.departureTime}</p>
+            {(displayDepartureTime ?? flight.departureTime) && (
+              <p className="text-lg font-semibold tabular-nums text-white mt-0.5">{displayDepartureTime ?? flight.departureTime}</p>
             )}
             <p className="text-xs text-gray-400 mt-0.5 truncate">{originName}</p>
           </div>
@@ -149,9 +154,9 @@ export function FlightCardHeader({
           {/* Destination */}
           <div className="text-right">
             <p className="text-2xl font-bold font-mono text-white leading-none">{flight.destinationCode}</p>
-            {(flight.arrivalTime || flight.arrivalDate) && (
+            {((displayArrivalTime ?? flight.arrivalTime) || flight.arrivalDate) && (
               <p className="text-lg font-semibold tabular-nums text-white mt-0.5">
-                {flight.arrivalTime ?? ""}
+                {displayArrivalTime ?? flight.arrivalTime ?? ""}
                 {flight.arrivalDate && flight.arrivalDate !== flight.isoDate && (
                   <sup className="text-xs text-gray-400 ml-0.5">+1</sup>
                 )}
@@ -164,7 +169,7 @@ export function FlightCardHeader({
         {/* Row 3: bottom strip */}
         <div className="border-t border-white/5 pt-2 flex items-center gap-2 flex-wrap text-[11px] text-gray-500">
           <DaysCountdown days={daysUntil} L={L} />
-          {flight.departureTime && (
+          {(displayDepartureTime ?? flight.departureTime) && (
             <span className="tabular-nums">
               {daysUntil === 0
                 ? (locale === "es" ? "Hoy" : "Today")
@@ -174,7 +179,7 @@ export function FlightCardHeader({
                     locale === "en" ? "en-US" : "es-AR",
                     { day: "2-digit", month: locale === "en" ? "short" : "2-digit" },
                   )}{" "}
-              {flight.departureTime}
+              {displayDepartureTime ?? flight.departureTime}
             </span>
           )}
           {flight.airlineName && (

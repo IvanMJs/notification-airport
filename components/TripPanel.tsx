@@ -60,6 +60,9 @@ interface TripPanelProps {
   isDraft?: boolean;
   onSave?: () => void;
   loading?: boolean;
+  showDeviceTz?: boolean;
+  deviceTz?: string;
+  onToggleDeviceTz?: () => void;
 }
 
 export function TripPanel({
@@ -77,6 +80,9 @@ export function TripPanel({
   isDraft,
   onSave,
   loading,
+  showDeviceTz,
+  deviceTz,
+  onToggleDeviceTz,
 }: TripPanelProps) {
   const { locale } = useLanguage();
   const L = TRIP_PANEL_LABELS[locale];
@@ -531,6 +537,9 @@ export function TripPanel({
                         onEditAccommodation={(name, checkInTime, checkOutTime, confirmationCode, address) =>
                           acc && onUpdateAccommodation(trip.id, acc.id, { name, checkInTime, checkOutTime, confirmationCode, address })
                         }
+                        showDeviceTz={showDeviceTz}
+                        deviceTz={deviceTz}
+                        onToggleDeviceTz={onToggleDeviceTz}
                       />
                     </div>
                     {connAnalysis && connAnalysis.risk !== "safe" && globalIdx < sorted.length - 1 && (

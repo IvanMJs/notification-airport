@@ -33,6 +33,7 @@ export interface FlightCardBodyProps {
   arrivalRec: string | null;
   arrivalNote: string | null;
   tzAbbr: string;
+  displayTzAbbr?: string;
   originName: string;
   destName: string;
   originInfo: (typeof AIRPORTS)[string] | undefined;
@@ -50,6 +51,10 @@ export interface FlightCardBodyProps {
   activeSigmets: SigmetFeature[] | undefined;
   tsaData: TsaAirportData | undefined;
   connectionToNext: ConnectionAnalysis | undefined;
+  // device timezone
+  displayDepartureTime?: string;
+  showDeviceTz?: boolean;
+  onToggleDeviceTz?: () => void;
 }
 
 export function FlightCardBody({
@@ -62,6 +67,7 @@ export function FlightCardBody({
   arrivalRec,
   arrivalNote,
   tzAbbr,
+  displayTzAbbr,
   originName,
   destName,
   originInfo,
@@ -77,6 +83,9 @@ export function FlightCardBody({
   tafData,
   activeSigmets,
   tsaData,
+  displayDepartureTime,
+  showDeviceTz,
+  onToggleDeviceTz,
 }: FlightCardBodyProps) {
   const originStatus: AirportStatus | undefined = statusMap[flight.originCode];
   const weather = weatherMap[flight.originCode];
@@ -263,11 +272,21 @@ export function FlightCardBody({
               <span className="flex items-center gap-1.5 text-gray-400">
                 <Clock className="h-3.5 w-3.5 text-gray-600" />
                 {L.departs}{" "}
-                <span className="font-bold text-white ml-1 tabular-nums">{flight.departureTime}</span>
-                {tzAbbr && (
+                <span className="font-bold text-white ml-1 tabular-nums">{displayDepartureTime ?? flight.departureTime}</span>
+                {(displayTzAbbr ?? tzAbbr) && (
                   <span className="text-xs font-medium text-gray-500 bg-white/5 border border-white/8 rounded px-1 py-0.5">
-                    {tzAbbr}
+                    {displayTzAbbr ?? tzAbbr}
                   </span>
+                )}
+                {onToggleDeviceTz && (
+                  <button
+                    onClick={onToggleDeviceTz}
+                    className="text-[10px] text-blue-400/70 hover:text-blue-400 transition-colors underline-offset-2 hover:underline ml-1"
+                  >
+                    {showDeviceTz
+                      ? (locale === "es" ? "ver hora del aeropuerto" : "show airport time")
+                      : (locale === "es" ? "ver en mi hora" : "show in my time")}
+                  </button>
                 )}
               </span>
               {arrivalRec && (

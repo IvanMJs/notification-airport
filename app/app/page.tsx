@@ -39,6 +39,8 @@ import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { makeExampleTrip } from "@/lib/exampleTrip";
 import { createClient } from "@/utils/supabase/client";
 import { GlobalAlertBar } from "@/components/GlobalAlertBar";
+import { useDeviceTimezone } from "@/hooks/useDeviceTimezone";
+import { TimezoneBanner } from "@/components/TimezoneBanner";
 
 const SEVERITY_ORDER: Record<DelayStatus, number> = {
   closure:        0,
@@ -114,6 +116,40 @@ export default function HomePage() {
 
   // Draft leave confirmation (shown when navigating away from unsaved draft)
   const [draftLeaveConfirm, setDraftLeaveConfirm] = useState<{ targetTab: string } | null>(null);
+
+  // Device timezone detection
+  const [showDeviceTz, setShowDeviceTz] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("tripcopilot-show-device-tz") === "true";
+  });
+  const [showBanner, setShowBanner] = useState(false);
+
+  const { deviceTz, tzChanged, clearTzChanged } = useDeviceTimezone();
+
+  useEffect(() => {
+    if (tzChanged) {
+      setShowBanner(true);
+      clearTzChanged();
+    }
+  }, [tzChanged, clearTzChanged]);
+
+  function handleAcceptDeviceTz() {
+    setShowDeviceTz(true);
+    setShowBanner(false);
+    localStorage.setItem("tripcopilot-show-device-tz", "true");
+  }
+
+  function handleDismissBanner() {
+    setShowBanner(false);
+  }
+
+  function handleToggleDeviceTz() {
+    setShowDeviceTz((v) => {
+      const next = !v;
+      localStorage.setItem("tripcopilot-show-device-tz", String(next));
+      return next;
+    });
+  }
 
   useEffect(() => {
     setMounted(true);
@@ -620,6 +656,16 @@ export default function HomePage() {
             onNewTrip={openCreateTripModal}
           />
 
+          {/* ── Timezone banner ── */}
+          {mounted && showBanner && (
+            <TimezoneBanner
+              deviceTz={deviceTz}
+              locale={locale}
+              onAccept={handleAcceptDeviceTz}
+              onDismiss={handleDismissBanner}
+            />
+          )}
+
           {/* ── Tab content ── */}
           <ErrorBoundary>
             <div
@@ -701,6 +747,9 @@ export default function HomePage() {
                 onRenameTrip={(name) => renameTripFromPanel(DRAFT_ID, name)}
                 isDraft={true}
                 onSave={saveDraftTrip}
+                showDeviceTz={showDeviceTz}
+                deviceTz={deviceTz}
+                onToggleDeviceTz={handleToggleDeviceTz}
               />
             )}
 
@@ -743,6 +792,9 @@ export default function HomePage() {
                   onAddAccommodation={() => {}}
                   onRemoveAccommodation={() => {}}
                   onUpdateAccommodation={() => {}}
+                  showDeviceTz={showDeviceTz}
+                  deviceTz={deviceTz}
+                  onToggleDeviceTz={handleToggleDeviceTz}
                 />
               </div>
             )}
@@ -776,6 +828,9 @@ export default function HomePage() {
                   onDuplicateTrip={() => handleDuplicateTrip(trip.id)}
                   onDeleteTrip={() => deleteTrip(trip.id)}
                   onRenameTrip={(name) => renameTripFromPanel(trip.id, name)}
+                  showDeviceTz={showDeviceTz}
+                  deviceTz={deviceTz}
+                  onToggleDeviceTz={handleToggleDeviceTz}
                 />
               ) : null
             )}
