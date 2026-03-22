@@ -46,17 +46,21 @@ export function usePriceAlerts() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const supabase = createClient();
-
     async function load() {
-      const { data } = await supabase
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase
         .from("price_alerts")
         .select("*")
         .order("created_at", { ascending: false });
-
-      if (data) {
-        setAlerts((data as DbPriceAlert[]).map(toAlert));
+      if (error) {
+        console.error("Error loading price alerts:", error.message);
       }
+      if (data) setAlerts((data as DbPriceAlert[]).map(toAlert));
       setLoading(false);
     }
 
@@ -100,18 +104,29 @@ export function usePriceAlerts() {
   }, [alerts]);
 
   const toggleAlert = useCallback(async (id: string) => {
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, isActive: !a.isActive } : a)),
-    );
-
+    let nextValue: boolean | undefined;
+    setAlerts((prev) => {
+      const updated = prev.map((a) => {
+        if (a.id !== id) return a;
+        nextValue = !a.isActive;
+        return { ...a, isActive: nextValue };
+      });
+      return updated;
+    });
+    if (nextValue === undefined) return;
     const supabase = createClient();
-    const alert = alerts.find((a) => a.id === id);
-    if (!alert) return;
-    await supabase
+    const { error } = await supabase
       .from("price_alerts")
-      .update({ is_active: !alert.isActive })
+      .update({ is_active: nextValue })
       .eq("id", id);
-  }, [alerts]);
+    if (error) {
+      // rollback
+      setAlerts((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, isActive: !nextValue } : a))
+      );
+      console.error("Error toggling alert:", error.message);
+    }
+  }, []); // sin deps
 
   return { alerts, loading, addAlert, removeAlert, toggleAlert };
 }

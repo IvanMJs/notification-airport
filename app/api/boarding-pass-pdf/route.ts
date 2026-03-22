@@ -3,6 +3,15 @@ import { createClient } from "@/utils/supabase/server";
 import { TripFlight } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
 
+function esc(s: string): string {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -49,7 +58,7 @@ export async function POST(request: Request) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Boarding Pass — ${flight.flightCode}</title>
+  <title>Boarding Pass — ${esc(flight.flightCode)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -196,17 +205,17 @@ export async function POST(request: Request) {
   <div class="ticket">
     <div class="ticket-header">
       <div>
-        <div class="airline">${flight.airlineName ?? flight.airlineCode ?? ""}</div>
-        <div class="flight-num">${flight.flightCode}</div>
+        <div class="airline">${esc(flight.airlineName ?? flight.airlineCode ?? "")}</div>
+        <div class="flight-num">${esc(flight.flightCode)}</div>
       </div>
       <div class="bp-label">Boarding<br/>Pass</div>
     </div>
 
     <div class="ticket-body">
       <div class="airport-block">
-        <div class="airport-code">${flight.originCode}</div>
-        <div class="airport-city">${originCity}</div>
-        <div class="airport-name">${originInfo?.name ?? ""}</div>
+        <div class="airport-code">${esc(flight.originCode)}</div>
+        <div class="airport-city">${esc(originCity)}</div>
+        <div class="airport-name">${esc(originInfo?.name ?? "")}</div>
       </div>
       <div class="route-arrow">
         <svg width="40" height="24" viewBox="0 0 40 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -214,34 +223,34 @@ export async function POST(request: Request) {
         </svg>
       </div>
       <div class="airport-block" style="text-align:right">
-        <div class="airport-code">${flight.destinationCode}</div>
-        <div class="airport-city">${destCity}</div>
-        <div class="airport-name">${destInfo?.name ?? ""}</div>
+        <div class="airport-code">${esc(flight.destinationCode)}</div>
+        <div class="airport-city">${esc(destCity)}</div>
+        <div class="airport-name">${esc(destInfo?.name ?? "")}</div>
       </div>
     </div>
 
     <div class="ticket-details">
       <div class="detail-block">
         <div class="detail-label">Date</div>
-        <div class="detail-value">${dateFormatted}</div>
+        <div class="detail-value">${esc(dateFormatted)}</div>
       </div>
       <div class="detail-block">
         <div class="detail-label">Departure</div>
-        <div class="detail-value">${flight.departureTime || "—"}</div>
+        <div class="detail-value">${esc(flight.departureTime || "—")}</div>
       </div>
       <div class="detail-block">
         <div class="detail-label">Class</div>
-        <div class="detail-value">${cabinLabel}</div>
+        <div class="detail-value">${esc(cabinLabel)}</div>
       </div>
       <div class="detail-block">
         <div class="detail-label">Arrival</div>
-        <div class="detail-value">${flight.arrivalTime || "—"}</div>
+        <div class="detail-value">${esc(flight.arrivalTime || "—")}</div>
       </div>
     </div>
 
     <div class="ticket-footer">
       <div>
-        <div class="passenger-name">${displayName}</div>
+        <div class="passenger-name">${esc(displayName)}</div>
         <div class="passenger-sub">Passenger</div>
       </div>
       <svg class="qr-placeholder" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
