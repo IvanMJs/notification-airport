@@ -511,6 +511,140 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── IA Contextual Features Section ─────────────────────────────── */}
+      <section className="relative py-20 sm:py-28 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(109,40,217,0.07)_0%,_transparent_70%)] pointer-events-none" />
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6">
+          {/* Header */}
+          <div className="text-center mb-14">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 px-3 py-1 text-xs font-semibold text-violet-400 mb-4">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              TripCopilot IA · Tu viaje preparado
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              La IA que{" "}
+              <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+                viaja con vos
+              </span>
+            </h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              No solo monitorea — te prepara. Antes de salir, en la escala, al llegar.
+            </p>
+          </div>
+
+          {/* Cards grid 2x2 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+
+            {/* Card 1: Packing list */}
+            <div className="bg-gray-900 border border-white/[0.08] rounded-2xl p-6 flex flex-col">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xl">
+                  🧳
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold text-lg leading-snug">
+                    Sabés exactamente qué llevar
+                  </h3>
+                  <p className="text-gray-400 text-sm mt-1">
+                    La IA revisa tu destino, el clima real de los días de tu viaje y la duración. Te arma una lista personalizada — no genérica.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-auto bg-gray-800/50 border border-white/[0.06] rounded-xl p-4">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2.5">Para Miami · 29 mar → 5 abr</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span className="text-amber-400">🌡</span> 26°C con lluvia los primeros días</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span className="text-emerald-400">✓</span> Ropa liviana (5 días)</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span className="text-emerald-400">✓</span> Campera impermeable</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span className="text-emerald-400">✓</span> Protector solar 50+</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400"><span className="text-gray-500">✗</span> Adaptador de corriente — no necesario</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Guía de escala */}
+            <div className="bg-gray-900 border border-white/[0.08] rounded-2xl p-6 flex flex-col">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xl">
+                  🕐
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold text-lg leading-snug">
+                    3 horas en Miami — ¿qué hacés?
+                  </h3>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Le decís cuánto tiempo tenés en escala. TripCopilot te dice si podés salir, dónde comer, dónde ducharte y cuándo volver.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-auto bg-gray-800/50 border border-white/[0.06] rounded-xl p-4">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2.5">Escala en MIA · 3h 40m</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span>✅</span> Podés salir al terminal principal</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span>🍔</span> Zona de comidas — Nivel D, Gate 25</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span>🚿</span> Shower disponible — Club Amex, Nivel E</div>
+                  <div className="flex items-center gap-2 text-sm text-amber-400/90"><span>⏱</span> Volvé 45 min antes del boarding</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Lounge finder */}
+            <div className="bg-gray-900 border border-white/[0.08] rounded-2xl p-6 flex flex-col">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center text-xl">
+                  🛋️
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold text-lg leading-snug">
+                    ¿Accedés al lounge?
+                  </h3>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Ingresás tu aerolínea y aeropuerto. TripCopilot confirma si tenés acceso, dónde está el lounge y hasta qué hora abre.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-auto bg-gray-800/50 border border-white/[0.06] rounded-xl p-4">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2.5">Admirals Club · MIA Terminal D</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span className="text-emerald-400">✅</span> Acceso con AA Platinum</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span>🕐</span> Abre: 05:00 · Cierra: 23:00</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span>📍</span> Post-security, Nivel 2</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span>🍽</span> Buffet + bar abierto</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4: Consejos de destino */}
+            <div className="bg-gray-900 border border-white/[0.08] rounded-2xl p-6 flex flex-col">
+              <div className="flex items-start gap-4 mb-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-xl">
+                  🌍
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold text-lg leading-snug">
+                    Tips del lugar antes de llegar
+                  </h3>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Moneda local, si necesitás visa, temperatura real de tus días y las cosas que sí o sí tenés que hacer.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-auto bg-gray-800/50 border border-white/[0.06] rounded-xl p-4">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2.5">Georgetown · Islas Caimán</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span>💵</span> KYD · 1 USD = 0.82 KYD</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span className="text-emerald-400">🛂</span> Sin visa para Argentina</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span>🌡</span> 28°C · Soleado toda la semana</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-300"><span>📍</span> Seven Mile Beach, Stingray City</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       {/* ── HOW IT WORKS ────────────────────────────────────────────────── */}
       <section id="como-funciona" className="py-16 px-4">
         <div className="max-w-4xl mx-auto">
