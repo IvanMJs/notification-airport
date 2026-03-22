@@ -64,7 +64,7 @@ export function FlightCardHeader({
               <span className="text-[11px] text-gray-500 truncate max-w-[120px]">{flight.airlineName}</span>
             )}
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0 mr-1">
             {isNonFAA && !originStatus ? (
               <span title={L.internationalNote}><Globe className="h-4 w-4 text-blue-400/70" /></span>
             ) : (
