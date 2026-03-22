@@ -288,3 +288,36 @@ html.light input[type="time"] {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Floating label inputs ─────────────────────────────────────────────────── */
+.input-float-wrapper {
+  position: relative;
+}
+.input-float-wrapper input:focus + label,
+.input-float-wrapper input:not(:placeholder-shown) + label {
+  transform: translateY(-1.5rem) scale(0.8);
+  color: rgb(var(--color-primary-light));
+}
+.input-float-wrapper label {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  transition: all 150ms ease;
+  pointer-events: none;
+  color: #6b7280;
+  font-size: 0.875rem;
+  transform-origin: left top;
+}
+
+/* ── Confetti animation ────────────────────────────────────────────────────── */
+@keyframes confetti-fall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(60px) rotate(360deg); opacity: 0; }
+}
+.confetti-piece {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  animation: confetti-fall 0.8s ease-out forwards;
+}

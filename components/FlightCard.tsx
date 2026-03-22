@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   ExternalLink, Clock, MapPin, Plane,
   AlertTriangle, Globe, Zap, DoorOpen, Trash2,
@@ -145,6 +145,14 @@ export function FlightCard({
     setRemoving(true);
     setTimeout(() => onRemove?.(), 280);
   }, [onRemove]);
+
+  // Confirm-delete state
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  useEffect(() => {
+    if (!confirmDelete) return;
+    const timer = setTimeout(() => setConfirmDelete(false), 4000);
+    return () => clearTimeout(timer);
+  }, [confirmDelete]);
 
   // Swipe-to-delete state
   const [swipeOffset, setSwipeOffset] = useState(0);
@@ -308,13 +316,30 @@ export function FlightCard({
             ) : (
               <StatusBadge status={status} className="text-sm px-3 py-1" />
             )}
-            <button
-              onClick={handleRemove}
-              title={L.removeTitle}
-              className="rounded-lg p-1.5 text-red-600 hover:text-red-400 hover:bg-red-950/40 transition-colors"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
+            {confirmDelete ? (
+              <div className="flex items-center gap-1.5 animate-scale-in">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 transition-colors"
+                >
+                  {locale === "es" ? "Cancelar" : "Cancel"}
+                </button>
+                <button
+                  onClick={handleRemove}
+                  className="text-xs bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded-lg transition-colors"
+                >
+                  {locale === "es" ? "Eliminar" : "Delete"}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                title={L.removeTitle}
+                className="rounded-lg p-1.5 text-red-600 hover:text-red-400 hover:bg-red-950/40 transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 

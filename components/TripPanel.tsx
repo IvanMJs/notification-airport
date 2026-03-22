@@ -4,8 +4,9 @@ import { useState, useMemo, Fragment } from "react";
 import toast from "react-hot-toast";
 import {
   Plus, X, Calendar, Share2, CheckCheck,
-  Plane, Trash2, Pencil, Copy,
+  Plane, Trash2, Pencil, Copy, Check,
   Save, PlaneTakeoff, ChevronRight, AlertTriangle, Clock, CheckCircle, Link,
+  Sparkles, Loader2,
 } from "lucide-react";
 import { AirportStatusMap, TripFlight, TripTab, Accommodation } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
@@ -87,6 +88,7 @@ export function TripPanel({
   const [showAddForm, setShowAddForm]   = useState(false);
   const [isRenamingTrip, setIsRenamingTrip]     = useState(false);
   const [renamingTripName, setRenamingTripName] = useState("");
+  const [saving, setSaving]             = useState(false);
 
   const sorted = useMemo(
     () => [...trip.flights].sort((a, b) => {
@@ -230,7 +232,7 @@ export function TripPanel({
     const ok = await copyToClipboard(url);
     if (ok) analytics.sharedLink();
     setCopied(ok);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), 1500);
   }
 
   async function handleFamilyLink() {
@@ -370,11 +372,25 @@ export function TripPanel({
             </div>
           </div>
           <button
-            onClick={() => { navigator.vibrate?.(30); onSave?.(); }}
-            className="flex items-center gap-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 px-4 py-2 text-xs font-bold text-white transition-colors shrink-0"
+            onClick={async () => {
+              navigator.vibrate?.(30);
+              setSaving(true);
+              try { await Promise.resolve(onSave?.()); } finally { setSaving(false); }
+            }}
+            disabled={saving}
+            className={`btn-primary flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold shrink-0 ${saving ? "opacity-70 cursor-not-allowed" : ""}`}
           >
-            <Save className="h-3.5 w-3.5" />
-            {locale === "es" ? "Guardar viaje" : "Save trip"}
+            {saving ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {locale === "es" ? "Guardando..." : "Saving..."}
+              </>
+            ) : (
+              <>
+                <Save className="h-3.5 w-3.5" />
+                {locale === "es" ? "Guardar viaje" : "Save trip"}
+              </>
+            )}
           </button>
         </div>
       )}
@@ -421,6 +437,14 @@ export function TripPanel({
           >
             <Plus className="h-4 w-4" />
             {locale === "es" ? "Agregar primer vuelo" : "Add first flight"}
+          </button>
+
+          <button
+            onClick={() => setShowImport(true)}
+            className="btn-primary w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold"
+          >
+            <Sparkles className="w-4 h-4" />
+            {locale === "es" ? "Importar vuelos con IA" : "Import flights with AI"}
           </button>
         </div>
       ) : loading ? (
@@ -607,7 +631,7 @@ export function TripPanel({
               title={locale === "es" ? "Genera un link de seguimiento en tiempo real para tu familia" : "Generate a real-time tracking link for your family"}
               className="flex items-center gap-1.5 rounded-lg border border-violet-800/50 bg-violet-950/20 px-3 py-1.5 text-xs text-violet-400 hover:bg-violet-950/40 hover:text-violet-300 transition-colors"
             >
-              <Link className="h-3.5 w-3.5" />
+              {linkCopied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Link className="h-3.5 w-3.5" />}
               {linkCopied
                 ? (locale === "en" ? "Link copied!" : "¡Link copiado!")
                 : (locale === "en" ? "Family link" : "Link familiar")}
@@ -618,7 +642,7 @@ export function TripPanel({
             onClick={handleShareLink}
             className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/8 hover:text-white transition-colors"
           >
-            {copied ? <CheckCheck className="h-3.5 w-3.5 text-emerald-400" /> : <Share2 className="h-3.5 w-3.5" />}
+            {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
             {copied
               ? (locale === "en" ? "Copied!" : "¡Copiado!")
               : (locale === "en" ? "Copy link" : "Copiar link")}

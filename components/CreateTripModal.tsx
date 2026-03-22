@@ -42,10 +42,7 @@ export function CreateTripModal({ locale, tripCount, onClose, onConfirm }: Props
             </p>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">
-              {locale === "es" ? "Nombre del viaje" : "Trip name"}
-            </label>
+          <div className="input-float-wrapper mt-6">
             <input
               ref={inputRef}
               onKeyDown={(e) => {
@@ -55,8 +52,11 @@ export function CreateTripModal({ locale, tripCount, onClose, onConfirm }: Props
               placeholder={locale === "es" ? "Ej: Vacaciones Miami 2026" : "E.g. Miami Trip 2026"}
               maxLength={40}
               autoFocus
-              className="w-full rounded-xl border border-white/[0.12] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-xl border border-white/[0.12] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
+            <label>
+              {locale === "es" ? "Nombre del viaje" : "Trip name"}
+            </label>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2">
