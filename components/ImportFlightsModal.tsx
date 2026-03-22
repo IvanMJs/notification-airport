@@ -210,7 +210,6 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
 
   function handleImport() {
     const selected = flights.filter((f) => f.selected);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     onImport(selected.map(({ selected: _s, missing: _m, ...rest }) => rest as ParsedFlight));
     onClose();
   }

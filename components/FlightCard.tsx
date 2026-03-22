@@ -185,7 +185,7 @@ export function FlightCard({
 
   function handleDeleteTap() {
     setSwipeOffset(0);
-    handleRemove();
+    setConfirmDelete(true);
   }
   const { logs: notifLogs, loading: notifLoading } = useNotificationLog(flight.id, showNotifLog);
 

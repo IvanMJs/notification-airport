@@ -92,7 +92,7 @@ const SECTIONS: SectionDef[] = [
             </div>
           ))}
         </div>
-        <Tip>Podés instalar Airport Monitor en tu celular como app: en el navegador tocá "Agregar a pantalla de inicio". Funciona como una app nativa, sin tienda de apps.</Tip>
+        <Tip>Podés instalar Airport Monitor en tu celular como app: en el navegador tocá &quot;Agregar a pantalla de inicio&quot;. Funciona como una app nativa, sin tienda de apps.</Tip>
       </div>
     ) : (
       <div>
@@ -701,7 +701,7 @@ const SECTIONS: SectionDef[] = [
             </div>
           ))}
         </div>
-        <Tip>Cuando la conexión está "En riesgo" o "Perdida", aparecen botones directos a Google Flights y Kayak para buscar vuelos alternativos con esa misma ruta y fecha.</Tip>
+        <Tip>Cuando la conexión está &quot;En riesgo&quot; o &quot;Perdida&quot;, aparecen botones directos a Google Flights y Kayak para buscar vuelos alternativos con esa misma ruta y fecha.</Tip>
       </div>
     ) : (
       <div>

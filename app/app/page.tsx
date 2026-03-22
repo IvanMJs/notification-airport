@@ -380,7 +380,7 @@ export default function HomePage() {
   return (
     <>
       <Toaster
-        position="bottom-center"
+        position="top-center"
         toastOptions={{
           className: '',
           style: {
@@ -393,7 +393,7 @@ export default function HomePage() {
           success: { iconTheme: { primary: '#22c55e', secondary: '#080810' } },
           error:   { iconTheme: { primary: '#ef4444', secondary: '#080810' } },
         }}
-        containerStyle={{ bottom: 76 }}
+        containerStyle={{ top: 16 }}
       />
 
       {showOnboarding && (
