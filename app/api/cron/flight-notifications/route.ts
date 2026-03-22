@@ -349,7 +349,7 @@ export async function GET(request: Request) {
             notificationsSent++;
 
             // A6: Connection rescue — check if this delay impacts the next flight in the trip
-            if (flightStatus.delayMinutes >= 20) {
+            {
               const tripId: string = flight.trip_id;
               // Find next flight in same trip (chronologically after this one)
               const nextFlight = flightRows.find((f) =>
@@ -407,7 +407,7 @@ export async function GET(request: Request) {
           }
 
           // Gate change detection (piggybacks on already-fetched flightStatus)
-          if (flightStatus.gate && flight.gate !== null && flightStatus.gate !== flight.gate) {
+          if (flightStatus.gate && flightStatus.gate !== flight.gate) {
             const alreadyAlerted = await checkFlightLog(supabase, flight.id, "gate_change", 4);
             if (!alreadyAlerted) {
               const { title, body } = L.gateChange(
@@ -442,7 +442,7 @@ export async function GET(request: Request) {
           notificationsSent++;
 
           // Gate change check (piggyback on already-fetched boardingStatus)
-          if (boardingStatus.gate && flight.gate !== null && boardingStatus.gate !== flight.gate) {
+          if (boardingStatus.gate && boardingStatus.gate !== flight.gate) {
             const alreadyAlerted = await checkFlightLog(supabase, flight.id, "gate_change", 4);
             if (!alreadyAlerted) {
               const { title: gTitle, body: gBody } = L.gateChange(
@@ -466,7 +466,7 @@ export async function GET(request: Request) {
         const gateChangeAlreadyAlerted = await checkFlightLog(supabase, flight.id, "gate_change", 4);
         if (!gateChangeAlreadyAlerted) {
           const boardingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey);
-          if (boardingStatus?.gate && flight.gate !== null && boardingStatus.gate !== flight.gate) {
+          if (boardingStatus?.gate && boardingStatus.gate !== flight.gate) {
             const { title, body } = L.gateChange(
               flight.flight_code,
               boardingStatus.gate,
@@ -486,9 +486,7 @@ export async function GET(request: Request) {
     }
   }
 
-  {
-    await sendInBatches(flightRows, processFlightRow, 10);
-  }
+  await sendInBatches(flightRows, processFlightRow, 10);
 
   // ── A5: Weather alert at destination (1–3 days before arrival) ───────────
   async function processWeatherAlert(flight: FlightRow): Promise<void> {
@@ -542,9 +540,7 @@ export async function GET(request: Request) {
     }
   }
 
-  {
-    await sendInBatches(flightRows, processWeatherAlert, 10);
-  }
+  await sendInBatches(flightRows, processWeatherAlert, 10);
 
   // ── Flight countdown push (lock screen) ──────────────────────────────────
   // Sends a push with tag "flight_countdown" every cron run when a flight is
@@ -597,9 +593,7 @@ export async function GET(request: Request) {
     notificationsFailed += failed;
   }
 
-  {
-    await sendInBatches(flightRows, processCountdown, 10);
-  }
+  await sendInBatches(flightRows, processCountdown, 10);
 
   // ── Hotel notifications ───────────────────────────────────────────────────
   const todayStr    = now.toISOString().slice(0, 10);
