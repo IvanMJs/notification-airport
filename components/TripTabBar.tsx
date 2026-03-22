@@ -11,6 +11,7 @@ interface Props {
   draftTrip: { name: string } | null;
   tabLabels: { airports: string; search: string };
   draftId: string;
+  alertTripIds?: string[];
   onTabChange: (id: string) => void;
   onRenameTrip: (id: string, name: string) => void;
   onDeleteTrip: (id: string) => void;
@@ -23,7 +24,7 @@ const tabActive   = "border-violet-500 text-violet-400";
 const tabInactive = "border-transparent text-gray-400 hover:text-gray-200";
 
 export function TripTabBar({
-  locale, activeTab, userTrips, draftTrip, tabLabels, draftId,
+  locale, activeTab, userTrips, draftTrip, tabLabels, draftId, alertTripIds,
   onTabChange, onRenameTrip, onDeleteTrip, onDiscardDraft, onNewTrip,
 }: Props) {
   const [editingTabId, setEditingTabId] = useState<string | null>(null);
@@ -109,7 +110,10 @@ export function TripTabBar({
           const isEditing = editingTabId === trip.id;
 
           return (
-            <div key={trip.id} className="flex items-center -mb-px">
+            <div key={trip.id} className="relative flex items-center -mb-px">
+              {alertTripIds?.includes(trip.id) && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 z-10 pointer-events-none" />
+              )}
               {isEditing ? (
                 <div className={`${tabBase} ${tabActive} flex items-center`}>
                   <input

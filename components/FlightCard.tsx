@@ -523,7 +523,7 @@ export function FlightCard({
       <div className="px-4 py-3 border-t border-white/5">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <p className="text-xs text-gray-400 mb-1 font-semibold uppercase tracking-wider">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-1">
               {L.sectionRoute}
             </p>
             <div className="flex items-center gap-2 text-sm">
@@ -554,7 +554,7 @@ export function FlightCard({
 
       {/* SECTION 3: My flight */}
       <div className="px-4 py-3 border-t border-white/5 bg-white/[0.01]">
-        <p className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wider">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2">
           {L.sectionFlight}
         </p>
         <div className="space-y-2">
@@ -661,7 +661,7 @@ export function FlightCard({
         const isToday = daysUntil === 0;
         return (
           <div className={`px-4 py-3 border-t border-white/5 ${isToday ? "bg-yellow-950/15" : "bg-transparent"}`}>
-            <p className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-1.5">
               <DoorOpen className="h-3 w-3" />
               {L.sectionGate}
               {isToday && (
@@ -725,7 +725,7 @@ export function FlightCard({
         const infoChunks = [windStr, visStr, ceilStr, p.weatherString].filter(Boolean) as string[];
         return (
           <div className="px-4 py-3 border-t border-white/5 bg-blue-950/20">
-            <p className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wider">{L.sectionForecast}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2">{L.sectionForecast}</p>
             <div className="flex items-center gap-2 flex-wrap">
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${fcStyle}`}>{p.flightCategory}</span>
               <span className="text-xs text-gray-300 font-mono">{infoChunks.join("  ·  ")}</span>
@@ -772,7 +772,7 @@ export function FlightCard({
       <div className={`px-4 py-3 border-t border-white/5 ${isImminent ? "bg-blue-950/15" : "bg-transparent"}`}>
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <p className="text-xs text-gray-400 mb-2 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-1.5">
               <Radar className="h-3 w-3" />
               {L.sectionTracking}
             </p>

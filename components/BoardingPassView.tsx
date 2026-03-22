@@ -31,13 +31,28 @@ export function BoardingPassView({ flight, gate, onClose }: BoardingPassViewProp
       onClick={onClose}
     >
       <div
-        className="w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-fade-in-up"
+        className="relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "linear-gradient(160deg, #1e0a3c 0%, #0f172a 100%)",
           border: "1px solid rgba(139,92,246,0.25)",
         }}
       >
+        {/* D7: Star background */}
+        <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+          {Array.from({length: 30}).map((_, i) => (
+            <div key={i} className="absolute rounded-full bg-white"
+              style={{
+                width: i % 3 === 0 ? '2px' : '1px',
+                height: i % 3 === 0 ? '2px' : '1px',
+                opacity: 0.1 + (i % 5) * 0.05,
+                left: `${(i * 37) % 100}%`,
+                top: `${(i * 23) % 100}%`,
+              }}
+            />
+          ))}
+        </div>
+
         {/* Header */}
         <div className="relative px-6 pt-6 pb-4">
           <button

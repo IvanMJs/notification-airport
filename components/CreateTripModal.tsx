@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 interface Props {
@@ -12,7 +12,20 @@ interface Props {
 
 export function CreateTripModal({ locale, tripCount, onClose, onConfirm }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
   const [creating, setCreating] = useState(false);
+
+  // A7: Focus trap — focus first input on open, close on Escape
+  useEffect(() => {
+    const firstInput = modalRef.current?.querySelector<HTMLElement>("input, button, textarea");
+    firstInput?.focus();
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   async function handleConfirm() {
     const val = inputRef.current?.value.trim() ?? "";
@@ -30,6 +43,7 @@ export function CreateTripModal({ locale, tripCount, onClose, onConfirm }: Props
       <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
         <div
+          ref={modalRef}
           className="w-full max-w-sm pointer-events-auto rounded-2xl border border-white/[0.08] shadow-2xl p-5 space-y-4"
           style={{ background: "linear-gradient(160deg, rgba(18,18,32,0.99) 0%, rgba(10,10,20,1) 100%)" }}
         >
