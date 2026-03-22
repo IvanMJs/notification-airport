@@ -3,6 +3,7 @@
 interface TripEmptyStateProps {
   locale: "es" | "en";
   onCreateTrip?: () => void;
+  onImport?: () => void;
 }
 
 const STEPS = [
@@ -71,7 +72,7 @@ function PlaneSVG() {
   );
 }
 
-export function TripEmptyState({ locale, onCreateTrip }: TripEmptyStateProps) {
+export function TripEmptyState({ locale, onCreateTrip, onImport }: TripEmptyStateProps) {
   return (
     <div
       className="empty-state-card rounded-2xl border border-white/[0.06] overflow-hidden"
@@ -115,14 +116,24 @@ export function TripEmptyState({ locale, onCreateTrip }: TripEmptyStateProps) {
       </div>
 
       {/* CTA with shimmer */}
-      {onCreateTrip && (
-        <div className="px-6 py-6">
-          <button
-            onClick={onCreateTrip}
-            className="shimmer-btn w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-sm font-semibold px-6 py-3 transition-all"
-          >
-            {locale === "es" ? "Agregar mi primer viaje →" : "Add my first trip →"}
-          </button>
+      {(onCreateTrip || onImport) && (
+        <div className="px-6 py-6 space-y-3">
+          {onImport && (
+            <button
+              onClick={onImport}
+              className="shimmer-btn w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-sm font-semibold px-6 py-3 transition-all"
+            >
+              {locale === "es" ? "📷 Importar mi primer vuelo con IA" : "📷 Import my first flight with AI"}
+            </button>
+          )}
+          {onCreateTrip && !onImport && (
+            <button
+              onClick={onCreateTrip}
+              className="shimmer-btn w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-sm font-semibold px-6 py-3 transition-all"
+            >
+              {locale === "es" ? "Agregar mi primer viaje →" : "Add my first trip →"}
+            </button>
+          )}
         </div>
       )}
     </div>
