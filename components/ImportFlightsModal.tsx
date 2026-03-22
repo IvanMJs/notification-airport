@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   X, CheckCircle, AlertCircle,
   FileText, ImagePlus, ArrowRight, Sparkles,
@@ -145,6 +145,15 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
   const [phase, setPhase] = useState<"input" | "parsing" | "review">("input");
   const [flights, setFlights] = useState<EditableFlight[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  useEffect(() => {
+    if (flights.length > 0) {
+      setShowConfetti(true);
+      const timer = setTimeout(() => setShowConfetti(false), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [flights.length]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   function handleImagePick(file: File) {
@@ -220,6 +229,22 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="relative w-full max-w-2xl rounded-2xl border border-white/8 bg-[#0f0f17] shadow-2xl animate-fade-in-up max-h-[90vh] flex flex-col">
+
+        {/* Confetti burst on successful import */}
+        {showConfetti && (
+          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+            {Array.from({length: 16}).map((_, i) => (
+              <div key={i} className="absolute w-1.5 h-1.5 rounded-sm"
+                style={{
+                  left: `${10 + (i * 5.5)}%`,
+                  top: "20%",
+                  background: ["#7c3aed","#f59e0b","#22c55e","#ec4899","#06b6d4"][i % 5],
+                  animation: `confetti-fall ${0.6 + (i % 4) * 0.1}s ease-out ${(i * 0.04)}s forwards`,
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4 border-b border-white/6 shrink-0">

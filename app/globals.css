@@ -311,8 +311,8 @@ html.light input[type="time"] {
 
 /* ── Confetti animation ────────────────────────────────────────────────────── */
 @keyframes confetti-fall {
-  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(60px) rotate(360deg); opacity: 0; }
+  0%   { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(80px) rotate(720deg) scale(0.5); opacity: 0; }
 }
 .confetti-piece {
   position: absolute;
@@ -320,4 +320,45 @@ html.light input[type="time"] {
   height: 6px;
   border-radius: 1px;
   animation: confetti-fall 0.8s ease-out forwards;
+}
+
+/* ── C4: Live data breathing animation ─────────────────────────────────────── */
+@keyframes breathing {
+  0%, 100% { opacity: 0.95; }
+  50%       { opacity: 1; }
+}
+.animate-breathing { animation: breathing 3s ease-in-out infinite; }
+
+/* ── P5: Dynamic background tint ───────────────────────────────────────────── */
+:root { --bg-tint: transparent; }
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: var(--bg-tint);
+  pointer-events: none;
+  z-index: 0;
+  transition: background 2s ease;
+}
+
+/* ── P7: Gradient top border on status cards ───────────────────────────────── */
+.border-top-success {
+  border-top: 1px solid transparent;
+  background-image: linear-gradient(var(--card-bg, #0f0f17), var(--card-bg, #0f0f17)),
+    linear-gradient(90deg, transparent, rgba(34,197,94,0.5), transparent);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+.border-top-warning {
+  border-top: 1px solid transparent;
+  background-image: linear-gradient(var(--card-bg, #0f0f17), var(--card-bg, #0f0f17)),
+    linear-gradient(90deg, transparent, rgba(251,146,60,0.5), transparent);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+.border-top-danger {
+  border-top: 1px solid transparent;
+  background-image: linear-gradient(var(--card-bg, #0f0f17), var(--card-bg, #0f0f17)),
+    linear-gradient(90deg, transparent, rgba(239,68,68,0.5), transparent);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
 }

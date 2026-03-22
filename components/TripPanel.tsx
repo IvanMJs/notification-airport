@@ -6,7 +6,7 @@ import {
   Plus, X, Calendar, Share2, CheckCheck,
   Plane, Trash2, Pencil, Copy, Check,
   Save, PlaneTakeoff, ChevronRight, AlertTriangle, Clock, CheckCircle, Link,
-  Sparkles, Loader2,
+  Sparkles, Loader2, List, GitBranch,
 } from "lucide-react";
 import { AirportStatusMap, TripFlight, TripTab, Accommodation } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
@@ -89,6 +89,7 @@ export function TripPanel({
   const [isRenamingTrip, setIsRenamingTrip]     = useState(false);
   const [renamingTripName, setRenamingTripName] = useState("");
   const [saving, setSaving]             = useState(false);
+  const [viewMode, setViewMode]         = useState<"list" | "timeline">("list");
 
   const sorted = useMemo(
     () => [...trip.flights].sort((a, b) => {
@@ -403,18 +404,26 @@ export function TripPanel({
       {/* Trip Risk Score */}
       {sorted.length > 0 && <TripRiskBadge risk={riskScore} locale={locale} />}
 
-      {/* Trip Timeline */}
-      <TripTimeline flights={trip.flights} statusMap={statusMap} connectionMap={connectionMap} />
-
       {/* Flight cards */}
       {sorted.length === 0 ? (
-        <div className="flex flex-col items-center gap-6 py-12 text-center">
-          <div className="flex flex-col items-center gap-2">
-            <div className="h-14 w-14 rounded-2xl bg-blue-950/40 border border-blue-800/30 flex items-center justify-center">
-              <PlaneTakeoff className="h-7 w-7 text-blue-400" />
-            </div>
-            <p className="text-sm font-semibold text-white">{locale === "es" ? "Tu itinerario está vacío" : "Your itinerary is empty"}</p>
-            <p className="text-xs text-gray-500 max-w-xs">{locale === "es" ? "Agregá tus vuelos para ver el riesgo de conexión, clima y alertas en tiempo real" : "Add your flights to see connection risk, weather and real-time alerts"}</p>
+        <div className="flex flex-col items-center gap-5 py-12 px-6 text-center">
+          <svg viewBox="0 0 120 80" className="w-32 h-20 opacity-50" fill="none">
+            <ellipse cx="30" cy="62" rx="26" ry="12" fill="rgba(139,92,246,0.15)" />
+            <ellipse cx="75" cy="57" rx="36" ry="16" fill="rgba(139,92,246,0.12)" />
+            <ellipse cx="95" cy="63" rx="20" ry="10" fill="rgba(139,92,246,0.15)" />
+            <path d="M18 38 L54 26 L92 31 L76 40 L54 38 Z" fill="rgba(139,92,246,0.55)" />
+            <path d="M54 38 L57 56 L48 52 Z" fill="rgba(139,92,246,0.45)" />
+            <path d="M26 35 L38 28 L42 33 Z" fill="rgba(139,92,246,0.35)" />
+          </svg>
+          <div>
+            <p className="text-base font-semibold text-gray-200 mb-1.5">
+              {locale === "es" ? "Tu viaje te espera" : "Your journey awaits"}
+            </p>
+            <p className="text-sm text-gray-500 max-w-xs mx-auto leading-relaxed">
+              {locale === "es"
+                ? "Importá el texto de tu reserva y la IA extrae todos los vuelos"
+                : "Paste your booking text and AI extracts all flights instantly"}
+            </p>
           </div>
 
           {/* 3 micro-steps */}
