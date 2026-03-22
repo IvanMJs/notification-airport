@@ -124,6 +124,7 @@ function checkItineraryConsistency(trips: TripTab[]) {
       const b = flights[i + 1];
       const aDateTime = `${a.isoDate} ${a.departureTime || "00:00"}`;
       const bDateTime = `${b.isoDate} ${b.departureTime || "00:00"}`;
+
       if (aDateTime > bDateTime) {
         toast(
           `"${trip.name}": los vuelos no están en orden cronológico. Considerá reordenarlos.`,
