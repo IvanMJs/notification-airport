@@ -172,7 +172,7 @@ export function FlightCard({
     (hoursUntilDep !== null && hoursUntilDep < 24 && hoursUntilDep > -1);
 
   const originStatus = statusMap[flight.originCode];
-  const status       = originStatus?.status ?? "ok";
+  const status       = originStatus?.status ?? "unknown";
   const hasIssue     = status !== "ok";
   const isImminent   = daysUntil >= 0 && daysUntil <= 1;
 

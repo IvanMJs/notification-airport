@@ -427,7 +427,7 @@ export function TripPanel({
         }
         return (
           <div>
-            <p className="text-xs text-gray-500 mb-2">{locale === "es" ? "Monitor" : "Monitor"}</p>
+            <p className="text-xs text-gray-500 mb-2">{"Monitor"}</p>
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               {uniqueAirports.map((iata) => (
                 <button

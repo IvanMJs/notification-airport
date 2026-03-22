@@ -360,7 +360,7 @@ function PackingSection({
           </button>
           <button
             onClick={() => {
-              const text = aiPacking
+              const text = (aiPacking ?? [])
                 .map((i) => `${checked[i.item] ? "✅" : "☐"} ${i.item}`)
                 .join("\n");
               window.open(
