@@ -82,6 +82,8 @@ export const CRON_LABELS = {
       ({ title: `🏨 Mañana check-out en ${name}`, body: "Recordá dejar la habitación a tiempo y tener listo el equipaje." }),
     hotelCheckoutTime: (name: string, time: string) =>
       ({ title: `🏨 Check-out ahora — ${name}`, body: `Hora de check-out: ${time}. ¡Buen viaje!` }),
+    gateChange: (code: string, newGate: string, oldGate: string | null, origin: string, dest: string) =>
+      ({ title: `🚪 Cambio de puerta · ${code}`, body: `Nueva puerta: ${newGate} · ${origin}→${dest}${oldGate !== null ? ` (antes ${oldGate})` : ""}` }),
   },
   en: {
     statusLabel: {
@@ -117,6 +119,8 @@ export const CRON_LABELS = {
       ({ title: `🏨 Check-out tomorrow at ${name}`, body: "Remember to vacate on time and have your luggage ready." }),
     hotelCheckoutTime: (name: string, time: string) =>
       ({ title: `🏨 Check-out now — ${name}`, body: `Check-out time: ${time}. Safe travels!` }),
+    gateChange: (code: string, newGate: string, oldGate: string | null, origin: string, dest: string) =>
+      ({ title: `🚪 Gate change · ${code}`, body: `New gate: ${newGate} · ${origin}→${dest}${oldGate !== null ? ` (was ${oldGate})` : ""}` }),
   },
 } as const;
 

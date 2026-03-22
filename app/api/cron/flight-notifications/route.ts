@@ -23,6 +23,7 @@ type FlightRow = {
   arrival_date: string | null;
   arrival_time: string | null;
   arrival_buffer: number;
+  gate: string | null;
   trips: { user_id: string };
 };
 
@@ -93,7 +94,7 @@ export async function GET(request: Request) {
   // Get all flights departing in the next 3 days, with their user_id via trip
   const { data: flights, error } = await supabase
     .from("flights")
-    .select("id, trip_id, flight_code, airline_code, airline_name, airline_icao, flight_number, origin_code, destination_code, iso_date, departure_time, arrival_date, arrival_time, arrival_buffer, trips!inner(user_id)")
+    .select("id, trip_id, flight_code, airline_code, airline_name, airline_icao, flight_number, origin_code, destination_code, iso_date, departure_time, arrival_date, arrival_time, arrival_buffer, gate, trips!inner(user_id)")
     .gte("iso_date", todayISO)
     .lte("iso_date", threeDaysISO);
 
@@ -348,7 +349,7 @@ export async function GET(request: Request) {
             notificationsSent++;
 
             // A6: Connection rescue — check if this delay impacts the next flight in the trip
-            if (flightStatus.delayMinutes >= 20) {
+            {
               const tripId: string = flight.trip_id;
               // Find next flight in same trip (chronologically after this one)
               const nextFlight = flightRows.find((f) =>
@@ -404,6 +405,27 @@ export async function GET(request: Request) {
               }
             }
           }
+
+          // Gate change detection (piggybacks on already-fetched flightStatus)
+          if (flightStatus.gate && flightStatus.gate !== flight.gate) {
+            const alreadyAlerted = await checkFlightLog(supabase, flight.id, "gate_change", 4);
+            if (!alreadyAlerted) {
+              const { title, body } = L.gateChange(
+                flight.flight_code,
+                flightStatus.gate,
+                flight.gate,
+                flight.origin_code,
+                flight.destination_code,
+              );
+              const url = `/trips/${flight.trip_id}`;
+              notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, "gate_change", { title, body, url });
+              notificationsSent++;
+            }
+          }
+          // Always persist the latest gate (regardless of change or notification)
+          if (flightStatus.gate) {
+            await supabase.from("flights").update({ gate: flightStatus.gate }).eq("id", flight.id);
+          }
         }
       }
     }
@@ -412,19 +434,59 @@ export async function GET(request: Request) {
     if (hoursUntil !== null && hoursUntil >= 0.4 && hoursUntil <= 0.6 && rapidApiKey) {
       const alreadySent = await checkFlightLog(supabase, flight.id, "boarding_open", Infinity);
       if (!alreadySent) {
-        // Try to get gate info — re-use a recently-fetched status or make a fresh call
         const boardingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey);
-        const gateText = boardingStatus?.gate ? ` — ${locale === "es" ? "Puerta" : "Gate"} ${boardingStatus.gate}` : "";
-        const { title, body } = L.boardingOpen(flight.flight_code, originCode, destCode, gateText);
-        notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, "boarding_open", { title, body, url: "/app" });
-        notificationsSent++;
+        if (boardingStatus && !boardingStatus.cancelled && !boardingStatus.landed) {
+          const gateText = boardingStatus.gate ? ` — ${locale === "es" ? "Puerta" : "Gate"} ${boardingStatus.gate}` : "";
+          const { title, body } = L.boardingOpen(flight.flight_code, originCode, destCode, gateText);
+          notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, "boarding_open", { title, body, url: "/app" });
+          notificationsSent++;
+
+          // Gate change check (piggyback on already-fetched boardingStatus)
+          if (boardingStatus.gate && boardingStatus.gate !== flight.gate) {
+            const alreadyAlerted = await checkFlightLog(supabase, flight.id, "gate_change", 4);
+            if (!alreadyAlerted) {
+              const { title: gTitle, body: gBody } = L.gateChange(
+                flight.flight_code,
+                boardingStatus.gate,
+                flight.gate,
+                flight.origin_code,
+                flight.destination_code,
+              );
+              const url = `/trips/${flight.trip_id}`;
+              notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, "gate_change", { title: gTitle, body: gBody, url });
+              notificationsSent++;
+            }
+          }
+          if (boardingStatus.gate) {
+            await supabase.from("flights").update({ gate: boardingStatus.gate }).eq("id", flight.id);
+          }
+        }
+      } else {
+        // boarding_open already sent — only fetch if gate_change alert hasn't been sent recently
+        const gateChangeAlreadyAlerted = await checkFlightLog(supabase, flight.id, "gate_change", 4);
+        if (!gateChangeAlreadyAlerted) {
+          const boardingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey);
+          if (boardingStatus?.gate && boardingStatus.gate !== flight.gate) {
+            const { title, body } = L.gateChange(
+              flight.flight_code,
+              boardingStatus.gate,
+              flight.gate,
+              flight.origin_code,
+              flight.destination_code,
+            );
+            const url = `/trips/${flight.trip_id}`;
+            notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, "gate_change", { title, body, url });
+            notificationsSent++;
+          }
+          if (boardingStatus?.gate) {
+            await supabase.from("flights").update({ gate: boardingStatus.gate }).eq("id", flight.id);
+          }
+        }
       }
     }
   }
 
-  {
-    await sendInBatches(flightRows, processFlightRow, 10);
-  }
+  await sendInBatches(flightRows, processFlightRow, 10);
 
   // ── A5: Weather alert at destination (1–3 days before arrival) ───────────
   async function processWeatherAlert(flight: FlightRow): Promise<void> {
@@ -478,9 +540,7 @@ export async function GET(request: Request) {
     }
   }
 
-  {
-    await sendInBatches(flightRows, processWeatherAlert, 10);
-  }
+  await sendInBatches(flightRows, processWeatherAlert, 10);
 
   // ── Flight countdown push (lock screen) ──────────────────────────────────
   // Sends a push with tag "flight_countdown" every cron run when a flight is
@@ -533,9 +593,7 @@ export async function GET(request: Request) {
     notificationsFailed += failed;
   }
 
-  {
-    await sendInBatches(flightRows, processCountdown, 10);
-  }
+  await sendInBatches(flightRows, processCountdown, 10);
 
   // ── Hotel notifications ───────────────────────────────────────────────────
   const todayStr    = now.toISOString().slice(0, 10);
