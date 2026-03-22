@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS trip_expenses (
   currency text NOT NULL DEFAULT 'USD',
   category text NOT NULL DEFAULT 'other',
   description text,
-  expense_date text,
+  expense_date date,
   created_at timestamptz DEFAULT now()
 );
 

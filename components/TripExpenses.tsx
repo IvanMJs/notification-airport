@@ -22,7 +22,7 @@ interface TripExpensesProps {
 }
 
 export function TripExpenses({ tripId, locale }: TripExpensesProps) {
-  const { expenses, loading, addExpense, removeExpense, totalByCurrency } = useTripExpenses(tripId);
+  const { expenses, loading, error, addExpense, removeExpense, totalByCurrency } = useTripExpenses(tripId);
   const [expanded, setExpanded] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
@@ -48,7 +48,7 @@ export function TripExpenses({ tripId, locale }: TripExpensesProps) {
     if (!formAmount || isNaN(amount) || amount <= 0) return;
 
     setSubmitting(true);
-    await addExpense({
+    const ok = await addExpense({
       amount,
       currency:    formCurrency,
       category:    formCategory,
@@ -56,6 +56,7 @@ export function TripExpenses({ tripId, locale }: TripExpensesProps) {
       expenseDate: formDate || undefined,
     });
     setSubmitting(false);
+    if (!ok) return;
     setFormAmount("");
     setFormDesc("");
     setFormDate("");
@@ -207,6 +208,11 @@ export function TripExpenses({ tripId, locale }: TripExpensesProps) {
                   {locale === "es" ? "Cancelar" : "Cancel"}
                 </button>
               </div>
+              {error && (
+                <p className="text-xs text-red-400 mt-1">
+                  {locale === "es" ? "Error al guardar: " : "Failed to save: "}{error}
+                </p>
+              )}
             </div>
           ) : (
             <button

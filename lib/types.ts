@@ -75,6 +75,7 @@ export interface Accommodation {
 }
 
 export interface Passenger {
+  id: string;
   name: string;
   email?: string;
 }

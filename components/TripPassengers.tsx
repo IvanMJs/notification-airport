@@ -27,15 +27,15 @@ export function TripPassengers({ tripId, passengers, onUpdate, locale }: TripPas
 
     const updated: Passenger[] = [
       ...passengers,
-      { name: trimmedName, email: newEmail.trim() || undefined },
+      { id: crypto.randomUUID(), name: trimmedName, email: newEmail.trim() || undefined },
     ];
     onUpdate(tripId, updated);
     setNewName("");
     setNewEmail("");
   }
 
-  function handleRemove(idx: number) {
-    const updated = passengers.filter((_, i) => i !== idx);
+  function handleRemove(id: string) {
+    const updated = passengers.filter((p) => p.id !== id);
     onUpdate(tripId, updated);
   }
 
@@ -75,9 +75,9 @@ export function TripPassengers({ tripId, passengers, onUpdate, locale }: TripPas
           {/* Passenger list */}
           {passengers.length > 0 && (
             <ul className="space-y-1.5 mb-3">
-              {passengers.map((p, i) => (
+              {passengers.map((p) => (
                 <li
-                  key={i}
+                  key={p.id}
                   className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.05]"
                 >
                   <div className="min-w-0">
@@ -87,7 +87,7 @@ export function TripPassengers({ tripId, passengers, onUpdate, locale }: TripPas
                     )}
                   </div>
                   <button
-                    onClick={() => handleRemove(i)}
+                    onClick={() => handleRemove(p.id)}
                     aria-label={locale === "es" ? "Eliminar viajero" : "Remove traveler"}
                     className="shrink-0 p-1 rounded-md text-gray-600 hover:text-red-400 hover:bg-red-950/30 transition-colors"
                   >

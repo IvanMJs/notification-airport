@@ -57,7 +57,7 @@ export function useTripExpenses(tripId: string) {
 
   const addExpense = useCallback(async (
     expense: Omit<TripExpense, "id" | "tripId">,
-  ): Promise<void> => {
+  ): Promise<boolean> => {
     const supabase = createClient();
     const { data, error: insertError } = await supabase
       .from("trip_expenses")
@@ -72,9 +72,14 @@ export function useTripExpenses(tripId: string) {
       .select("id, trip_id, amount, currency, category, description, expense_date")
       .single();
 
-    if (!insertError && data) {
+    if (insertError) {
+      setError(insertError.message);
+      return false;
+    }
+    if (data) {
       setExpenses((prev) => [...prev, toTripExpense(data as DbExpense)]);
     }
+    return true;
   }, [tripId]);
 
   const removeExpense = useCallback(async (expenseId: string): Promise<void> => {

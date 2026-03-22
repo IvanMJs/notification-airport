@@ -690,14 +690,22 @@ export function useUserTrips() {
   }, [trips]);
 
   const updatePassengers = useCallback(async (tripId: string, passengers: Passenger[]) => {
+    const prevPassengers = trips.find((t) => t.id === tripId)?.passengers ?? [];
     setTrips((prev) =>
       prev.map((t) => (t.id === tripId ? { ...t, passengers } : t)),
     );
     const supabase = createClient();
-    await supabase.from("trips").update({ passengers }).eq("id", tripId);
-  }, []);
+    const { error } = await supabase.from("trips").update({ passengers }).eq("id", tripId);
+    if (error) {
+      setTrips((prev) =>
+        prev.map((t) => (t.id === tripId ? { ...t, passengers: prevPassengers } : t)),
+      );
+      console.error("Error updating passengers:", error.message);
+    }
+  }, [trips]);
 
   const toggleUpgradeWish = useCallback(async (tripId: string, flightId: string, wants: boolean) => {
+    const prevWants = trips.find((t) => t.id === tripId)?.flights.find((f) => f.id === flightId)?.wantsUpgrade ?? !wants;
     setTrips((prev) =>
       prev.map((t) =>
         t.id !== tripId ? t : {
@@ -709,8 +717,21 @@ export function useUserTrips() {
       ),
     );
     const supabase = createClient();
-    await supabase.from("flights").update({ wants_upgrade: wants }).eq("id", flightId);
-  }, []);
+    const { error } = await supabase.from("flights").update({ wants_upgrade: wants }).eq("id", flightId);
+    if (error) {
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.id !== tripId ? t : {
+            ...t,
+            flights: t.flights.map((f) =>
+              f.id !== flightId ? f : { ...f, wantsUpgrade: prevWants },
+            ),
+          },
+        ),
+      );
+      console.error("Error updating upgrade wish:", error.message);
+    }
+  }, [trips]);
 
   const updateBoardingPass = useCallback(async (
     tripId: string,
