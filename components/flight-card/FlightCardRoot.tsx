@@ -35,6 +35,7 @@ export interface FlightCardProps {
   onAddAccommodation: (data: { name: string; checkInTime?: string; checkOutTime?: string; confirmationCode?: string; address?: string }) => void;
   onRemoveAccommodation: () => void;
   onEditAccommodation: (name: string, checkInTime?: string, checkOutTime?: string, confirmationCode?: string, address?: string) => void;
+  onBoardingPassSaved: (url: string | null) => void;
 }
 
 export function FlightCard({
@@ -54,6 +55,7 @@ export function FlightCard({
   onAddAccommodation,
   onRemoveAccommodation,
   onEditAccommodation,
+  onBoardingPassSaved,
 }: FlightCardProps) {
   const L = TRIP_PANEL_LABELS[locale];
 
@@ -166,7 +168,8 @@ export function FlightCard({
   })();
 
   const showBoardingPassButton =
-    hoursUntilDep !== null && hoursUntilDep < 4 && hoursUntilDep > -1;
+    Boolean(flight.boardingPassUrl) ||
+    (hoursUntilDep !== null && hoursUntilDep < 24 && hoursUntilDep > -1);
 
   const originStatus = statusMap[flight.originCode];
   const status       = originStatus?.status ?? "ok";
@@ -275,6 +278,7 @@ export function FlightCard({
           flight={flight}
           showButton={showBoardingPassButton}
           locale={locale}
+          onBoardingPassSaved={onBoardingPassSaved}
         />
       </div>
     </div>
