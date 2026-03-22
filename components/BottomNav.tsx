@@ -215,7 +215,7 @@ export function BottomNav({
           >
             <div className="relative">
               <div className={`flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200 ${tripsActive ? "bg-violet-500/20" : ""}`}>
-                <Map className={`w-[22px] h-[22px] transition-colors ${tripsActive ? "text-violet-400" : "text-gray-500"}`} />
+                <Map className={`w-[22px] h-[22px] transition-colors ${tripsActive ? "text-violet-400" : "text-gray-500"}`} strokeWidth={tripsActive ? 2.5 : 1.5} />
               </div>
               {totalTrips > 1 && (
                 <span className="absolute -top-1.5 -right-2.5 h-4 min-w-[16px] bg-violet-600 text-white text-[11px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
@@ -224,7 +224,7 @@ export function BottomNav({
               )}
             </div>
             <div className="flex items-center gap-0.5">
-              <span className="text-xs font-semibold leading-none">{tripsLabel}</span>
+              <span className={`text-xs leading-none ${tripsActive ? "font-bold" : "font-semibold"}`}>{tripsLabel}</span>
               {totalTrips > 1 && (
                 <ChevronUp className={`h-3 w-3 transition-transform ${showTripPicker ? "rotate-180" : ""}`} />
               )}
@@ -237,9 +237,9 @@ export function BottomNav({
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "airports" ? "text-violet-400" : "text-gray-500"}`}
           >
             <div className={`flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200 ${activeTab === "airports" ? "bg-violet-500/20" : ""}`}>
-              <MapPin className={`w-[22px] h-[22px] transition-colors ${activeTab === "airports" ? "text-violet-400" : "text-gray-500"}`} />
+              <MapPin className={`w-[22px] h-[22px] transition-colors ${activeTab === "airports" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "airports" ? 2.5 : 1.5} />
             </div>
-            <span className="text-xs font-semibold leading-none">{tabLabels.airports}</span>
+            <span className={`text-xs leading-none ${activeTab === "airports" ? "font-bold" : "font-semibold"}`}>{tabLabels.airports}</span>
           </button>
 
           {/* Vuelos */}
@@ -248,9 +248,9 @@ export function BottomNav({
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "search" ? "text-violet-400" : "text-gray-500"}`}
           >
             <div className={`flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200 ${activeTab === "search" ? "bg-violet-500/20" : ""}`}>
-              <Plane className={`w-[22px] h-[22px] transition-colors ${activeTab === "search" ? "text-violet-400" : "text-gray-500"}`} />
+              <Plane className={`w-[22px] h-[22px] transition-colors ${activeTab === "search" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "search" ? 2.5 : 1.5} />
             </div>
-            <span className="text-xs font-semibold leading-none">{tabLabels.search}</span>
+            <span className={`text-xs leading-none ${activeTab === "search" ? "font-bold" : "font-semibold"}`}>{tabLabels.search}</span>
           </button>
 
           {/* Nuevo viaje */}
@@ -259,7 +259,7 @@ export function BottomNav({
             className="flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors text-gray-500 hover:text-violet-400"
           >
             <div className="flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200">
-              <Plus className="w-[22px] h-[22px]" />
+              <Plus className="w-[22px] h-[22px]" strokeWidth={1.5} />
             </div>
             <span className="text-xs font-semibold leading-none">{locale === "es" ? "Nuevo" : "New"}</span>
           </button>

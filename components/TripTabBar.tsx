@@ -19,9 +19,9 @@ interface Props {
   onNewTrip: () => void;
 }
 
-const tabBase = "px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap";
-const tabActive   = "border-violet-500 text-violet-400";
-const tabInactive = "border-transparent text-gray-400 hover:text-gray-200";
+const tabBase = "px-4 py-2.5 text-sm font-medium transition-all duration-150 whitespace-nowrap rounded-lg mx-0.5 my-1 border-b-2 -mb-px";
+const tabActive   = "bg-violet-500/15 border-violet-500 text-violet-400 font-semibold shadow-sm";
+const tabInactive = "border-transparent text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]";
 
 export function TripTabBar({
   locale, activeTab, userTrips, draftTrip, tabLabels, draftId, alertTripIds,
@@ -70,12 +70,12 @@ export function TripTabBar({
   }
 
   return (
-    <div className="hidden md:block border-b border-gray-800">
+    <div className="hidden md:block border-b border-gray-800/60 bg-gray-950/40 backdrop-blur-sm">
       <div className="relative">
         {canScrollLeft && (
           <button
             onClick={() => scrollRef.current?.scrollBy({ left: -120, behavior: "smooth" })}
-            className="absolute left-0 top-0 h-full px-2 bg-gradient-to-r from-gray-950 to-transparent text-gray-400 hover:text-white z-10"
+            className="absolute left-0 top-0 h-full px-2 bg-gradient-to-r from-gray-950 to-transparent text-gray-400 hover:text-white z-10 transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -83,12 +83,12 @@ export function TripTabBar({
         {canScrollRight && (
           <button
             onClick={() => scrollRef.current?.scrollBy({ left: 120, behavior: "smooth" })}
-            className="absolute right-0 top-0 h-full px-2 bg-gradient-to-l from-gray-950 to-transparent text-gray-400 hover:text-white z-10"
+            className="absolute right-0 top-0 h-full px-2 bg-gradient-to-l from-gray-950 to-transparent text-gray-400 hover:text-white z-10 transition-colors"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
         )}
-      <div ref={scrollRef} className="flex gap-1 overflow-x-auto overflow-y-hidden scrollbar-hide">
+      <div ref={scrollRef} className="flex gap-0 overflow-x-auto overflow-y-hidden scrollbar-hide px-1">
 
         {/* Static tabs */}
         {([
@@ -142,7 +142,7 @@ export function TripTabBar({
               {isActive && !isEditing && (
                 <button
                   onClick={(e) => { e.stopPropagation(); startRename(trip); }}
-                  className="p-1 text-gray-600 hover:text-gray-300 transition-colors -mb-px"
+                  className="p-1 text-gray-600 hover:text-gray-300 transition-colors"
                   title={locale === "en" ? "Rename trip" : "Renombrar viaje"}
                 >
                   <Pencil className="h-3 w-3" />
@@ -151,7 +151,7 @@ export function TripTabBar({
 
               <button
                 onClick={(e) => { e.stopPropagation(); onDeleteTrip(trip.id); }}
-                className="p-1 text-gray-700 hover:text-red-400 transition-colors -mb-px"
+                className="p-1 text-gray-700 hover:text-red-400 transition-colors"
                 title={locale === "en" ? "Delete trip" : "Eliminar viaje"}
               >
                 <X className="h-3 w-3" />
@@ -162,7 +162,7 @@ export function TripTabBar({
 
         {/* Draft trip tab */}
         {draftTrip && (
-          <div className="flex items-center -mb-px">
+          <div className="flex items-center">
             <button
               onClick={() => onTabChange(draftId)}
               className={`${tabBase} ${activeTab === draftId ? tabActive : tabInactive} flex items-center gap-2`}
@@ -174,7 +174,7 @@ export function TripTabBar({
             </button>
             <button
               onClick={onDiscardDraft}
-              className="p-1 text-gray-700 hover:text-red-400 transition-colors -mb-px"
+              className="p-1 text-gray-700 hover:text-red-400 transition-colors"
               title={locale === "es" ? "Descartar borrador" : "Discard draft"}
             >
               <X className="h-3 w-3" />

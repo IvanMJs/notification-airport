@@ -343,8 +343,8 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
       className={cn(
         // Outer wrapper: border + bg + glow + hover lift
         // C4: breathing animation since data updates live
-        "animate-breathing relative rounded-xl border overflow-hidden transition-all duration-200",
-        "hover:-translate-y-0.5 hover:shadow-card-hover",
+        "animate-breathing relative rounded-xl border overflow-hidden transition-all duration-200 stagger-item",
+        "hover:-translate-y-1 hover:shadow-card-hover",
         cs.border, cs.bg, cs.glow,
         borderTopClass,
         highlight && "animate-highlight-flash"
