@@ -172,7 +172,7 @@ export function FlightCard({
     (hoursUntilDep !== null && hoursUntilDep < 24 && hoursUntilDep > -1);
 
   const originStatus = statusMap[flight.originCode];
-  const status       = originStatus?.status ?? "ok";
+  const status       = originStatus?.status ?? "unknown";
   const hasIssue     = status !== "ok";
   const isImminent   = daysUntil >= 0 && daysUntil <= 1;
 
@@ -181,6 +181,19 @@ export function FlightCard({
     const depUnix = Math.floor(new Date(`${flight.isoDate}T${flight.departureTime}:00`).getTime() / 1000);
     if (isNaN(depUnix) || depUnix === 0) return null;
     return getTafAtTime(tafData, depUnix);
+  })();
+
+  const leftBorderClass = (() => {
+    if (status === "ground_stop" || status === "ground_delay" || status === "closure") {
+      return "border-l-2 border-l-red-500/60";
+    }
+    if (status === "delay_minor" || status === "delay_moderate" || status === "delay_severe") {
+      return "border-l-2 border-l-yellow-500/60";
+    }
+    if (status === "ok") {
+      return "border-l-2 border-l-emerald-500/40";
+    }
+    return "";
   })();
 
   return (
@@ -193,7 +206,7 @@ export function FlightCard({
         hasIssue                                                  ? "border-orange-600/50" :
         isImminent                                               ? "border-blue-700/40"   :
         "border-white/6"
-      } ${removing ? "opacity-0 -translate-x-6 scale-95" : "opacity-100 translate-x-0 scale-100"}`}
+      } ${leftBorderClass} ${removing ? "opacity-0 -translate-x-6 scale-95" : "opacity-100 translate-x-0 scale-100"}`}
       style={{ animationDelay: `${idx * 0.08}s` }}
     >
       {/* Swipe-to-delete: delete button revealed behind card */}
