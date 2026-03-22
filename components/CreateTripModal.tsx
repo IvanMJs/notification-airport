@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 interface Props {
   locale: "es" | "en";
@@ -11,11 +12,17 @@ interface Props {
 
 export function CreateTripModal({ locale, tripCount, onClose, onConfirm }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [creating, setCreating] = useState(false);
 
-  function handleConfirm() {
+  async function handleConfirm() {
     const val = inputRef.current?.value.trim() ?? "";
     const name = val || (locale === "en" ? `Trip ${tripCount + 1}` : `Viaje ${tripCount + 1}`);
-    onConfirm(name);
+    setCreating(true);
+    try {
+      await Promise.resolve(onConfirm(name));
+    } finally {
+      setCreating(false);
+    }
   }
 
   return (
@@ -52,18 +59,27 @@ export function CreateTripModal({ locale, tripCount, onClose, onConfirm }: Props
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={onClose}
-              className="flex-1 rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors"
+              disabled={creating}
+              className="w-full sm:w-auto flex-1 rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors disabled:opacity-50"
             >
               {locale === "es" ? "Cancelar" : "Cancel"}
             </button>
             <button
               onClick={handleConfirm}
-              className="flex-1 rounded-xl bg-blue-600 hover:bg-blue-500 py-2.5 text-sm font-semibold text-white transition-colors tap-scale"
+              disabled={creating}
+              className={`btn-primary w-full sm:w-auto flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold tap-scale ${creating ? "opacity-70 cursor-not-allowed" : ""}`}
             >
-              {locale === "es" ? "Crear viaje" : "Create trip"}
+              {creating ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {locale === "es" ? "Creando..." : "Creating..."}
+                </>
+              ) : (
+                locale === "es" ? "Crear viaje" : "Create trip"
+              )}
             </button>
           </div>
         </div>

@@ -104,6 +104,23 @@ input[type="time"] {
 .bg-primary     { background-color: rgb(var(--color-primary)); }
 .border-primary { border-color: rgb(var(--color-primary)); }
 
+/* ── Gradient primary button ────────────────────────────────────────────────── */
+.btn-primary {
+  background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+  color: white;
+  border: none;
+  transition: all 150ms ease;
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, #6d28d9 0%, #7c3aed 100%);
+  box-shadow: 0 4px 16px rgba(124,58,237,0.4);
+  transform: translateY(-1px);
+}
+.btn-primary:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: none;
+}
+
 /* ── Semantic color utilities ──────────────────────────────────────────────── */
 .text-success { color: rgb(var(--color-success)); }
 .text-warning { color: rgb(var(--color-warning)); }
@@ -257,6 +274,12 @@ html.light input[type="time"] {
 }
 .animate-slide-in-right { animation: slide-in-right 0.2s ease-out; }
 .animate-slide-in-left  { animation: slide-in-left  0.2s ease-out; }
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.9); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in { animation: scale-in 0.15s ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
