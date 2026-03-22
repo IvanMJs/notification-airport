@@ -6,7 +6,7 @@ import {
   Plane, Shield, Brain, Bell, Calendar, Search,
   ArrowRight, Mail, Loader2, MapPin, Clock,
   Zap, Star, CheckCircle, ChevronDown, LogIn,
-  Building2, Smartphone
+  Building2, Smartphone, ArrowUpCircle, DoorOpen
 } from "lucide-react";
 import { NotifCarousel } from "@/components/NotifCarousel";
 import { AppScreenshotCarousel } from "@/components/AppScreenshotCarousel";
@@ -120,6 +120,30 @@ export default function LandingPage() {
       title: "Alertas en tiempo real",
       desc: "2-4 horas antes del despegue, TripCopilot consulta el estado real de tu vuelo. Si fue cancelado o tiene demora, te llega al toque.",
     },
+    {
+      icon: MapPin,
+      color: "text-cyan-400",
+      bg: "bg-cyan-950/40",
+      border: "border-cyan-800/30",
+      title: "Timezone automático",
+      desc: "Detecta cuando cambiás de zona horaria al aterrizar y te avisa para ver los horarios en tu hora local.",
+    },
+    {
+      icon: ArrowUpCircle,
+      color: "text-violet-400",
+      bg: "bg-violet-950/40",
+      border: "border-violet-800/30",
+      title: "Alerta de upgrade",
+      desc: "Activá la alerta de upgrade en cada vuelo y recibí una notificación si hay un asiento de clase superior disponible.",
+    },
+    {
+      icon: DoorOpen,
+      color: "text-amber-400",
+      bg: "bg-amber-950/40",
+      border: "border-amber-800/30",
+      title: "Cambio de puerta en tiempo real",
+      desc: "Notificación push instantánea si tu vuelo cambia de puerta de embarque antes de que salgas al aeropuerto.",
+    },
   ];
 
   const painPoints = [
@@ -229,7 +253,7 @@ export default function LandingPage() {
                 {" "}— sin tipear nada.
               </p>
               <p className="text-sm text-gray-500 leading-relaxed mb-8 max-w-lg">
-                Después monitorea la FAA en tiempo real, calcula el riesgo de conexión, trackea tus hoteles y te avisa si algo cambia.
+                Después monitorea la FAA en tiempo real, calcula el riesgo de conexión, detecta cambios de timezone al aterrizar y te avisa de cambios de puerta, demoras y más.
               </p>
 
               {/* CTAs */}
@@ -472,7 +496,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-[11px] font-bold uppercase tracking-widest text-gray-600 mb-3">Notificaciones</p>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">7 alertas que te cuidan el viaje</h2>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">10 alertas que te cuidan el viaje</h2>
             <p className="text-sm text-gray-500 mt-3">Sin spam. Cada notificación llega en el momento exacto en que la necesitás.</p>
           </div>
 
@@ -487,6 +511,8 @@ export default function LandingPage() {
               { icon: "🚫", color: "text-red-400", bg: "bg-red-950/30", border: "border-red-800/25", timing: "2-4hs antes", title: "Vuelo cancelado", desc: "Alerta inmediata si tu vuelo fue cancelado — con tiempo de reaccionar." },
               { icon: "🏨", color: "text-pink-400", bg: "bg-pink-950/30", border: "border-pink-800/25", timing: "Día anterior", title: "Reminder hotel", desc: "Recordatorio de check-in con documentos y código de reserva." },
               { icon: "🔑", color: "text-emerald-400", bg: "bg-emerald-950/30", border: "border-emerald-800/25", timing: "Hora exacta", title: "Check-in hotel", desc: "Te avisa cuando es la hora de check-in o check-out de tu hospedaje." },
+              { icon: "🚪", color: "text-amber-400", bg: "bg-amber-950/30", border: "border-amber-800/25", timing: "Antes de salir", title: "Cambio de puerta de embarque", desc: "Notificación push instantánea si tu vuelo cambia de puerta antes de que llegues al aeropuerto." },
+              { icon: "🌐", color: "text-cyan-400", bg: "bg-cyan-950/30", border: "border-cyan-800/25", timing: "Al aterrizar", title: "Cambio de zona horaria detectado", desc: "TripCopilot detecta el cambio de timezone al llegar y actualiza los horarios a tu hora local." },
             ].map((n) => (
               <div key={n.title} className={`rounded-2xl border ${n.border} ${n.bg} p-4 space-y-2 flex flex-col items-center text-center`}>
                 <div className={`flex items-center justify-center h-8 w-8 rounded-xl ${n.bg} border ${n.border} text-base`}>
