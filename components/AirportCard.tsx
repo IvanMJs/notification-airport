@@ -252,12 +252,12 @@ function FaaExplainButton({
         {explainState === "loading" ? (
           <>
             <Loader2 className="h-3 w-3 animate-spin" />
-            <span className="animate-pulse">{locale === "es" ? "Analizando..." : "Analyzing..."}</span>
+            <span className="animate-pulse">{locale === "es" ? "Consultando a la IA..." : "Asking the AI..."}</span>
           </>
         ) : (
           <>
             <Sparkles className="h-3 w-3" />
-            {locale === "es" ? "Explicar con IA" : "Explain with AI"}
+            {locale === "es" ? "¿Esto me afecta?" : "How does this affect me?"}
             {explanation && (
               <ChevronDown
                 className={`h-3 w-3 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
@@ -285,6 +285,9 @@ function FaaExplainButton({
 export function AirportCard({ iata, status, onRemove, weather, metar, highlight, onRefresh }: AirportCardProps) {
   const { t, locale } = useLanguage();
   const s = status?.status ?? "ok";
+
+  // Technical details toggle
+  const [showTechnical, setShowTechnical] = useState(false);
 
   // Pull-to-refresh state
   const [pullOffset, setPullOffset] = useState(0);
@@ -402,7 +405,7 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
         <AirportClock iata={iata} />
       </div>
 
-      {metar && <MetarRow metar={metar} />}
+      {metar && showTechnical && <MetarRow metar={metar} />}
 
       {status?.delays && (
         <div className="mt-2 space-y-1 text-xs text-gray-300">
@@ -414,12 +417,14 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
             <TrendIcon trend={status.delays.trend} />
           </p>
           <p><span className="text-gray-500">{t.cause}:</span> {status.delays.reason}</p>
-          {status.delays.type !== "both" && (
-            <p>
+          <p>
               <span className="text-gray-500">{t.affects}:</span>{" "}
-              {status.delays.type === "departure" ? t.departures : t.arrivals}
+              {status.delays.type === "departure"
+                ? t.departures
+                : status.delays.type === "arrival"
+                ? t.arrivals
+                : (locale === "es" ? "salidas y llegadas" : "departing and arriving flights")}
             </p>
-          )}
           {status.delays.trend && (
             <p><span className="text-gray-500">{t.trend}:</span> {status.delays.trend}</p>
           )}
@@ -457,6 +462,17 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
       {/* FAA explain — only shown when there's an active incident */}
       {status && s !== "ok" && s !== "unknown" && (
         <FaaExplainButton iata={iata} status={status} locale={locale} />
+      )}
+
+      {metar && (
+        <button
+          onClick={() => setShowTechnical((v) => !v)}
+          className="mt-2 text-xs text-gray-500 underline underline-offset-2 hover:text-gray-300 transition-colors"
+        >
+          {showTechnical
+            ? (locale === "es" ? "Ocultar detalles ↑" : "Hide details ↑")
+            : (locale === "es" ? "Ver detalles técnicos ↓" : "Show technical details ↓")}
+        </button>
       )}
 
       {status?.lastChecked && (() => {

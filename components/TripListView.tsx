@@ -144,8 +144,7 @@ export function TripListView({
               onClick={onCreateTrip}
               className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-sm font-semibold px-6 py-3 transition-all tap-scale"
             >
-              <Plus className="h-4 w-4" />
-              {locale === "es" ? "Crear mi primer viaje" : "Create my first trip"}
+              {locale === "es" ? "Crear mi primer viaje →" : "Create my first trip →"}
             </button>
           </div>
         </div>
