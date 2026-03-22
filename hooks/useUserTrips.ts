@@ -122,8 +122,8 @@ function checkItineraryConsistency(trips: TripTab[]) {
     for (let i = 0; i < flights.length - 1; i++) {
       const a = flights[i];
       const b = flights[i + 1];
-      const aDateTime = `${a.isoDate} ${a.departureTime ?? "00:00"}`;
-      const bDateTime = `${b.isoDate} ${b.departureTime ?? "00:00"}`;
+      const aDateTime = `${a.isoDate} ${a.departureTime || "00:00"}`;
+      const bDateTime = `${b.isoDate} ${b.departureTime || "00:00"}`;
       if (aDateTime > bDateTime) {
         toast(
           `"${trip.name}": los vuelos no están en orden cronológico. Considerá reordenarlos.`,
@@ -295,15 +295,34 @@ export function useUserTrips() {
   const addFlight = useCallback(async (tripId: string, flight: TripFlight): Promise<string | null> => {
     const supabase = createClient();
 
-    const { data: last } = await supabase
+    // Fetch all existing flights ordered by sort_order
+    const { data: existingFlights } = await supabase
       .from("flights")
-      .select("sort_order")
+      .select("id, sort_order, iso_date, departure_time")
       .eq("trip_id", tripId)
-      .order("sort_order", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .order("sort_order", { ascending: true });
 
-    const sort_order = (last?.sort_order ?? -1) + 1;
+    // Find chronological insert position
+    const newDateTime = `${flight.isoDate} ${flight.departureTime || "00:00"}`;
+    const insertAt = (existingFlights ?? []).findIndex((f) => {
+      const fDateTime = `${f.iso_date} ${f.departure_time || "00:00"}`;
+      return newDateTime < fDateTime;
+    });
+
+    // insertAt === -1 means append to end
+    const sort_order = insertAt === -1 ? (existingFlights?.length ?? 0) : insertAt;
+
+    // Shift sort_order of flights that come after the insert position
+    if (insertAt !== -1 && existingFlights?.length) {
+      await Promise.all(
+        existingFlights.slice(insertAt).map((f) =>
+          supabase
+            .from("flights")
+            .update({ sort_order: f.sort_order + 1 })
+            .eq("id", f.id)
+        )
+      );
+    }
 
     const { data, error } = await supabase
       .from("flights")
@@ -329,9 +348,16 @@ export function useUserTrips() {
     if (!error && data) {
       const newFlight: TripFlight = { ...flight, id: data.id };
       setTrips((prev) =>
-        prev.map((t) =>
-          t.id === tripId ? { ...t, flights: [...t.flights, newFlight] } : t,
-        ),
+        prev.map((t) => {
+          if (t.id !== tripId) return t;
+          const updated = [...t.flights];
+          const pos = updated.findIndex(
+            (f) => `${f.isoDate} ${f.departureTime || "00:00"}` > `${flight.isoDate} ${flight.departureTime || "00:00"}`
+          );
+          if (pos === -1) updated.push(newFlight);
+          else updated.splice(pos, 0, newFlight);
+          return { ...t, flights: updated };
+        }),
       );
       return data.id;
     }
