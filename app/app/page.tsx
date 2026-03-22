@@ -124,7 +124,7 @@ export default function HomePage() {
   });
   const [showBanner, setShowBanner] = useState(false);
 
-  const { deviceTz, tzChanged, clearTzChanged } = useDeviceTimezone();
+  const { deviceTz, tzChanged, clearTzChanged } = useDeviceTimezone(locale);
 
   useEffect(() => {
     if (tzChanged) {
