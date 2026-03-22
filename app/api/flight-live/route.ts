@@ -1,4 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/utils/supabase/server";
+import { checkUserRateLimit, rateLimitResponse } from "@/lib/rateLimit";
 
 export interface LiveFlightData {
   status: "scheduled" | "enroute" | "landed" | "canceled" | "unknown";
@@ -69,7 +71,17 @@ function extractLocalTime(iso: string | undefined): string | null {
   return match ? match[0] : null;
 }
 
-export async function GET(request: Request): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (!(await checkUserRateLimit(supabase, user.id, "flight-live", 20))) {
+    return rateLimitResponse();
+  }
+
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const date = searchParams.get("date");
@@ -101,14 +113,8 @@ export async function GET(request: Request): Promise<NextResponse> {
     });
 
     if (!res.ok) {
-      return NextResponse.json<LiveFlightData>({
-        status: "unknown",
-        progress: null,
-        departedAt: null,
-        estimatedArrival: null,
-        delayMinutes: null,
-        aircraft: null,
-      });
+      console.error(`AeroDataBox error: ${res.status}`);
+      return NextResponse.json({ error: "upstream_error", status: "unknown" }, { status: 502 });
     }
 
     const raw: unknown = await res.json();

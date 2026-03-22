@@ -68,9 +68,9 @@ export function LoungeInfo({ airportIata, airlineCode, locale }: LoungeInfoProps
             </p>
           ) : (
             <div className="space-y-2">
-              {lounges.map((lounge, i) => (
+              {lounges.map((lounge) => (
                 <div
-                  key={i}
+                  key={lounge.name}
                   className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5 space-y-1"
                 >
                   <div className="flex items-start justify-between gap-2 flex-wrap">

@@ -93,8 +93,8 @@ export function LayoverGuide({ airportIata, bufferMinutes, locale }: LayoverGuid
           ) : (
             <div className="space-y-2">
               <ul className="space-y-1.5">
-                {data.tips.map((tip, i) => (
-                  <li key={i} className="flex items-start gap-2 text-[11px] text-gray-300">
+                {data.tips.map((tip) => (
+                  <li key={tip.icon + tip.text} className="flex items-start gap-2 text-[11px] text-gray-300">
                     <span className="shrink-0 mt-px">{tip.icon}</span>
                     <span>{tip.text}</span>
                   </li>
