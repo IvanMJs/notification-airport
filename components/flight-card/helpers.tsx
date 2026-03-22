@@ -6,11 +6,18 @@ import { TripPanelLabels } from "@/components/TripPanelLabels";
 export function getTzAbbr(timezone: string, isoDate: string): string {
   try {
     const d = new Date(`${isoDate}T12:00:00`);
-    return (
-      new Intl.DateTimeFormat("en-US", { timeZone: timezone, timeZoneName: "short" })
-        .formatToParts(d)
-        .find((p) => p.type === "timeZoneName")?.value ?? ""
-    );
+    const raw = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      timeZoneName: "longOffset",
+    })
+      .formatToParts(d)
+      .find((p) => p.type === "timeZoneName")?.value ?? "";
+    // "GMT-05:00" → "UTC-5", "GMT+05:30" → "UTC+5:30", "GMT" → "UTC"
+    return raw
+      .replace(/^GMT$/, "UTC")
+      .replace(/^GMT([+-])0?(\d{1,2}):00$/, (_, sign, h) => `UTC${sign}${parseInt(h)}`)
+      .replace(/^GMT([+-])0?(\d{1,2}):(\d{2})$/, (_, sign, h, m) => `UTC${sign}${parseInt(h)}:${m}`)
+      .replace(/^UTC[+-]0$/, "UTC");
   } catch {
     return "";
   }

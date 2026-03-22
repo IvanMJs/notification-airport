@@ -232,8 +232,8 @@ export function FlightCardBody({
                 {L.departs}{" "}
                 <span className="font-bold text-white ml-1 tabular-nums">{flight.departureTime}</span>
                 {tzAbbr && (
-                  <span className="text-xs font-medium text-gray-500 bg-white/5 border border-white/8 rounded px-1 py-0.5">
-                    {tzAbbr}
+                  <span className="text-xs text-gray-500">
+                    ({locale === "es" ? `hora local de ${originName}` : `local time in ${originName}`})
                   </span>
                 )}
               </span>

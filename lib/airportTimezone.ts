@@ -185,15 +185,34 @@ export function getAirportTime(iata: string): string | null {
 }
 
 /**
- * Returns a short timezone label like "ET", "CT", "ART", etc.
+ * Converts a raw longOffset timezone name (e.g. "GMT-05:00", "GMT+05:30", "GMT")
+ * to a consistent UTC±X label (e.g. "UTC-5", "UTC+5:30", "UTC").
+ */
+export function formatTzOffset(timezone: string, date: Date): string {
+  try {
+    const raw = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      timeZoneName: "longOffset",
+    })
+      .formatToParts(date)
+      .find((p) => p.type === "timeZoneName")?.value ?? "";
+    return raw
+      .replace(/^GMT$/, "UTC")
+      .replace(/^GMT([+-])0?(\d{1,2}):00$/, (_, sign, h) => `UTC${sign}${parseInt(h)}`)
+      .replace(/^GMT([+-])0?(\d{1,2}):(\d{2})$/, (_, sign, h, m) => `UTC${sign}${parseInt(h)}:${m}`)
+      .replace(/^UTC[+-]0$/, "UTC"); // collapse UTC+0 or UTC-0 → UTC
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Returns a consistent UTC±X timezone label for the given airport,
+ * or null if the timezone is unknown.
  */
 export function getAirportTzLabel(iata: string): string | null {
   const tz = AIRPORT_TZ[iata];
   if (!tz) return null;
-  // Extract the short abbreviation from the browser
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    timeZoneName: "short",
-  }).formatToParts(new Date());
-  return parts.find((p) => p.type === "timeZoneName")?.value ?? null;
+  const label = formatTzOffset(tz, new Date());
+  return label || null;
 }
