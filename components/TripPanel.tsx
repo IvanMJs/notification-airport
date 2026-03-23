@@ -8,7 +8,7 @@ import {
   Save, ChevronRight,
   Sparkles, Loader2, List, GitBranch,
 } from "lucide-react";
-import { AirportStatusMap, TripFlight, TripTab, Accommodation } from "@/lib/types";
+import { AirportStatusMap, TripFlight, TripTab, Accommodation, Passenger } from "@/lib/types";
 import { haptics } from "@/lib/haptics";
 import { AIRPORTS } from "@/lib/airports";
 import { subtractHours } from "@/lib/flightUtils";
@@ -26,6 +26,8 @@ import { calculateTripRiskScore } from "@/lib/tripRiskScore";
 import { TripRiskBadge } from "./TripRiskBadge";
 import { TripAdvisor } from "./TripAdvisor";
 import { ImportFlightsModal } from "./ImportFlightsModal";
+import { CarbonFootprint } from "./CarbonFootprint";
+import { TripExpenses } from "./TripExpenses";
 import { ParsedFlight } from "@/lib/importFlights";
 import { useTsaWait } from "@/hooks/useTsaWait";
 import { FlightCard } from "./FlightCard";
@@ -36,6 +38,10 @@ import { analytics } from "@/lib/analytics";
 import { FlightCountdownBadge } from "./FlightCountdownBadge";
 import { ConnectionRiskBar } from "./ConnectionRiskBar";
 import { TripShareModal } from "./TripShareModal";
+import { TripPassengers } from "./TripPassengers";
+import { PriceAlerts } from "./PriceAlerts";
+import { LoungeInfo } from "./LoungeInfo";
+import { LayoverGuide } from "./LayoverGuide";
 
 // ── Connection Separator ──────────────────────────────────────────────────────
 
@@ -68,6 +74,7 @@ interface TripPanelProps {
   showDeviceTz?: boolean;
   deviceTz?: string;
   onToggleDeviceTz?: () => void;
+  onUpdatePassengers?: (tripId: string, passengers: Passenger[]) => void;
 }
 
 export function TripPanel({
@@ -90,6 +97,7 @@ export function TripPanel({
   showDeviceTz,
   deviceTz,
   onToggleDeviceTz,
+  onUpdatePassengers,
 }: TripPanelProps) {
   const { locale } = useLanguage();
   const L = TRIP_PANEL_LABELS[locale];
@@ -103,6 +111,7 @@ export function TripPanel({
   const [renamingTripName, setRenamingTripName] = useState("");
   const [saving, setSaving]             = useState(false);
   const [viewMode, setViewMode]         = useState<"list" | "timeline">("list");
+  const [panelTab, setPanelTab]         = useState<"flights" | "expenses" | "alerts" | "passengers">("flights");
 
   const sorted = useMemo(
     () => [...trip.flights].sort((a, b) => {
@@ -319,6 +328,14 @@ export function TripPanel({
         </div>
         {!isRenamingTrip && !isDraft && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowShareModal(true)}
+              title={locale === "es" ? "Compartir viaje" : "Share trip"}
+              aria-label={locale === "es" ? "Compartir viaje" : "Share trip"}
+              className="shrink-0 p-2 rounded-xl border border-white/[0.08] bg-white/[0.03] text-gray-400 hover:text-white hover:border-white/20 transition-colors"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+            </button>
             {onDuplicateTrip && (
               <button
                 onClick={onDuplicateTrip}
@@ -400,8 +417,75 @@ export function TripPanel({
       {/* Trip Risk Score */}
       {sorted.length > 0 && <TripRiskBadge risk={riskScore} locale={locale} />}
 
+      {/* Panel tab switcher */}
+      {!isDraft && (
+        <div className="flex items-center bg-white/5 rounded-xl p-0.5 gap-0.5">
+          <button
+            onClick={() => setPanelTab("flights")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              panelTab === "flights"
+                ? "bg-white/10 text-white"
+                : "text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            <Plane className="h-3.5 w-3.5" />
+            {locale === "es" ? "Vuelos" : "Flights"}
+          </button>
+          <button
+            onClick={() => setPanelTab("expenses")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              panelTab === "expenses"
+                ? "bg-white/10 text-white"
+                : "text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            💰 {locale === "es" ? "Gastos" : "Expenses"}
+          </button>
+          <button
+            onClick={() => setPanelTab("alerts")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              panelTab === "alerts"
+                ? "bg-white/10 text-white"
+                : "text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            🔔 {locale === "es" ? "Alertas" : "Alerts"}
+          </button>
+          <button
+            onClick={() => setPanelTab("passengers")}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              panelTab === "passengers"
+                ? "bg-white/10 text-white"
+                : "text-gray-500 hover:text-gray-300"
+            }`}
+          >
+            👥 {locale === "es" ? "Pasajeros" : "Passengers"}
+          </button>
+        </div>
+      )}
+
+      {/* Expenses tab */}
+      {panelTab === "expenses" && !isDraft && (
+        <TripExpenses tripId={trip.id} locale={locale} />
+      )}
+
+      {/* Alerts tab */}
+      {panelTab === "alerts" && !isDraft && (
+        <PriceAlerts locale={locale} />
+      )}
+
+      {/* Passengers tab */}
+      {panelTab === "passengers" && !isDraft && (
+        <TripPassengers
+          tripId={trip.id}
+          passengers={trip.passengers ?? []}
+          onUpdate={onUpdatePassengers ?? (() => {})}
+          locale={locale}
+        />
+      )}
+
       {/* Flight cards */}
-      {sorted.length === 0 ? (
+      {(panelTab === "flights" || isDraft) && (sorted.length === 0 ? (
         <div className="flex flex-col items-center gap-5 py-12 px-6 text-center">
           <svg viewBox="0 0 120 80" className="w-32 h-20 opacity-50" fill="none">
             <ellipse cx="30" cy="62" rx="26" ry="12" fill="rgba(139,92,246,0.15)" />
@@ -586,10 +670,15 @@ export function TripPanel({
             })()
           )}
         </div>
+      ))}
+
+      {/* Carbon footprint — shown in flights tab when there are flights */}
+      {(panelTab === "flights" || isDraft) && sorted.length > 0 && (
+        <CarbonFootprint flights={sorted} locale={locale} />
       )}
 
       {/* Action bar */}
-      {trip.flights.length > 0 && (
+      {(panelTab === "flights" || isDraft) && trip.flights.length > 0 && (
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={handleExportICS}
@@ -679,10 +768,10 @@ export function TripPanel({
       )}
 
       {/* Trip guide */}
-      {sorted.length > 0 && <TripAdvisor flights={advisorFlights} locale={locale} />}
+      {(panelTab === "flights" || isDraft) && sorted.length > 0 && <TripAdvisor flights={advisorFlights} locale={locale} />}
 
       {/* Add flight */}
-      {sorted.length > 0 && !showAddForm && (
+      {(panelTab === "flights" || isDraft) && sorted.length > 0 && !showAddForm && (
         <button
           onClick={() => setShowAddForm(true)}
           className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] py-3 text-sm font-semibold text-gray-400 hover:text-white transition-all"
@@ -692,7 +781,7 @@ export function TripPanel({
         </button>
       )}
 
-      {(sorted.length === 0 || showAddForm) && (
+      {(panelTab === "flights" || isDraft) && (sorted.length === 0 || showAddForm) && (
         <div>
           {showAddForm && sorted.length > 0 && (
             <div className="flex items-center justify-between mb-2">
