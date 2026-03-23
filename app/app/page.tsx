@@ -43,6 +43,7 @@ import { useDeviceTimezone } from "@/hooks/useDeviceTimezone";
 import { TimezoneBanner } from "@/components/TimezoneBanner";
 import { TripAssistant } from "@/components/TripAssistant";
 import { DepartureBoard } from "@/components/DepartureBoard";
+import { DiscoverView } from "@/components/DiscoverView";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { PLANS } from "@/lib/stripe";
@@ -95,7 +96,7 @@ export default function HomePage() {
   } = useUserTrips();
 
   // All navigable tab IDs in display order for directional slide
-  const allTabIds = ["airports", "today", "flights", "search", "trips", ...userTrips.map((t) => t.id), DRAFT_ID, EXAMPLE_ID, "help"];
+  const allTabIds = ["airports", "today", "flights", "search", "discover", "trips", ...userTrips.map((t) => t.id), DRAFT_ID, EXAMPLE_ID, "help"];
 
   function setActiveTab(newTab: string) {
     const prevIdx = allTabIds.indexOf(prevTabRef.current);
@@ -777,6 +778,10 @@ export default function HomePage() {
 
             {activeTab === "search" && (
               <FlightSearch statusMap={statusMap} />
+            )}
+
+            {activeTab === "discover" && (
+              <DiscoverView trips={userTrips} locale={locale} />
             )}
 
             {activeTab === "help" && (
