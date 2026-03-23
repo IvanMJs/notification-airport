@@ -259,6 +259,30 @@ export function TripPanel({
   }
 
 
+  async function handleExportPdf() {
+    const win = window.open("", "_blank", "noopener,noreferrer");
+    if (!win) return;
+    try {
+      const res = await fetch("/api/itinerary-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trip, locale }),
+      });
+      if (!res.ok) {
+        win.close();
+        toast.error(locale === "es" ? "Error al generar PDF" : "Failed to generate PDF");
+        return;
+      }
+      const html = await res.text();
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+    } catch {
+      win.close();
+      toast.error(locale === "es" ? "Error al generar PDF" : "Failed to generate PDF");
+    }
+  }
+
   function handleImportFlights(parsedFlights: ParsedFlight[]) {
     analytics.flightImported({ count: parsedFlights.length });
     for (const pf of parsedFlights) {
@@ -684,14 +708,12 @@ export function TripPanel({
           </button>
 
           {!isDraft && (
-            <a
-              href={`/print/${trip.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={handleExportPdf}
               className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/8 hover:text-white transition-colors"
             >
-              🖨️ PDF
-            </a>
+              🖨️ {locale === "en" ? "Export PDF" : "Exportar PDF"}
+            </button>
           )}
 
           <div className="relative">

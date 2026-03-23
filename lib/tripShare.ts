@@ -1,5 +1,34 @@
 import { Accommodation, TripFlight } from "./types";
 
+// ── Types for public share data ───────────────────────────────────────────────
+
+export interface SharedTripFlight {
+  id: string;
+  flight_code: string;
+  airline_name: string;
+  origin_code: string;
+  destination_code: string;
+  iso_date: string;
+  departure_time: string | null;
+  arrival_date: string | null;
+  arrival_time: string | null;
+}
+
+export interface SharedTripAccommodation {
+  id: string;
+  name: string;
+  check_in_date: string | null;
+  check_in_time: string | null;
+  check_out_date: string | null;
+}
+
+export interface SharedTripData {
+  id: string;
+  name: string;
+  flights: SharedTripFlight[];
+  accommodations: SharedTripAccommodation[];
+}
+
 export interface WhatsAppFlight {
   flightCode:      string;
   airlineName:     string;
@@ -144,4 +173,39 @@ export function copyToClipboard(text: string): Promise<boolean> {
   return navigator.clipboard.writeText(text)
     .then(() => true)
     .catch(() => false);
+}
+
+// ── Server-side: fetch trip by share token (no auth required) ─────────────────
+// This function is for use in Server Components only.
+
+export async function getTripByShareToken(
+  token: string,
+): Promise<SharedTripData | null> {
+  // Dynamic import so the Supabase server client (uses next/headers) is only
+  // resolved at runtime in a server context, keeping this file importable
+  // from client modules that only use the other exports.
+  const { createClient } = await import("@/utils/supabase/server");
+  const supabase = await createClient();
+
+  const { data: tokenRow, error: tokenErr } = await supabase
+    .from("trip_share_tokens")
+    .select("trip_id, expires_at")
+    .eq("token", token)
+    .maybeSingle();
+
+  if (tokenErr || !tokenRow) return null;
+
+  if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) {
+    return null; // expired
+  }
+
+  const { data: trip, error: tripErr } = await supabase
+    .from("trips")
+    .select("id, name, flights(*), accommodations(*)")
+    .eq("id", tokenRow.trip_id)
+    .single();
+
+  if (tripErr || !trip) return null;
+
+  return trip as SharedTripData;
 }
