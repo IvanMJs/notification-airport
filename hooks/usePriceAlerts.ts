@@ -53,12 +53,13 @@ export function usePriceAlerts() {
         setLoading(false);
         return;
       }
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from("price_alerts")
         .select("*")
         .order("created_at", { ascending: false });
-      if (error) {
-        console.error("Error loading price alerts:", error.message);
+      if (fetchError) {
+        setLoading(false);
+        return;
       }
       if (data) setAlerts((data as DbPriceAlert[]).map(toAlert));
       setLoading(false);
@@ -120,13 +121,11 @@ export function usePriceAlerts() {
       .update({ is_active: nextValue })
       .eq("id", id);
     if (error) {
-      // rollback
       setAlerts((prev) =>
         prev.map((a) => (a.id === id ? { ...a, isActive: !nextValue } : a))
       );
-      console.error("Error toggling alert:", error.message);
     }
-  }, []); // sin deps
+  }, []);
 
   return { alerts, loading, addAlert, removeAlert, toggleAlert };
 }
