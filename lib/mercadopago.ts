@@ -18,7 +18,7 @@ export function getMP(): MercadoPagoConfig {
 export const PLANS = {
   free: {
     name: "Free",
-    maxTrips: 3,
+    maxTrips: 2,
     maxFlightsPerTrip: 5,
     features: ["Alertas básicas", "Importar boarding pass"],
   },

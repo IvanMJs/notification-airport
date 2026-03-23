@@ -104,8 +104,8 @@ export function TripAssistant({
   return (
     <>
       {/* FAB button — z-[45] sits above BottomNav (z-50) minus modals */}
-      {/* Note: on mobile we keep it above the bottom-nav visually by using bottom-20 */}
-      <div className="fixed bottom-20 right-4 z-[45] md:bottom-6 md:right-6">
+      {/* bottom offset = nav height (60px) + safe-area-inset-bottom + 16px gap */}
+      <div className="fixed bottom-[calc(60px+env(safe-area-inset-bottom)+16px)] right-4 z-[45] md:bottom-6 md:right-6">
         {!isOpen && (
           <button
             onClick={handleOpen}
@@ -130,7 +130,7 @@ export function TripAssistant({
 
       {/* Chat panel */}
       {isOpen && (
-        <div className="fixed bottom-20 right-4 z-[45] flex w-[calc(100vw-2rem)] max-w-sm flex-col rounded-2xl border border-white/10 bg-gray-900 shadow-2xl md:bottom-6 md:right-6">
+        <div className="fixed bottom-[calc(60px+env(safe-area-inset-bottom)+16px)] right-4 z-[45] flex w-[calc(100vw-2rem)] max-w-sm flex-col rounded-2xl border border-white/10 bg-gray-900 shadow-2xl md:bottom-6 md:right-6">
           {/* Header */}
           <div className="flex items-center justify-between gap-3 rounded-t-2xl border-b border-white/10 bg-gray-800/80 px-4 py-3 backdrop-blur-sm">
             <div className="flex min-w-0 items-center gap-2.5">

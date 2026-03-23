@@ -791,18 +791,40 @@ export default function HomePage() {
             )}
 
             {activeTab === "trips" && (
-              <TripListView
-                trips={userTrips}
-                statusMap={statusMap}
-                locale={locale}
-                loading={tripsLoading}
-                onSelect={(id) => setActiveTab(id)}
-                onCreateTrip={openCreateTripModal}
-                onDeleteTrip={deleteTrip}
-                exampleTrip={exampleTrip}
-                onSelectExample={() => setActiveTab(EXAMPLE_ID)}
-                onDismissExample={handleDismissExample}
-              />
+              <>
+                <TripListView
+                  trips={userTrips}
+                  statusMap={statusMap}
+                  locale={locale}
+                  loading={tripsLoading}
+                  onSelect={(id) => setActiveTab(id)}
+                  onCreateTrip={openCreateTripModal}
+                  onDeleteTrip={deleteTrip}
+                  exampleTrip={exampleTrip}
+                  onSelectExample={() => setActiveTab(EXAMPLE_ID)}
+                  onDismissExample={handleDismissExample}
+                />
+                {!tripsLoading && userTrips.length >= PLANS.free.maxTrips && (
+                  <div className="mx-4 mb-4 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-violet-300">
+                        {locale === "es" ? "Plan gratuito completo" : "Free plan limit reached"}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {locale === "es"
+                          ? `Tenés ${PLANS.free.maxTrips}/${PLANS.free.maxTrips} viajes. Agregá más con Premium.`
+                          : `You have ${PLANS.free.maxTrips}/${PLANS.free.maxTrips} trips. Add more with Premium.`}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowUpgradeModal(true)}
+                      className="shrink-0 rounded-lg bg-violet-600 hover:bg-violet-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+                    >
+                      Premium ✦
+                    </button>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Trip loading skeleton */}
