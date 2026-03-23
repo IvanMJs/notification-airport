@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Toaster } from "react-hot-toast";
 import toast from "react-hot-toast";
-import { RefreshCw, Bell, HelpCircle, LogOut } from "lucide-react";
+import { RefreshCw, Bell, HelpCircle, LogOut, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAirportStatus } from "@/hooks/useAirportStatus";
 import { AirportCard } from "@/components/AirportCard";
@@ -44,6 +44,7 @@ import { TimezoneBanner } from "@/components/TimezoneBanner";
 import { TripAssistant } from "@/components/TripAssistant";
 import { DepartureBoard } from "@/components/DepartureBoard";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { NotificationSettings } from "@/components/NotificationSettings";
 import { PLANS } from "@/lib/stripe";
 
 const SEVERITY_ORDER: Record<DelayStatus, number> = {
@@ -68,6 +69,7 @@ export default function HomePage() {
   const isOnline = useOnlineStatus();
   const router = useRouter();
   const [showNotifSheet, setShowNotifSheet] = useState(false);
+  const [showNotifSettings, setShowNotifSettings] = useState(false);
 
   const [activeTab, setActiveTabRaw] = useState<string>("airports");
   const [slideDirection, setSlideDirection] = useState<"left" | "right">("right");
@@ -491,6 +493,12 @@ export default function HomePage() {
         locale={locale}
       />
 
+      <NotificationSettings
+        open={showNotifSettings}
+        onClose={() => setShowNotifSettings(false)}
+        locale={locale}
+      />
+
       {showCreateModal && (
         <CreateTripModal
           locale={locale}
@@ -577,6 +585,18 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
+
+              {/* Notification settings gear */}
+              {mounted && (
+                <button
+                  onClick={() => setShowNotifSettings(true)}
+                  title={locale === "en" ? "Notification preferences" : "Preferencias de notificaciones"}
+                  aria-label={locale === "es" ? "Preferencias de notificaciones" : "Notification preferences"}
+                  className="flex items-center justify-center rounded-md border border-gray-700 bg-gray-900 p-1.5 text-gray-500 hover:text-gray-300 hover:border-gray-600 transition-colors"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                </button>
+              )}
 
               {/* Notification bell */}
               {mounted && (

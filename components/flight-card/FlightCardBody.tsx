@@ -21,6 +21,7 @@ import { TsaAirportData } from "@/hooks/useTsaWait";
 import { TRIP_PANEL_LABELS, AIRLINE_APP_URLS, TripPanelLabels } from "@/components/TripPanelLabels";
 import { getVisaRequirement } from "@/lib/visaRequirements";
 import { DaysCountdown, ExchangeRateRow } from "./helpers";
+import { WeatherWidget } from "@/components/WeatherWidget";
 
 export interface FlightCardBodyProps {
   flight: TripFlight;
@@ -235,6 +236,8 @@ export function FlightCardBody({
                 <span className="text-xs text-green-400">✅ {visa.notes}</span>
               );
             })()}
+            {/* Destination weather */}
+            <WeatherWidget airportIata={flight.destinationCode} isoDate={flight.isoDate} locale={locale} />
             {/* Exchange rate */}
             <ExchangeRateRow destinationCode={flight.destinationCode} />
           </div>
