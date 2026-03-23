@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PLANS } from "@/lib/stripe";
+import { PLANS } from "@/lib/mercadopago";
 
 interface UpgradeModalProps {
   isOpen: boolean;
@@ -19,7 +19,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
       const successUrl = `${window.location.origin}/app?upgrade=success`;
       const cancelUrl  = `${window.location.origin}/app?upgrade=cancel`;
 
-      const res = await fetch("/api/stripe/checkout", {
+      const res = await fetch("/api/mercadopago/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ successUrl, cancelUrl }),
@@ -148,7 +148,7 @@ export function UpgradeModal({ isOpen, onClose }: UpgradeModalProps) {
 
         {/* Footer note */}
         <p className="text-center text-xs text-gray-600 pb-5">
-          Pago seguro por Stripe \u00b7 Cancel\u00e1 cuando quieras
+          Pago seguro por MercadoPago \u00b7 Cancel\u00e1 cuando quieras
         </p>
       </div>
     </div>

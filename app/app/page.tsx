@@ -48,7 +48,7 @@ import { DepartureBoard } from "@/components/DepartureBoard";
 import { DiscoverView } from "@/components/DiscoverView";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { NotificationSettings } from "@/components/NotificationSettings";
-import { PLANS } from "@/lib/stripe";
+import { PLANS } from "@/lib/mercadopago";
 
 const SEVERITY_ORDER: Record<DelayStatus, number> = {
   closure:        0,
