@@ -528,15 +528,19 @@ html.light .skeleton {
 .input-float-wrapper {
   position: relative;
 }
+.input-float-wrapper input {
+  padding-top: 1.25rem;
+  padding-bottom: 0.5rem;
+}
 .input-float-wrapper input:focus + label,
 .input-float-wrapper input:not(:placeholder-shown) + label {
-  transform: translateY(-1.5rem) scale(0.8);
+  transform: translateY(-1.75rem) scale(0.8);
   color: rgb(var(--color-primary-light));
 }
 .input-float-wrapper label {
   position: absolute;
   left: 0.75rem;
-  top: 0.75rem;
+  top: 1rem;
   transition: all 150ms ease;
   pointer-events: none;
   color: #6b7280;

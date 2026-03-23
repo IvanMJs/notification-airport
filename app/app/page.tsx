@@ -555,7 +555,7 @@ export default function HomePage() {
                       ? (locale === "en" ? "Notifications ON — tap to disable" : "Alertas activas — tap para desactivar")
                       : (locale === "en" ? "Enable notifications" : "Activar alertas")
                   }
-                  className={`flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs transition-colors ${
+                  className={`flex items-center justify-center gap-1 rounded-md border px-2 py-1.5 text-xs transition-colors ${
                     notificationsEnabled
                       ? "border-blue-700/60 bg-blue-900/20 text-blue-400"
                       : "border-gray-700 bg-gray-900 text-gray-500 hover:text-gray-300"
@@ -569,7 +569,7 @@ export default function HomePage() {
               {/* Mobile logout */}
               <button
                 onClick={handleLogout}
-                className="flex items-center rounded-md border border-gray-700 bg-gray-900 p-1.5 text-gray-500 hover:text-red-400 hover:border-red-800/60 transition-colors md:hidden"
+                className="flex items-center justify-center rounded-md border border-gray-700 bg-gray-900 p-1.5 text-gray-500 hover:text-red-400 hover:border-red-800/60 transition-colors md:hidden"
                 title={locale === "en" ? "Sign out" : "Cerrar sesión"}
               >
                 <LogOut className="h-3.5 w-3.5" />
@@ -590,7 +590,7 @@ export default function HomePage() {
               <button
                 onClick={refresh}
                 disabled={loading}
-                className="flex items-center gap-1.5 rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1.5 text-xs text-gray-300 hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className="flex items-center justify-center gap-1.5 rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1.5 text-xs text-gray-300 hover:bg-gray-800 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">{loading ? t.updating : t.update}</span>

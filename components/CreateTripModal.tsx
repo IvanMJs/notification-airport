@@ -41,10 +41,10 @@ export function CreateTripModal({ locale, tripCount, onClose, onConfirm }: Props
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-4 pb-6 sm:pb-0 pointer-events-none">
         <div
           ref={modalRef}
-          className="w-full max-w-sm pointer-events-auto rounded-2xl border border-white/[0.08] shadow-2xl p-5 space-y-4"
+          className="w-full max-w-sm pointer-events-auto rounded-2xl border border-white/[0.08] shadow-2xl p-5 space-y-4 overflow-y-auto max-h-[85dvh] sm:max-h-none"
           style={{ background: "linear-gradient(160deg, rgba(18,18,32,0.99) 0%, rgba(10,10,20,1) 100%)" }}
         >
           <div>
@@ -65,7 +65,6 @@ export function CreateTripModal({ locale, tripCount, onClose, onConfirm }: Props
               }}
               placeholder={locale === "es" ? "Ej: Vacaciones Miami 2026" : "E.g. Miami Trip 2026"}
               maxLength={40}
-              autoFocus
               className="w-full rounded-xl border border-white/[0.12] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder-transparent focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             <label>
@@ -75,6 +74,7 @@ export function CreateTripModal({ locale, tripCount, onClose, onConfirm }: Props
 
           <div className="flex flex-col sm:flex-row gap-2">
             <button
+              type="button"
               onClick={onClose}
               disabled={creating}
               className="w-full sm:w-auto flex-1 rounded-xl border border-white/[0.08] bg-white/[0.04] py-2.5 text-sm font-semibold text-gray-400 hover:text-white transition-colors disabled:opacity-50"
@@ -82,6 +82,7 @@ export function CreateTripModal({ locale, tripCount, onClose, onConfirm }: Props
               {locale === "es" ? "Cancelar" : "Cancel"}
             </button>
             <button
+              type="button"
               onClick={handleConfirm}
               disabled={creating}
               className={`btn-primary w-full sm:w-auto flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold tap-scale ${creating ? "opacity-70 cursor-not-allowed" : ""}`}
