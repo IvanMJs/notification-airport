@@ -3,6 +3,8 @@ import { z } from "zod";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@/utils/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 const BodySchema = z.object({
   priceId: z.string().min(1),
   successUrl: z.string().url(),
