@@ -13,7 +13,8 @@ import { TripSummaryHero } from "./TripSummaryHero";
 import { CalendarFlight, generateICS, downloadICS, buildGoogleCalendarURL } from "@/lib/calendarExport";
 import { buildWhatsAppMessage, buildWhatsAppURL, WhatsAppFlight } from "@/lib/tripShare";
 import { FlightStatusBadge } from "@/components/FlightStatusBadge";
-import { useTsaWait, TsaAirportData } from "@/hooks/useTsaWait";
+import { useTsaWait } from "@/hooks/useTsaWait";
+import { AIRPORTS } from "@/lib/airports";
 import { DayOfTravelBanner } from "@/components/DayOfTravelBanner";
 import { TripCopilot } from "@/components/TripCopilot";
 import { TripClocks } from "@/components/TripClocks";
@@ -108,14 +109,13 @@ interface FlightCardItemProps {
   statusMap: AirportStatusMap;
   weatherMap?: Record<string, WeatherData>;
   locale: "es" | "en";
-  tsaData?: TsaAirportData;
   index: number;
   isNext?: boolean;
   note: FlightNote;
   onUpdateNote: (flightKey: string, field: keyof FlightNote, value: string) => void;
 }
 
-function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index, isNext = false, note, onUpdateNote }: FlightCardItemProps) {
+function FlightCardItem({ flight, statusMap, weatherMap, locale, index, isNext = false, note, onUpdateNote }: FlightCardItemProps) {
   const originStatus = statusMap[flight.originCode];
   const status = originStatus?.status ?? "ok";
   const hasIssue = status !== "ok";
@@ -124,6 +124,11 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index,
   const destName   = locale === "en" ? flight.destinationNameEn : flight.destinationName;
   const arrivalNote = locale === "en" ? flight.arrivalNoteEn : flight.arrivalNoteEs;
   const daysUntil = getDaysUntil(flight.isoDate);
+
+  // TSA wait times — US airports only, today or tomorrow only
+  const originInfo = AIRPORTS[flight.originCode];
+  const isUsAirport = originInfo?.isFAA !== false && !originInfo?.country;
+  const tsa = useTsaWait(flight.originCode, isUsAirport && daysUntil >= 0 && daysUntil <= 1);
   const isPast = daysUntil < 0;
   const airlineCode = flight.flightNum.split(" ")[0];
   const accent = CARD_ACCENTS[index % CARD_ACCENTS.length];
@@ -286,14 +291,18 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index,
                 );
               })()}
             </div>
-            {tsaData && tsaData.avgWaitTime > 0 && (
-              <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-500">
-                <span>🛡️</span>
-                <span>{locale === "en" ? "TSA avg wait:" : "Espera TSA prom:"}</span>
-                <span className={`font-semibold ${
-                  tsaData.avgWaitTime <= 15 ? "text-emerald-400" :
-                  tsaData.avgWaitTime <= 30 ? "text-yellow-400" : "text-orange-400"
-                }`}>{tsaData.avgWaitTime} min</span>
+            {tsa.waitMinutes !== null && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full border ${
+                  tsa.level === "low"
+                    ? "bg-emerald-950/40 border-emerald-700/50 text-emerald-400"
+                    : tsa.level === "medium"
+                    ? "bg-yellow-950/40 border-yellow-700/50 text-yellow-400"
+                    : "bg-red-950/40 border-red-700/50 text-red-400"
+                }`}>
+                  <span>{tsa.level === "low" ? "🟢" : tsa.level === "medium" ? "🟡" : "🔴"}</span>
+                  TSA ~{tsa.waitMinutes}min
+                </span>
               </div>
             )}
           </div>
@@ -561,14 +570,12 @@ function FlightCardItem({ flight, statusMap, weatherMap, locale, tsaData, index,
 interface MyFlightsPanelProps {
   statusMap: AirportStatusMap;
   weatherMap?: Record<string, WeatherData>;
-  onImport?: () => void;
 }
 
-export function MyFlightsPanel({ statusMap, weatherMap, onImport }: MyFlightsPanelProps) {
+export function MyFlightsPanel({ statusMap, weatherMap }: MyFlightsPanelProps) {
   const { t, locale } = useLanguage();
   const [showGcal, setShowGcal] = useState(false);
   const [waCopied, setWaCopied] = useState(false);
-  const tsaData = useTsaWait();
   const { flights: MY_FLIGHTS, loading: flightsLoading } = useMyFlights();
   const { notesMap, updateNote } = useFlightNotes();
 
@@ -583,7 +590,7 @@ export function MyFlightsPanel({ statusMap, weatherMap, onImport }: MyFlightsPan
   }
 
   if (MY_FLIGHTS.length === 0) {
-    return <TripEmptyState locale={locale} onImport={onImport} />;
+    return <TripEmptyState locale={locale} />;
   }
 
   const calFlights: CalendarFlight[] = MY_FLIGHTS.map((f) => ({
@@ -666,7 +673,6 @@ export function MyFlightsPanel({ statusMap, weatherMap, onImport }: MyFlightsPan
               statusMap={statusMap}
               weatherMap={weatherMap}
               locale={locale}
-              tsaData={tsaData[flight.originCode]}
               index={idx}
               isNext={idx === nextFlightIndex}
               note={notesMap[`${flight.flightNum.replace(/\s+/g, "")}-${flight.isoDate}`] ?? { pnr: "", seat: "", notes: "" }}

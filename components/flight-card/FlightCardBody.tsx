@@ -22,6 +22,7 @@ import { TRIP_PANEL_LABELS, AIRLINE_APP_URLS, TripPanelLabels } from "@/componen
 import { getVisaRequirement } from "@/lib/visaRequirements";
 import { DaysCountdown, ExchangeRateRow } from "./helpers";
 import { WeatherWidget } from "@/components/WeatherWidget";
+import { AirportInfoCard } from "@/components/AirportInfoCard";
 
 export interface FlightCardBodyProps {
   flight: TripFlight;
@@ -50,7 +51,7 @@ export interface FlightCardBodyProps {
   weatherMap: Record<string, WeatherData>;
   tafData: TafData | undefined;
   activeSigmets: SigmetFeature[] | undefined;
-  tsaData: TsaAirportData | undefined;
+  tsaData?: TsaAirportData;
   connectionToNext: ConnectionAnalysis | undefined;
   // device timezone
   displayDepartureTime?: string;
@@ -168,6 +169,7 @@ export function FlightCardBody({
                 }`}>{tsaData.avgWaitTime} min</span>
               </div>
             )}
+            <AirportInfoCard iata={flight.originCode} locale={locale} terminal={null} />
           </div>
           <div className="flex flex-col items-end gap-2 shrink-0">
             <LinkButton href={originUrl} variant={hasIssue ? "orange" : "default"}>

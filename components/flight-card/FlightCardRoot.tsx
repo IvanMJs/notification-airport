@@ -9,7 +9,6 @@ import { WeatherData } from "@/hooks/useWeather";
 import { TafData, getTafAtTime } from "@/hooks/useTaf";
 import { SigmetFeature } from "@/hooks/useSigmet";
 import { ConnectionAnalysis } from "@/lib/connectionRisk";
-import { TsaAirportData } from "@/hooks/useTsaWait";
 import { TRIP_PANEL_LABELS } from "@/components/TripPanelLabels";
 import { formatRelativeDate } from "@/lib/formatDate";
 import { getTzAbbr, getDaysUntil } from "./helpers";
@@ -31,13 +30,10 @@ export interface FlightCardProps {
   nextDate?: string;
   tafData?: TafData;
   activeSigmets?: SigmetFeature[];
-  tsaData?: TsaAirportData;
   accommodation?: Accommodation | null;
   onAddAccommodation: (data: { name: string; checkInTime?: string; checkOutTime?: string; confirmationCode?: string; address?: string }) => void;
   onRemoveAccommodation: () => void;
   onEditAccommodation: (name: string, checkInTime?: string, checkOutTime?: string, confirmationCode?: string, address?: string) => void;
-  onBoardingPassSaved: (url: string | null) => void;
-  onToggleUpgrade?: (flightId: string, wants: boolean) => void;
   showDeviceTz?: boolean;
   deviceTz?: string;
   onToggleDeviceTz?: () => void;
@@ -55,13 +51,10 @@ export function FlightCard({
   nextDate,
   tafData,
   activeSigmets,
-  tsaData,
   accommodation,
   onAddAccommodation,
   onRemoveAccommodation,
   onEditAccommodation,
-  onBoardingPassSaved,
-  onToggleUpgrade,
   showDeviceTz,
   deviceTz,
   onToggleDeviceTz,
@@ -256,8 +249,6 @@ export function FlightCard({
           onRemove={handleRemove}
           expanded={expanded}
           onToggleExpanded={() => setExpanded((v) => !v)}
-          wantsUpgrade={flight.wantsUpgrade}
-          onToggleUpgrade={onToggleUpgrade}
           displayDepartureTime={displayDepartureTime ?? undefined}
           displayArrivalTime={displayArrivalTime ?? undefined}
         />
@@ -288,7 +279,6 @@ export function FlightCard({
           weatherMap={weatherMap}
           tafData={tafData}
           activeSigmets={activeSigmets}
-          tsaData={tsaData}
           connectionToNext={connectionToNext}
           showDeviceTz={shouldShowDeviceTz}
           onToggleDeviceTz={deviceTz && deviceTz !== originTz ? onToggleDeviceTz : undefined}
@@ -312,7 +302,6 @@ export function FlightCard({
           flight={flight}
           showButton={showBoardingPassButton}
           locale={locale}
-          onBoardingPassSaved={onBoardingPassSaved}
         />
       </div>
     </div>

@@ -14,6 +14,15 @@ export interface TsaAirportData {
   avgWaitTime: number;
 }
 
+export type TsaWaitLevel = "low" | "medium" | "high";
+
+export interface TsaWaitResult {
+  waitMinutes: number | null;
+  level: TsaWaitLevel | null;
+  updatedAt: string | null;
+  loading: boolean;
+}
+
 let _tsaCache: { data: Record<string, TsaAirportData>; ts: number } | null = null;
 const TSA_TTL = 10 * 60 * 1000;
 
@@ -58,34 +67,73 @@ function parseTsaXml(xml: string): Record<string, TsaAirportData> {
   return result;
 }
 
-export function useTsaWait() {
-  const [data, setData] = useState<Record<string, TsaAirportData>>({});
+function getLevelFromMinutes(minutes: number): TsaWaitLevel {
+  if (minutes < 15) return "low";
+  if (minutes <= 30) return "medium";
+  return "high";
+}
+
+async function fetchTsaData(): Promise<Record<string, TsaAirportData>> {
+  if (_tsaCache && Date.now() - _tsaCache.ts < TSA_TTL) {
+    return _tsaCache.data;
+  }
+  const res = await fetch("/api/tsa-wait");
+  if (!res.ok) throw new Error(`TSA fetch failed: ${res.status}`);
+  const text = await res.text();
+  if (!text.trim().startsWith("<")) throw new Error("TSA returned non-XML response");
+  const parsed = parseTsaXml(text);
+  _tsaCache = { data: parsed, ts: Date.now() };
+  return parsed;
+}
+
+/**
+ * Returns TSA wait time data for a specific US airport.
+ * Only fetches if `enabled` is true.
+ */
+export function useTsaWait(airportIata: string, enabled = true): TsaWaitResult {
+  const [result, setResult] = useState<TsaWaitResult>({
+    waitMinutes: null,
+    level: null,
+    updatedAt: null,
+    loading: false,
+  });
   const mounted = useRef(true);
 
   useEffect(() => {
     mounted.current = true;
 
-    async function load() {
-      if (_tsaCache && Date.now() - _tsaCache.ts < TSA_TTL) {
-        if (mounted.current) setData(_tsaCache.data);
-        return;
-      }
-      try {
-        const res = await fetch("/api/tsa-wait");
-        if (!res.ok) return;
-        const text = await res.text();
-        if (!text.trim().startsWith("<")) return; // got JSON error
-        const parsed = parseTsaXml(text);
-        _tsaCache = { data: parsed, ts: Date.now() };
-        if (mounted.current) setData(parsed);
-      } catch {
-        // silent fail
-      }
+    if (!enabled || !airportIata) {
+      setResult({ waitMinutes: null, level: null, updatedAt: null, loading: false });
+      return () => { mounted.current = false; };
     }
 
-    load();
-    return () => { mounted.current = false; };
-  }, []);
+    setResult(prev => ({ ...prev, loading: true }));
 
-  return data;
+    fetchTsaData()
+      .then((data) => {
+        if (!mounted.current) return;
+        const airport = data[airportIata.toUpperCase()];
+        if (!airport) {
+          setResult({ waitMinutes: null, level: null, updatedAt: null, loading: false });
+          return;
+        }
+        const waitMinutes = airport.avgWaitTime > 0 ? airport.avgWaitTime : null;
+        const updatedAt = airport.checkpoints[0]?.updated ?? null;
+        setResult({
+          waitMinutes,
+          level: waitMinutes !== null ? getLevelFromMinutes(waitMinutes) : null,
+          updatedAt,
+          loading: false,
+        });
+      })
+      .catch(() => {
+        if (mounted.current) {
+          setResult({ waitMinutes: null, level: null, updatedAt: null, loading: false });
+        }
+      });
+
+    return () => { mounted.current = false; };
+  }, [airportIata, enabled]);
+
+  return result;
 }

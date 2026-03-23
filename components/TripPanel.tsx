@@ -29,7 +29,6 @@ import { ImportFlightsModal } from "./ImportFlightsModal";
 import { CarbonFootprint } from "./CarbonFootprint";
 import { TripExpenses } from "./TripExpenses";
 import { ParsedFlight } from "@/lib/importFlights";
-import { useTsaWait } from "@/hooks/useTsaWait";
 import { FlightCard } from "./FlightCard";
 import { FlightCardSkeleton } from "./FlightCardSkeleton";
 import { TRIP_PANEL_LABELS } from "./TripPanelLabels";
@@ -163,7 +162,6 @@ export function TripPanel({
     }) ?? null;
   }, [sorted]);
 
-  const tsaData    = useTsaWait();
   const tafMap     = useTaf(sorted.map((f) => f.originCode));
   const allSigmets = useSigmet();
 
@@ -589,7 +587,7 @@ export function TripPanel({
           </div>
 
           {viewMode === "timeline" ? (
-            <TripTimeline flights={trip.flights} statusMap={statusMap} connectionMap={connectionMap} />
+            <TripTimeline flights={trip.flights} accommodations={trip.accommodations} statusMap={statusMap} connectionMap={connectionMap} />
           ) : (
             (() => {
               const todayIso = new Date().toISOString().slice(0, 10);
@@ -615,7 +613,6 @@ export function TripPanel({
                         nextDate={sorted[globalIdx + 1]?.isoDate}
                         tafData={tafMap[flight.originCode]}
                         activeSigmets={sigmetsByFlight.get(flight.id)}
-                        tsaData={tsaData[flight.originCode]}
                         accommodation={acc}
                         onAddAccommodation={(data) =>
                           onAddAccommodation(trip.id, {
@@ -633,8 +630,6 @@ export function TripPanel({
                         onEditAccommodation={(name, checkInTime, checkOutTime, confirmationCode, address) =>
                           acc && onUpdateAccommodation(trip.id, acc.id, { name, checkInTime, checkOutTime, confirmationCode, address })
                         }
-                        onBoardingPassSaved={(url) => onBoardingPassSaved?.(flight.id, url)}
-                        onToggleUpgrade={onToggleUpgrade}
                         showDeviceTz={showDeviceTz}
                         deviceTz={deviceTz}
                         onToggleDeviceTz={onToggleDeviceTz}

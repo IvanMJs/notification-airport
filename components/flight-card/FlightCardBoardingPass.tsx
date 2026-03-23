@@ -11,7 +11,7 @@ export interface FlightCardBoardingPassProps {
   flight: TripFlight;
   showButton: boolean;
   locale: "es" | "en";
-  onBoardingPassSaved: (url: string | null) => void;
+  onBoardingPassSaved?: (url: string | null) => void;
 }
 
 export function FlightCardBoardingPass({
@@ -66,7 +66,7 @@ export function FlightCardBoardingPass({
       .createSignedUrl(path, 3600);
 
     setSignedUrl(urlData?.signedUrl ?? null);
-    onBoardingPassSaved(path);
+    onBoardingPassSaved?.(path);
     setUploading(false);
     toast.success(locale === "es" ? "Boarding pass guardado ✓" : "Boarding pass saved ✓");
   }
@@ -105,7 +105,7 @@ export function FlightCardBoardingPass({
     const supabase = createClient();
     await supabase.storage.from("boarding-passes").remove([flight.boardingPassUrl]);
     setSignedUrl(null);
-    onBoardingPassSaved(null);
+    onBoardingPassSaved?.(null);
     setShowBoardingPass(false);
     toast.success(locale === "es" ? "Boarding pass eliminado" : "Boarding pass removed");
   }
