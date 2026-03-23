@@ -20,6 +20,8 @@ import {
   getNotificationPrefs,
   saveNotificationPrefs,
 } from "@/lib/notificationPreferences";
+import { useTheme } from "@/contexts/ThemeContext";
+import type { ThemePreference } from "@/contexts/ThemeContext";
 
 interface Props {
   open: boolean;
@@ -88,6 +90,7 @@ const PREF_ROWS: PrefRow[] = [
 ];
 
 export function NotificationSettings({ open, onClose, locale }: Props) {
+  const { theme, setTheme } = useTheme();
   const [visible, setVisible] = useState(false);
   const [prefs, setPrefs] = useState<Omit<NotificationPreferences, "userId">>(DEFAULT_PREFS);
   const [userId, setUserId] = useState<string | null>(null);
@@ -196,6 +199,35 @@ export function NotificationSettings({ open, onClose, locale }: Props) {
               <button onClick={onClose} className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 tap-scale">
                 <X className="h-4 w-4" />
               </button>
+            </div>
+
+            {/* Theme selector */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                {locale === "es" ? "Tema" : "Theme"}
+              </p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(
+                  [
+                    { value: "dark",   labelEs: "Oscuro",  labelEn: "Dark",   icon: "🌑" },
+                    { value: "light",  labelEs: "Claro",   labelEn: "Light",  icon: "☀️" },
+                    { value: "system", labelEs: "Sistema", labelEn: "System", icon: "💻" },
+                  ] as { value: ThemePreference; labelEs: string; labelEn: string; icon: string }[]
+                ).map(({ value, labelEs, labelEn, icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setTheme(value)}
+                    className={`flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-semibold transition-colors tap-scale ${
+                      theme === value
+                        ? "bg-violet-600/30 border border-violet-500/50 text-violet-300"
+                        : "bg-white/[0.04] border border-white/[0.06] text-gray-400 hover:bg-white/[0.08]"
+                    }`}
+                  >
+                    <span className="text-base leading-none">{icon}</span>
+                    <span>{locale === "es" ? labelEs : labelEn}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Push permission status */}
