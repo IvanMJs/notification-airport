@@ -175,37 +175,6 @@ export function copyToClipboard(text: string): Promise<boolean> {
     .catch(() => false);
 }
 
-// ── Server-side: fetch trip by share token (no auth required) ─────────────────
-// This function is for use in Server Components only.
-
-export async function getTripByShareToken(
-  token: string,
-): Promise<SharedTripData | null> {
-  // Dynamic import so the Supabase server client (uses next/headers) is only
-  // resolved at runtime in a server context, keeping this file importable
-  // from client modules that only use the other exports.
-  const { createClient } = await import("@/utils/supabase/server");
-  const supabase = await createClient();
-
-  const { data: tokenRow, error: tokenErr } = await supabase
-    .from("trip_share_tokens")
-    .select("trip_id, expires_at")
-    .eq("token", token)
-    .maybeSingle();
-
-  if (tokenErr || !tokenRow) return null;
-
-  if (tokenRow.expires_at && new Date(tokenRow.expires_at) < new Date()) {
-    return null; // expired
-  }
-
-  const { data: trip, error: tripErr } = await supabase
-    .from("trips")
-    .select("id, name, flights(*), accommodations(*)")
-    .eq("id", tokenRow.trip_id)
-    .single();
-
-  if (tripErr || !trip) return null;
-
-  return trip as SharedTripData;
-}
+// ── Server-side utils moved to lib/tripShareServer.ts ─────────────────────────
+// getTripByShareToken is in lib/tripShareServer.ts to avoid bundling next/headers
+// into client components that import this file.

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getTripByShareToken, SharedTripFlight, SharedTripAccommodation } from "@/lib/tripShare";
+import { SharedTripFlight, SharedTripAccommodation } from "@/lib/tripShare";
+import { getTripByShareToken } from "@/lib/tripShareServer";
 import { AutoRefresh } from "./AutoRefresh";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -1,14 +1,13 @@
 "use client";
 
-import { Plane, Hotel, Clock, AlertTriangle, CalendarDays } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plane, ArrowDown, AlertTriangle, Clock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { TripFlight, Accommodation, AirportStatusMap } from "@/lib/types";
+import { AirportStatusMap, Accommodation } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
 import { ConnectionAnalysis } from "@/lib/connectionRisk";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-/** Minimal flight shape accepted by TripTimeline (TripFlight satisfies this). */
+/** Minimal flight shape needed by TripTimeline — subset of TripFlight */
 export interface TimelineFlight {
   id?: string;
   originCode: string;
@@ -16,8 +15,6 @@ export interface TimelineFlight {
   isoDate: string;
   flightCode: string;
   departureTime?: string;
-  arrivalDate?: string;
-  arrivalTime?: string;
 }
 
 interface TripTimelineProps {
@@ -28,7 +25,11 @@ interface TripTimelineProps {
   connectionMap?: Map<string, ConnectionAnalysis>;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+interface TooltipState {
+  idx: number;
+  x: number;
+  y: number;
+}
 
 function getDaysUntil(isoDate: string): number {
   const today = new Date();
@@ -37,7 +38,7 @@ function getDaysUntil(isoDate: string): number {
   return Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function formatShortDate(isoDate: string, locale: "es" | "en"): string {
+function formatDate(isoDate: string, locale: "es" | "en"): string {
   const d = new Date(isoDate + "T00:00:00");
   return d.toLocaleDateString(locale === "en" ? "en-US" : "es-AR", {
     weekday: "short",
@@ -46,139 +47,52 @@ function formatShortDate(isoDate: string, locale: "es" | "en"): string {
   });
 }
 
-function formatLayoverDuration(minutes: number, locale: "es" | "en"): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (locale === "es") {
-    return h > 0 && m > 0 ? `${h}h ${m}m escala` : h > 0 ? `${h}h escala` : `${m}m escala`;
-  }
-  return h > 0 && m > 0 ? `${h}h ${m}m layover` : h > 0 ? `${h}h layover` : `${m}m layover`;
-}
-
-// ── Risk colors (vertical line + dot) ─────────────────────────────────────────
-
-const RISK_LINE: Record<string, string> = {
-  safe:    "bg-white/10",
-  tight:   "bg-yellow-500/50",
-  at_risk: "bg-orange-500/60",
-  missed:  "bg-red-500/70",
+const CONN_COLORS = {
+  safe:    { line: "bg-emerald-800/60", icon: "text-emerald-500" },
+  tight:   { line: "bg-yellow-700/60",  icon: "text-yellow-400" },
+  at_risk: { line: "bg-orange-600/70",  icon: "text-orange-400" },
+  missed:  { line: "bg-red-600/80",     icon: "text-red-400"    },
 };
 
-const RISK_DOT: Record<string, string> = {
-  safe:    "bg-blue-400 ring-blue-400/30",
-  tight:   "bg-yellow-400 ring-yellow-400/30",
-  at_risk: "bg-orange-400 ring-orange-400/30",
-  missed:  "bg-red-400 ring-red-400/30",
-};
-
-const RISK_PILL: Record<string, string> = {
-  safe:    "bg-emerald-900/50 text-emerald-400 border-emerald-700/40",
-  tight:   "bg-yellow-900/50 text-yellow-400 border-yellow-700/40",
-  at_risk: "bg-orange-900/60 text-orange-400 border-orange-700/50",
-  missed:  "bg-red-900/60 text-red-400 border-red-700/50",
-};
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-function RailLine({ risk }: { risk: string }) {
-  return (
-    <div
-      className={`w-px flex-1 min-h-[2rem] mx-auto transition-colors ${RISK_LINE[risk] ?? RISK_LINE.safe}`}
-    />
-  );
-}
-
-function RailDot({
-  isToday,
-  isPast,
-  hasIssue,
-  risk,
-}: {
-  isToday: boolean;
-  isPast: boolean;
-  hasIssue: boolean;
-  risk: string;
-}) {
-  if (isToday) {
-    return (
-      <div className="relative flex items-center justify-center w-4 h-4 mx-auto">
-        <span className="absolute inline-flex h-4 w-4 rounded-full bg-sky-400/30 animate-ping" />
-        <span className="relative inline-flex h-3 w-3 rounded-full bg-sky-400 ring-2 ring-sky-400/40 ring-offset-1"
-          style={{ "--tw-ring-offset-color": "#0a0a0f" } as React.CSSProperties} />
-      </div>
-    );
-  }
-  if (isPast) {
-    return (
-      <div className="w-3 h-3 rounded-full mx-auto bg-white/20 ring-2 ring-white/10 ring-offset-1"
-        style={{ "--tw-ring-offset-color": "#0a0a0f" } as React.CSSProperties} />
-    );
-  }
-  const dotClass = hasIssue
-    ? "bg-orange-500 ring-orange-500/30"
-    : (RISK_DOT[risk] ?? RISK_DOT.safe);
-  return (
-    <div
-      className={`w-3.5 h-3.5 rounded-full mx-auto ring-2 ring-offset-1 transition-colors ${dotClass}`}
-      style={{ "--tw-ring-offset-color": "#0a0a0f" } as React.CSSProperties}
-    />
-  );
-}
-
-function AccommodationBlock({
-  acc,
+/** Small pill showing connection risk level */
+function ConnectionPill({
+  analysis,
   locale,
 }: {
-  acc: Accommodation;
+  analysis: ConnectionAnalysis;
   locale: "es" | "en";
 }) {
-  return (
-    <div className="flex gap-3 py-2">
-      {/* Rail column */}
-      <div className="flex flex-col items-center w-6 shrink-0">
-        <RailLine risk="safe" />
-        <div className="w-5 h-5 rounded-md bg-purple-900/60 border border-purple-700/40 flex items-center justify-center shrink-0">
-          <Hotel className="w-2.5 h-2.5 text-purple-400" />
-        </div>
-        <RailLine risk="safe" />
-      </div>
+  const riskLabels = {
+    safe:    { es: "OK",         en: "OK"       },
+    tight:   { es: "Ajustada",   en: "Tight"    },
+    at_risk: { es: "En riesgo",  en: "At risk"  },
+    missed:  { es: "Perdida",    en: "Missed"   },
+  };
+  const colors = {
+    safe:    "bg-emerald-900/50 text-emerald-400 border-emerald-700/40",
+    tight:   "bg-yellow-900/50 text-yellow-400 border-yellow-700/40",
+    at_risk: "bg-orange-900/60 text-orange-400 border-orange-700/50",
+    missed:  "bg-red-900/60 text-red-400 border-red-700/50",
+  };
 
-      {/* Content */}
-      <div className="flex-1 min-w-0 bg-purple-950/30 border border-purple-800/20 rounded-lg px-3 py-2 my-1">
-        <p className="text-xs font-semibold text-purple-300 truncate">{acc.name}</p>
-        <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-          {acc.checkInDate && (
-            <span className="text-[11px] text-gray-400">
-              {locale === "en" ? "In:" : "Entrada:"}{" "}
-              <span className="text-gray-300">{formatShortDate(acc.checkInDate, locale)}</span>
-              {acc.checkInTime && <span className="text-gray-400"> {acc.checkInTime}</span>}
-            </span>
-          )}
-          {acc.checkOutDate && (
-            <span className="text-[11px] text-gray-400">
-              {locale === "en" ? "Out:" : "Salida:"}{" "}
-              <span className="text-gray-300">{formatShortDate(acc.checkOutDate, locale)}</span>
-              {acc.checkOutTime && <span className="text-gray-400"> {acc.checkOutTime}</span>}
-            </span>
-          )}
-          {acc.confirmationCode && (
-            <span className="text-[11px] text-gray-500">#{acc.confirmationCode}</span>
-          )}
-        </div>
-      </div>
-    </div>
+  if (analysis.risk === "safe" && analysis.delayAddedMinutes === 0) return null;
+
+  return (
+    <span className={`text-[11px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${colors[analysis.risk]}`}>
+      {riskLabels[analysis.risk][locale]}
+      {analysis.delayAddedMinutes > 0 && ` +${analysis.delayAddedMinutes}m`}
+    </span>
   );
 }
-
-// ── Main component ─────────────────────────────────────────────────────────────
 
 export function TripTimeline({
   flights,
-  accommodations = [],
   statusMap,
   connectionMap,
 }: TripTimelineProps) {
   const { locale } = useLanguage();
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout>>();
 
   if (flights.length === 0) return null;
 
@@ -187,255 +101,238 @@ export function TripTimeline({
     return d !== 0 ? d : (a.departureTime ?? "").localeCompare(b.departureTime ?? "");
   });
 
-  const todayIso = new Date().toISOString().slice(0, 10);
+  type Node = {
+    code: string;
+    isOrigin: boolean;
+    flightCode: string;
+    isoDate: string;
+    departureTime?: string;
+    flightId?: string;
+    nextFlightId?: string;
+  };
+
+  const nodes: Node[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const f = sorted[i];
+    nodes.push({
+      code: f.originCode,
+      isOrigin: true,
+      flightCode: f.flightCode,
+      isoDate: f.isoDate,
+      departureTime: f.departureTime ?? undefined,
+      flightId: f.id,
+      nextFlightId: sorted[i + 1]?.id,
+    });
+  }
+  const last = sorted[sorted.length - 1];
+  nodes.push({
+    code: last.destinationCode,
+    isOrigin: false,
+    flightCode: "",
+    isoDate: last.isoDate,
+  });
+
+  const totalNodes = nodes.length;
+
+  function openTooltip(el: HTMLElement, idx: number) {
+    clearTimeout(closeTimer.current);
+    const rect = el.getBoundingClientRect();
+    setTooltip({ idx, x: rect.left + rect.width / 2, y: rect.top - 10 });
+  }
+  function scheduleClose() {
+    closeTimer.current = setTimeout(() => setTooltip(null), 120);
+  }
+  function cancelClose() { clearTimeout(closeTimer.current); }
+
+  function handleGoToCard(nodeIdx: number, isOrigin: boolean) {
+    const cardIdx = isOrigin ? nodeIdx : nodeIdx - 1;
+    document.getElementById(`flight-card-${cardIdx}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTooltip(null);
+  }
+
+  const activeNode = tooltip ? nodes[tooltip.idx] : null;
 
   return (
-    <div
-      className="rounded-xl border border-white/6 px-4 pt-4 pb-3 animate-fade-in-up"
-      style={{ background: "linear-gradient(135deg, rgba(15,15,23,0.9) 0%, rgba(10,10,18,0.95) 100%)" }}
-    >
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-3">
-        {locale === "en" ? "Trip timeline" : "Cronograma del viaje"}
-      </p>
+    <>
+      {/* Tooltip */}
+      {tooltip && activeNode && (
+        <div
+          className="fixed z-50"
+          style={{ left: tooltip.x, top: tooltip.y, transform: "translateX(-50%) translateY(-100%)" }}
+          onPointerEnter={cancelClose}
+          onPointerLeave={scheduleClose}
+        >
+          <div className="rounded-xl border border-white/10 bg-[#0f0f17] shadow-2xl px-3.5 py-2.5 whitespace-nowrap text-left"
+            style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
+            <p className="text-xs font-bold text-white mb-1">
+              {activeNode.code} · {AIRPORTS[activeNode.code]?.city ?? activeNode.code}
+            </p>
+            {activeNode.isOrigin ? (
+              <>
+                <p className="text-[11px] text-gray-300">{formatDate(activeNode.isoDate, locale)}</p>
+                {activeNode.departureTime ? (
+                  <p className="text-[11px] text-blue-300 font-medium mt-0.5">
+                    <Clock className="h-2.5 w-2.5 inline mr-1" />
+                    {locale === "en" ? "Dep." : "Sale"} {activeNode.departureTime}
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    {locale === "en" ? "Time TBD" : "Hora por confirmar"}
+                  </p>
+                )}
+                {activeNode.flightCode && (
+                  <p className="text-[11px] text-gray-500 mt-0.5">{activeNode.flightCode}</p>
+                )}
+                {statusMap[activeNode.code]?.status && statusMap[activeNode.code]?.status !== "ok" && (
+                  <p className="text-[11px] text-orange-400 font-semibold mt-1">
+                    <AlertTriangle className="h-2.5 w-2.5 inline mr-1" />
+                    {locale === "en" ? "Active delays" : "Demoras activas"}
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-[11px] text-gray-400">
+                {locale === "en" ? "Final destination" : "Destino final"}
+              </p>
+            )}
+            <button
+              onClick={() => handleGoToCard(tooltip.idx, activeNode.isOrigin)}
+              className="mt-2 w-full flex items-center justify-center gap-1 rounded-md bg-blue-600 hover:bg-blue-500 px-2.5 py-1 text-[11px] font-semibold text-white transition-colors"
+            >
+              <ArrowDown className="h-2.5 w-2.5" />
+              {locale === "en" ? "Go to flight" : "Ir al vuelo"}
+            </button>
+          </div>
+          <div className="flex justify-center">
+            <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-white/10" />
+          </div>
+        </div>
+      )}
 
-      <div className="space-y-0">
-        {sorted.map((flight, idx) => {
-          const isFirst  = idx === 0;
-          const isLast   = idx === sorted.length - 1;
-          const daysUntil = getDaysUntil(flight.isoDate);
-          const isToday  = flight.isoDate === todayIso;
-          const isPast   = daysUntil < 0;
+      {/* Card */}
+      <div
+        className="rounded-xl border border-white/6 p-4 overflow-x-auto animate-fade-in-up"
+        style={{ background: "linear-gradient(135deg, rgba(15,15,23,0.9) 0%, rgba(10,10,18,0.95) 100%)" }}
+        onClick={() => setTooltip(null)}
+      >
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-4">
+          {locale === "en" ? "Trip timeline" : "Cronograma del viaje"}
+        </p>
 
-          const hasOriginIssue = statusMap[flight.originCode]?.status !== "ok" &&
-            statusMap[flight.originCode]?.status !== undefined;
-          const hasDestIssue   = statusMap[flight.destinationCode]?.status !== "ok" &&
-            statusMap[flight.destinationCode]?.status !== undefined;
+        <div className="flex items-start min-w-max gap-0 py-1">
+          {nodes.map((node, idx) => {
+            const isLast  = idx === totalNodes - 1;
+            const isFirst = idx === 0;
+            const daysUntil = node.isOrigin ? getDaysUntil(node.isoDate) : null;
+            const status    = statusMap[node.code]?.status ?? "ok";
+            const hasIssue  = status !== "ok";
+            const isActive  = tooltip?.idx === idx;
 
-          // Connection analysis from this flight to the next
-          const nextFlight = sorted[idx + 1];
-          const connKey = flight.id && nextFlight?.id ? `${flight.id}→${nextFlight.id}` : null;
-          const conn = connKey && connectionMap ? connectionMap.get(connKey) : null;
-          const connRisk = conn?.risk ?? "safe";
+            // Connection from this node to the next
+            const connKey = node.flightId && node.nextFlightId
+              ? `${node.flightId}→${node.nextFlightId}`
+              : null;
+            const nextConn = connKey && connectionMap ? connectionMap.get(connKey) : null;
 
-          // Accommodations linked to this flight
-          const flightAccs = accommodations.filter((a) => a.flightId === flight.id);
+            const dotColor = hasIssue
+              ? "bg-orange-500 ring-orange-500/30"
+              : daysUntil !== null && daysUntil <= 0
+              ? "bg-red-400 ring-red-400/30"
+              : daysUntil !== null && daysUntil <= 7
+              ? "bg-yellow-400 ring-yellow-400/30"
+              : "bg-blue-400 ring-blue-400/30";
 
-          return (
-            <div key={flight.id ?? idx}>
-              {/* ── Flight row ── */}
-              <div className="flex gap-3">
-                {/* Rail column */}
-                <div className="flex flex-col items-center w-6 shrink-0">
-                  {!isFirst && <RailLine risk={connRisk} />}
-                  <RailDot
-                    isToday={isToday}
-                    isPast={isPast}
-                    hasIssue={hasOriginIssue}
-                    risk={connRisk}
+            return (
+              <div key={idx} className="flex items-start">
+                {/* Node */}
+                <div className="flex flex-col items-center gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      tooltip?.idx === idx ? setTooltip(null) : openTooltip(e.currentTarget, idx);
+                    }}
+                    onPointerEnter={(e) => { if (e.pointerType === "mouse") { cancelClose(); openTooltip(e.currentTarget, idx); } }}
+                    onPointerLeave={(e) => { if (e.pointerType === "mouse") scheduleClose(); }}
+                    className={`h-4 w-4 rounded-full ring-4 ring-offset-1 transition-transform focus:outline-none cursor-pointer ${dotColor} ${isActive ? "scale-125" : "hover:scale-125"}`}
+                    style={{ "--tw-ring-offset-color": "#0a0a0f" } as React.CSSProperties}
+                    aria-label={`${node.code}${node.isOrigin ? ": " + formatDate(node.isoDate, locale) : ""}`}
                   />
-                  {isLast ? null : <RailLine risk={connRisk} />}
+                  <span className="text-xs font-bold text-white">{node.code}</span>
+                  {(isFirst || isLast) && (
+                    <span className={`text-[11px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm ${
+                      isFirst ? "bg-emerald-900/50 text-emerald-400" : "bg-blue-900/50 text-blue-400"
+                    }`}>
+                      {isFirst
+                        ? (locale === "en" ? "Start" : "Inicio")
+                        : (locale === "en" ? "End"   : "Fin")}
+                    </span>
+                  )}
+                  {node.isOrigin && node.flightCode && (
+                    <span className="text-xs text-blue-300/70 max-w-[60px] text-center leading-tight">
+                      {node.flightCode}
+                    </span>
+                  )}
+                  {node.isOrigin && daysUntil !== null && (
+                    <span className={`text-xs font-semibold ${
+                      daysUntil < 0   ? "text-white/35"   :
+                      daysUntil === 0 ? "text-red-400 animate-pulse" :
+                      daysUntil <= 7  ? "text-yellow-400" :
+                      "text-emerald-400"
+                    }`}>
+                      {daysUntil < 0  ? (locale === "en" ? "Done"  : "Listo") :
+                       daysUntil === 0 ? (locale === "en" ? "TODAY" : "HOY")   :
+                       `${daysUntil}d`}
+                    </span>
+                  )}
+                  {/* Connection pill below origin dot when there's a layover at this airport */}
+                  {!node.isOrigin && idx > 0 && (() => {
+                    const prevNode = nodes[idx - 1];
+                    const ck = prevNode.flightId && node.flightId ? `${prevNode.flightId}→${node.flightId}` : null;
+                    const ca = ck && connectionMap ? connectionMap.get(ck) : null;
+                    if (!ca || ca.risk === "safe") return null;
+                    return <ConnectionPill analysis={ca} locale={locale} />;
+                  })()}
                 </div>
 
-                {/* Flight card */}
-                <div className={`flex-1 min-w-0 rounded-lg border px-3 py-2 mb-1 transition-colors ${
-                  isPast
-                    ? "border-white/5 bg-white/[0.02]"
-                    : isToday
-                    ? "border-sky-700/30 bg-sky-950/20"
-                    : "border-white/8 bg-white/[0.03]"
-                }`}>
-                  {/* Date row */}
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <CalendarDays className={`w-3 h-3 shrink-0 ${isPast ? "text-gray-600" : isToday ? "text-sky-400" : "text-gray-500"}`} />
-                    <span className={`text-[11px] font-medium ${isPast ? "text-gray-600" : isToday ? "text-sky-300 font-semibold" : "text-gray-400"}`}>
-                      {formatShortDate(flight.isoDate, locale)}
-                      {isToday && (
-                        <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wide text-sky-400 animate-pulse">
-                          {locale === "en" ? "TODAY" : "HOY"}
-                        </span>
-                      )}
-                      {daysUntil > 0 && !isToday && (
-                        <span className={`ml-1.5 text-[10px] ${daysUntil <= 7 ? "text-yellow-400" : "text-emerald-400"}`}>
-                          {daysUntil}d
-                        </span>
-                      )}
-                    </span>
-                    {conn && conn.risk !== "safe" && (
-                      <span className={`ml-auto text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full border ${RISK_PILL[conn.risk]}`}>
-                        {conn.risk === "missed"  ? (locale === "en" ? "Missed"   : "Perdida")  :
-                         conn.risk === "at_risk" ? (locale === "en" ? "At risk"  : "En riesgo") :
-                                                   (locale === "en" ? "Tight"    : "Ajustada")}
-                        {conn.delayAddedMinutes > 0 && ` +${conn.delayAddedMinutes}m`}
+                {/* Connecting line */}
+                {!isLast && (
+                  <div className="flex flex-col items-center mx-1" style={{ marginTop: 2 }}>
+                    <div className="flex items-center">
+                      <div className={`h-px w-8 sm:w-10 transition-colors ${
+                        nextConn && nextConn.risk !== "safe"
+                          ? CONN_COLORS[nextConn.risk].line
+                          : "bg-white/[0.10]"
+                      }`} />
+                      <Plane className={`h-3 w-3 -mx-0.5 transition-colors ${
+                        nextConn && nextConn.risk !== "safe"
+                          ? CONN_COLORS[nextConn.risk].icon
+                          : "text-blue-400/50"
+                      }`} />
+                      <div className={`h-px w-8 sm:w-10 transition-colors ${
+                        nextConn && nextConn.risk !== "safe"
+                          ? CONN_COLORS[nextConn.risk].line
+                          : "bg-white/[0.10]"
+                      }`} />
+                    </div>
+                    {/* Connection risk label on the line */}
+                    {nextConn && nextConn.risk !== "safe" && (
+                      <span className={`text-[8px] font-bold uppercase tracking-wide mt-0.5 ${CONN_COLORS[nextConn.risk].icon}`}>
+                        {nextConn.risk === "missed"  ? (locale === "en" ? "MISSED"   : "PERDIDA")   :
+                         nextConn.risk === "at_risk" ? (locale === "en" ? "AT RISK"  : "EN RIESGO") :
+                                                       (locale === "en" ? "TIGHT"    : "AJUSTADA")}
                       </span>
                     )}
                   </div>
-
-                  {/* Route: DEP ──✈── ARR */}
-                  <div className="flex items-center gap-2">
-                    {/* Origin */}
-                    <div className="flex flex-col items-center min-w-[40px]">
-                      <span className={`text-sm font-bold leading-none ${isPast ? "text-white/40" : "text-white"}`}>
-                        {flight.originCode}
-                      </span>
-                      {flight.departureTime && (
-                        <span className={`text-[11px] font-medium mt-0.5 ${isPast ? "text-white/30" : "text-blue-300"}`}>
-                          {flight.departureTime}
-                        </span>
-                      )}
-                      {hasOriginIssue && !isPast && (
-                        <AlertTriangle className="w-2.5 h-2.5 text-orange-400 mt-0.5" />
-                      )}
-                    </div>
-
-                    {/* Middle: flight code + plane icon */}
-                    <div className="flex-1 flex flex-col items-center gap-0.5 min-w-0">
-                      <div className="flex items-center gap-1 w-full">
-                        <div className={`flex-1 h-px ${isPast ? "bg-white/10" : "bg-white/20"}`} />
-                        <Plane className={`w-3 h-3 shrink-0 ${isPast ? "text-white/25" : "text-blue-400/70"}`} />
-                        <div className={`flex-1 h-px ${isPast ? "bg-white/10" : "bg-white/20"}`} />
-                      </div>
-                      <span className={`text-[10px] font-medium truncate max-w-full ${isPast ? "text-white/30" : "text-gray-400"}`}>
-                        {flight.flightCode}
-                      </span>
-                    </div>
-
-                    {/* Destination */}
-                    <div className="flex flex-col items-center min-w-[40px]">
-                      <span className={`text-sm font-bold leading-none ${isPast ? "text-white/40" : "text-white"}`}>
-                        {flight.destinationCode}
-                      </span>
-                      {flight.arrivalTime && (
-                        <span className={`text-[11px] font-medium mt-0.5 ${isPast ? "text-white/30" : "text-emerald-300"}`}>
-                          {flight.arrivalTime}
-                          {flight.arrivalDate && flight.arrivalDate !== flight.isoDate && (
-                            <span className="text-[9px] text-gray-500 ml-0.5">+1</span>
-                          )}
-                        </span>
-                      )}
-                      {hasDestIssue && !isPast && (
-                        <AlertTriangle className="w-2.5 h-2.5 text-orange-400 mt-0.5" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Airport names (small, truncate) */}
-                  <div className="flex justify-between mt-1">
-                    <span className="text-[10px] text-gray-600 truncate max-w-[45%]">
-                      {AIRPORTS[flight.originCode]?.city ?? ""}
-                    </span>
-                    <span className="text-[10px] text-gray-600 truncate max-w-[45%] text-right">
-                      {AIRPORTS[flight.destinationCode]?.city ?? ""}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ── Accommodations linked to this flight ── */}
-              {flightAccs.map((acc) => (
-                <AccommodationBlock key={acc.id} acc={acc} locale={locale} />
-              ))}
-
-              {/* ── Layover segment between this flight and the next ── */}
-              {!isLast && nextFlight && (
-                <LayoverSegment
-                  flight={flight}
-                  nextFlight={nextFlight}
-                  conn={conn ?? null}
-                  locale={locale}
-                />
-              )}
-            </div>
-          );
-        })}
-
-        {/* ── Final destination node ── */}
-        {sorted.length > 0 && (() => {
-          const last = sorted[sorted.length - 1];
-          const hasIssue = statusMap[last.destinationCode]?.status !== "ok" &&
-            statusMap[last.destinationCode]?.status !== undefined;
-          const daysUntil = getDaysUntil(last.arrivalDate ?? last.isoDate);
-          const isPast    = daysUntil < 0;
-
-          return (
-            <div className="flex gap-3">
-              <div className="flex flex-col items-center w-6 shrink-0">
-                <RailLine risk="safe" />
-                <div className={`w-3.5 h-3.5 rounded-full mx-auto ring-2 ring-offset-1 ${
-                  hasIssue ? "bg-orange-500 ring-orange-500/30" : isPast ? "bg-white/20 ring-white/10" : "bg-blue-500 ring-blue-500/30"
-                }`}
-                  style={{ "--tw-ring-offset-color": "#0a0a0f" } as React.CSSProperties}
-                />
-              </div>
-              <div className="flex-1 min-w-0 flex items-center gap-2 py-1">
-                <span className={`text-sm font-bold ${isPast ? "text-white/40" : "text-white"}`}>
-                  {last.destinationCode}
-                </span>
-                <span className="text-[11px] text-gray-500">
-                  {AIRPORTS[last.destinationCode]?.city ?? ""}
-                </span>
-                {last.arrivalTime && (
-                  <span className={`text-[11px] font-medium ml-auto ${isPast ? "text-white/30" : "text-emerald-300"}`}>
-                    <Clock className="w-2.5 h-2.5 inline mr-0.5" />
-                    {last.arrivalTime}
-                  </span>
                 )}
               </div>
-            </div>
-          );
-        })()}
+            );
+          })}
+        </div>
 
-        {/* Unlinked accommodations (no flightId) */}
-        {accommodations
-          .filter((a) => !a.flightId)
-          .map((acc) => (
-            <AccommodationBlock key={acc.id} acc={acc} locale={locale} />
-          ))}
+        <p className="text-xs text-white/50 mt-3 text-center">
+          {locale === "en" ? "Hover or tap a dot for details" : "Hover o tocá un punto para ver detalles"}
+        </p>
       </div>
-    </div>
-  );
-}
-
-// ── Layover segment ────────────────────────────────────────────────────────────
-
-function LayoverSegment({
-  flight,
-  nextFlight,
-  conn,
-  locale,
-}: {
-  flight: TimelineFlight;
-  nextFlight: TimelineFlight;
-  conn: ConnectionAnalysis | null;
-  locale: "es" | "en";
-}) {
-  const sameAirport = flight.destinationCode === nextFlight.originCode;
-  if (!sameAirport) return null;
-
-  const risk = conn?.risk ?? "safe";
-  const bufferMin = conn?.scheduledBufferMinutes ?? null;
-
-  return (
-    <div className="flex gap-3 py-0">
-      {/* Rail column */}
-      <div className="flex flex-col items-center w-6 shrink-0">
-        <RailLine risk={risk} />
-      </div>
-
-      {/* Layover label */}
-      <div className="flex-1 min-w-0 flex items-center gap-2 py-1">
-        <div className={`h-px flex-1 ${risk !== "safe" ? (RISK_LINE[risk] ?? "bg-white/10") : "bg-white/8"}`} />
-        <span className={`text-[10px] font-medium whitespace-nowrap ${
-          risk === "missed"  ? "text-red-400"    :
-          risk === "at_risk" ? "text-orange-400" :
-          risk === "tight"   ? "text-yellow-400" :
-          "text-gray-500"
-        }`}>
-          {bufferMin !== null
-            ? formatLayoverDuration(bufferMin, locale)
-            : (locale === "en" ? "layover" : "escala")}
-        </span>
-        <div className={`h-px flex-1 ${risk !== "safe" ? (RISK_LINE[risk] ?? "bg-white/10") : "bg-white/8"}`} />
-      </div>
-    </div>
+    </>
   );
 }
