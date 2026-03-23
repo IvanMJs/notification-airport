@@ -377,18 +377,20 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
               <div className="relative h-16 w-16">
                 {/* Glow ring */}
                 <div className="absolute inset-0 rounded-full border-2 border-violet-500/30 animate-ping" />
-                {/* Spinning avatar — wrapper div ensures animate-spin works on all mobile browsers */}
+                {/* Spinning avatar — outer div rotates, inner div clips (iOS Safari fix:
+                    overflow-hidden + border-radius must NOT be on the transform element) */}
                 <div
-                  className="rounded-full animate-spin spin-always overflow-hidden"
-                  style={{ animationDuration: "2s" }}
+                  className="animate-spin spin-always w-16 h-16"
+                  style={{ animationDuration: "2s", willChange: "transform" }}
                 >
-                  <Image
-                    src="/tripcopliot-avatar.svg"
-                    alt="TripCopilot"
-                    width={64}
-                    height={64}
-                    className="rounded-full"
-                  />
+                  <div className="rounded-full overflow-hidden w-16 h-16">
+                    <Image
+                      src="/tripcopliot-avatar.svg"
+                      alt="TripCopilot"
+                      width={64}
+                      height={64}
+                    />
+                  </div>
                 </div>
               </div>
               <p className="text-sm text-gray-400 animate-pulse">{t.parsing}</p>

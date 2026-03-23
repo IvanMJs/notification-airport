@@ -524,10 +524,14 @@ html.light .skeleton {
   }
 }
 
-/* Loading indicators must always animate — functional feedback, not decorative */
+/* Loading indicators must always animate — functional feedback, not decorative.
+   Placed AFTER prefers-reduced-motion block so !important wins the cascade. */
 .spin-always {
+  animation-name: spin !important;
   animation-duration: 2s !important;
+  animation-timing-function: linear !important;
   animation-iteration-count: infinite !important;
+  animation-play-state: running !important;
 }
 
 /* ── Floating label inputs ─────────────────────────────────────────────────── */
