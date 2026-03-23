@@ -41,6 +41,8 @@ import { createClient } from "@/utils/supabase/client";
 import { GlobalAlertBar } from "@/components/GlobalAlertBar";
 import { useDeviceTimezone } from "@/hooks/useDeviceTimezone";
 import { TimezoneBanner } from "@/components/TimezoneBanner";
+import { TripAssistant } from "@/components/TripAssistant";
+import { DepartureBoard } from "@/components/DepartureBoard";
 
 const SEVERITY_ORDER: Record<DelayStatus, number> = {
   closure:        0,
@@ -89,7 +91,7 @@ export default function HomePage() {
   } = useUserTrips();
 
   // All navigable tab IDs in display order for directional slide
-  const allTabIds = ["airports", "flights", "search", "trips", ...userTrips.map((t) => t.id), DRAFT_ID, EXAMPLE_ID, "help"];
+  const allTabIds = ["airports", "today", "flights", "search", "trips", ...userTrips.map((t) => t.id), DRAFT_ID, EXAMPLE_ID, "help"];
 
   function setActiveTab(newTab: string) {
     const prevIdx = allTabIds.indexOf(prevTabRef.current);
@@ -710,6 +712,10 @@ export default function HomePage() {
                   <AirportSearch watchedAirports={watchedAirports} onAdd={(iata) => addAirportDB(iata)} />
                 </div>
               </div>
+            )}
+
+            {activeTab === "today" && (
+              <DepartureBoard trips={userTrips} statusMap={statusMap} locale={locale} />
             )}
 
             {activeTab === "flights" && (

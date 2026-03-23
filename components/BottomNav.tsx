@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plane, Plus, Pencil, X, Map, MapPin, Trash2, ChevronUp } from "lucide-react";
+import { Plane, Plus, Pencil, X, Map, MapPin, Trash2, ChevronUp, CalendarDays } from "lucide-react";
 import { TripTab } from "@/lib/types";
 
 interface Props {
@@ -245,6 +245,17 @@ export function BottomNav({
               <MapPin className={`w-[22px] h-[22px] transition-colors ${activeTab === "airports" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "airports" ? 2.5 : 1.5} />
             </div>
             <span className={`text-xs leading-none ${activeTab === "airports" ? "font-bold" : "font-semibold"}`}>{tabLabels.airports}</span>
+          </button>
+
+          {/* Hoy */}
+          <button
+            onClick={() => onNavigate("today")}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "today" ? "text-violet-400" : "text-gray-500"}`}
+          >
+            <div className={`flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200 ${activeTab === "today" ? "bg-violet-500/20" : ""}`}>
+              <CalendarDays className={`w-[22px] h-[22px] transition-colors ${activeTab === "today" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "today" ? 2.5 : 1.5} />
+            </div>
+            <span className={`text-xs leading-none ${activeTab === "today" ? "font-bold" : "font-semibold"}`}>{locale === "es" ? "Hoy" : "Today"}</span>
           </button>
 
           {/* Vuelos */}
