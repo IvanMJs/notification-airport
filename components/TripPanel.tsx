@@ -384,6 +384,7 @@ export function TripPanel({
             </div>
           </div>
           <button
+            type="button"
             onClick={async () => {
               navigator.vibrate?.(30);
               setSaving(true);

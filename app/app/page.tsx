@@ -332,6 +332,8 @@ export default function HomePage() {
       toast.success(locale === "es" ? "Viaje guardado ✓" : "Trip saved ✓");
       setDraftTrip(null);
       setActiveTab(id);
+    } else {
+      toast.error(locale === "es" ? "Error al guardar. Intentá de nuevo." : "Save failed. Please try again.");
     }
   }
 

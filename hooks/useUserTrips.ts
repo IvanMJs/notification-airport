@@ -507,7 +507,10 @@ export function useUserTrips() {
       p_accommodations: accommodations,
     });
 
-    if (error || !data) return null;
+    if (error || !data) {
+      console.error("[saveDraftTrip] RPC error:", error);
+      return null;
+    }
 
     navigator.vibrate?.(30);
     const newTripId = data as string;
