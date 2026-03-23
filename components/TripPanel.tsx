@@ -476,12 +476,7 @@ export function TripPanel({
 
       {/* Passengers tab */}
       {panelTab === "passengers" && !isDraft && (
-        <TripPassengers
-          tripId={trip.id}
-          passengers={trip.passengers ?? []}
-          onUpdate={onUpdatePassengers ?? (() => {})}
-          locale={locale}
-        />
+        <TripPassengers tripId={trip.id} />
       )}
 
       {/* Flight cards */}
