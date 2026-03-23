@@ -912,6 +912,29 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── JSON-LD structured data ──────────────────────────────────────── */}
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: "TripCopilot",
+            description:
+              "Monitoreo de vuelos en tiempo real. Alertas de demoras FAA, importá tu boarding pass con IA, y gestioná todos tus viajes.",
+            applicationCategory: "TravelApplication",
+            operatingSystem: "Web, iOS, Android",
+            url: "https://tripcopilot.app",
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "USD",
+            },
+          }),
+        }}
+      />
+
       {/* ── FOOTER ──────────────────────────────────────────────────────── */}
       <footer className="border-t border-white/[0.05] py-10 px-4">
         <div className="max-w-5xl mx-auto space-y-6">
