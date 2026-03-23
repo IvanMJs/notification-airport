@@ -1,4 +1,23 @@
 import { AIRPORTS } from "@/lib/airports";
+import type { TripFlight } from "@/lib/types";
+
+// ── Public result type ────────────────────────────────────────────────────────
+
+export interface CarbonResult {
+  /** Total CO₂ across all flights, in kg */
+  totalKg: number;
+  /** CO₂ per flight keyed by flight code (e.g. "AA900") */
+  perFlightKg: Record<string, number>;
+  /** Estimated offset cost in USD (~$15 / tonne) */
+  offsetCostUSD: number;
+  /** Trees required to offset in one year (1 tree absorbs ~21 kg CO₂/year) */
+  trees: number;
+  comparison: {
+    /** Equivalent distance driven by an average car */
+    drivingKm: number;
+    label: string;
+  };
+}
 
 // ── Haversine distance ────────────────────────────────────────────────────────
 
@@ -80,4 +99,47 @@ export function calculateTripCO2(
   }
 
   return { totalCo2Kg: Math.round(totalCo2Kg), perFlight };
+}
+
+// ── calculateCarbonFootprint ──────────────────────────────────────────────────
+// Average car emits ~0.21 kg CO₂/km (EU mixed fleet, ICCT 2023)
+
+const KG_CO2_PER_CAR_KM = 0.21;
+const USD_PER_TONNE     = 15;
+const KG_CO2_PER_TREE   = 21; // kg absorbed per tree per year
+
+export function calculateCarbonFootprint(flights: TripFlight[]): CarbonResult {
+  const perFlightKg: Record<string, number> = {};
+  let totalKg = 0;
+
+  for (const f of flights) {
+    const cabin = (
+      f.cabinClass === "economy" ||
+      f.cabinClass === "premium_economy" ||
+      f.cabinClass === "business" ||
+      f.cabinClass === "first"
+    ) ? f.cabinClass : "economy";
+
+    const result = calculateFlightCO2(f.originCode, f.destinationCode, cabin);
+    const kg = result?.co2Kg ?? 0;
+    perFlightKg[f.flightCode] = kg;
+    totalKg += kg;
+  }
+
+  totalKg = Math.round(totalKg);
+
+  const offsetCostUSD = parseFloat(((totalKg / 1000) * USD_PER_TONNE).toFixed(2));
+  const trees         = Math.ceil(totalKg / KG_CO2_PER_TREE);
+  const drivingKm     = Math.round(totalKg / KG_CO2_PER_CAR_KM);
+
+  return {
+    totalKg,
+    perFlightKg,
+    offsetCostUSD,
+    trees,
+    comparison: {
+      drivingKm,
+      label: `equivalent to driving ${drivingKm.toLocaleString()} km`,
+    },
+  };
 }
