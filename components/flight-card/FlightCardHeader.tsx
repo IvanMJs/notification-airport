@@ -2,6 +2,7 @@
 
 import { Plane, Globe, Trash2, ChevronDown, Check, ArrowUpCircle } from "lucide-react";
 import { TripFlight, AirportStatus } from "@/lib/types";
+import { WeatherData } from "@/hooks/useWeather";
 import { StatusBadge } from "@/components/StatusBadge";
 import { TripPanelLabels } from "@/components/TripPanelLabels";
 import { DaysCountdown } from "./helpers";
@@ -33,6 +34,8 @@ export interface FlightCardHeaderProps {
   // device timezone display overrides
   displayDepartureTime?: string;
   displayArrivalTime?: string;
+  // current weather at origin airport
+  originWeather?: WeatherData;
 }
 
 export function FlightCardHeader({
@@ -55,6 +58,7 @@ export function FlightCardHeader({
   onToggleExpanded,
   displayDepartureTime,
   displayArrivalTime,
+  originWeather,
 }: FlightCardHeaderProps) {
   const status = originStatus?.status ?? "ok";
 
@@ -203,6 +207,12 @@ export function FlightCardHeader({
               <span className="text-gray-700">·</span>
               <span>{flight.airlineName}</span>
             </>
+          )}
+          {originWeather && (
+            <span className="ml-auto flex items-center gap-1 shrink-0 text-[11px] text-gray-400">
+              <span className="leading-none">{originWeather.icon}</span>
+              <span className="tabular-nums font-medium">{originWeather.temperature}°C</span>
+            </span>
           )}
         </div>
       </div>

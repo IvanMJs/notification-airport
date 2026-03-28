@@ -251,6 +251,7 @@ export function FlightCard({
           onToggleExpanded={() => setExpanded((v) => !v)}
           displayDepartureTime={displayDepartureTime ?? undefined}
           displayArrivalTime={displayArrivalTime ?? undefined}
+          originWeather={weatherMap[flight.originCode]}
         />
 
         <FlightCardBody
