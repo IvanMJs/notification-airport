@@ -156,8 +156,11 @@ export function FlightCardBody({
                 <span className="text-sm leading-none">{weather.icon}</span>
                 <span className="font-semibold text-gray-300">{weather.temperature}°C</span>
                 <span>{weather.description}</span>
+                <span className="text-gray-700">·</span>
+                <span className="text-gray-600">{locale === "es" ? "ahora" : "now"}</span>
               </div>
             )}
+            <WeatherWidget airportIata={flight.originCode} isoDate={flight.isoDate} locale={locale} />
             {tsaData && tsaData.avgWaitTime > 0 && (
               <div className="flex items-center gap-1.5 mt-1 text-xs text-gray-500">
                 <span>🛡️</span>
