@@ -14,24 +14,38 @@ const SONAR_RINGS = [0, 1, 2];
 
 function SonarIcon() {
   return (
-    <div className="relative flex items-center justify-center w-10 h-10">
+    <div className="relative flex items-center justify-center w-12 h-12">
+      {/* Pulsing glow blob behind icon */}
+      <motion.div
+        className="absolute inset-0 rounded-full bg-green-400/15"
+        animate={{ scale: [1, 1.18, 1], opacity: [0.4, 0.75, 0.4] }}
+        transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
+      />
+      {/* Sonar rings */}
       {SONAR_RINGS.map((i) => (
         <motion.span
           key={i}
-          className="absolute inset-0 rounded-full border-2 border-green-400"
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: [0.5, 2.6], opacity: [0.85, 0] }}
+          className="absolute inset-0 rounded-full border border-green-400/60"
+          initial={{ scale: 0.35, opacity: 0 }}
+          animate={{ scale: [0.35, 2.2], opacity: [0.65, 0] }}
           transition={{
-            duration: 1.8,
+            duration: 2.1,
             ease: "easeOut",
             repeat: Infinity,
-            repeatDelay: 0.4,
-            delay: i * 0.6,
+            repeatDelay: 0.35,
+            delay: i * 0.68,
             times: [0, 1],
           }}
         />
       ))}
-      <PlaneTakeoff className="relative z-10 w-4 h-4 text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.8)]" />
+      {/* Floating plane icon */}
+      <motion.div
+        className="relative z-10"
+        animate={{ y: [0, -2.5, 0] }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <PlaneTakeoff className="w-5 h-5 text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.95)]" />
+      </motion.div>
     </div>
   );
 }

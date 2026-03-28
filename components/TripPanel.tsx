@@ -453,47 +453,35 @@ export function TripPanel({
       {/* Panel tab switcher */}
       {!isDraft && (
         <div className="flex items-center bg-white/5 rounded-xl p-0.5 gap-0.5">
-          <button
-            onClick={() => setPanelTab("flights")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              panelTab === "flights"
-                ? "bg-white/10 text-white"
-                : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            <Plane className="h-3.5 w-3.5" />
-            {locale === "es" ? "Vuelos" : "Flights"}
-          </button>
-          <button
-            onClick={() => setPanelTab("expenses")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              panelTab === "expenses"
-                ? "bg-white/10 text-white"
-                : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            💰 {locale === "es" ? "Gastos" : "Expenses"}
-          </button>
-          <button
-            onClick={() => setPanelTab("alerts")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              panelTab === "alerts"
-                ? "bg-white/10 text-white"
-                : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            🔔 {locale === "es" ? "Alertas" : "Alerts"}
-          </button>
-          <button
-            onClick={() => setPanelTab("passengers")}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              panelTab === "passengers"
-                ? "bg-white/10 text-white"
-                : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            👥 {locale === "es" ? "Pasajeros" : "Passengers"}
-          </button>
+          {(
+            [
+              { id: "flights",    label: locale === "es" ? "Vuelos"    : "Flights",    icon: <Plane className="h-3.5 w-3.5" /> },
+              { id: "expenses",   label: locale === "es" ? "Gastos"    : "Expenses",   icon: "💰" },
+              { id: "alerts",     label: locale === "es" ? "Alertas"   : "Alerts",     icon: "🔔" },
+              { id: "passengers", label: locale === "es" ? "Pasajeros" : "Passengers", icon: "👥" },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => { haptics.impact(); setPanelTab(tab.id); }}
+              className={`relative flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                panelTab === tab.id ? "text-white" : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              {panelTab === tab.id && (
+                <motion.span
+                  layoutId="panel-tab-pill"
+                  className="absolute inset-0 rounded-lg bg-white/10"
+                  layout
+                  transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                />
+              )}
+              <span className="relative z-10 flex items-center gap-1.5">
+                {tab.icon}
+                {tab.label}
+              </span>
+            </button>
+          ))}
         </div>
       )}
 
