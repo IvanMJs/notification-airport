@@ -21,7 +21,7 @@ import { buildGoogleCalendarUrl } from "@/lib/exportGoogleCalendar";
 import { ConnectionAnalysis } from "@/lib/connectionRisk";
 import { FlightStatusBadge } from "@/components/FlightStatusBadge";
 import { TsaAirportData } from "@/hooks/useTsaWait";
-import { TRIP_PANEL_LABELS, AIRLINE_APP_URLS, TripPanelLabels } from "@/components/TripPanelLabels";
+import { TRIP_PANEL_LABELS, AIRLINE_APP_URLS, AIRLINE_CHECKIN_URLS, TripPanelLabels } from "@/components/TripPanelLabels";
 import { DaysCountdown, ExchangeRateRow } from "./helpers";
 import { WeatherWidget } from "@/components/WeatherWidget";
 import { AirportInfoCard } from "@/components/AirportInfoCard";
@@ -118,27 +118,37 @@ export function FlightCardBody({
       style={{ overflow: "hidden" }}
     >
 
-      {daysUntil === 1 && (
-        <div className="px-4 py-2.5 bg-emerald-950/30 border-b border-emerald-800/40 flex items-center justify-between gap-3 flex-wrap">
+      {(daysUntil === 0 || daysUntil === 1) && (
+        <div className={`px-4 py-2.5 border-b flex items-center justify-between gap-3 flex-wrap ${
+          daysUntil === 0
+            ? "bg-blue-950/40 border-blue-700/40"
+            : "bg-emerald-950/30 border-emerald-800/40"
+        }`}>
           <div className="flex items-center gap-2">
-            <span className="text-sm">✈️</span>
+            <span className="text-sm">🛂</span>
             <div>
-              <p className="text-xs font-bold text-emerald-300">
-                {locale === "en" ? "Check-in is open!" : "¡Check-in disponible!"}
+              <p className={`text-xs font-bold ${daysUntil === 0 ? "text-blue-300" : "text-emerald-300"}`}>
+                {daysUntil === 0
+                  ? (locale === "en" ? "Check-in open — fly today!" : "¡Check-in abierto — volás hoy!")
+                  : (locale === "en" ? "Check-in is open!" : "¡Check-in disponible!")}
               </p>
-              <p className="text-[11px] text-emerald-400/70">
-                {locale === "en"
-                  ? `Your flight ${flight.flightCode} departs tomorrow`
-                  : `Tu vuelo ${flight.flightCode} sale mañana`}
+              <p className={`text-[11px] ${daysUntil === 0 ? "text-blue-400/70" : "text-emerald-400/70"}`}>
+                {daysUntil === 0
+                  ? (locale === "en" ? `${flight.flightCode} departs today at ${flight.departureTime}` : `${flight.flightCode} sale hoy a las ${flight.departureTime}`)
+                  : (locale === "en" ? `${flight.flightCode} departs tomorrow at ${flight.departureTime}` : `${flight.flightCode} sale mañana a las ${flight.departureTime}`)}
               </p>
             </div>
           </div>
-          {AIRLINE_APP_URLS[flight.airlineCode] && (
+          {(AIRLINE_CHECKIN_URLS[flight.airlineCode] ?? AIRLINE_APP_URLS[flight.airlineCode]) && (
             <a
-              href={AIRLINE_APP_URLS[flight.airlineCode]}
+              href={AIRLINE_CHECKIN_URLS[flight.airlineCode] ?? AIRLINE_APP_URLS[flight.airlineCode]}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-300 border border-emerald-700/50 bg-emerald-900/20 rounded-lg px-3 py-1.5 hover:bg-emerald-900/40 transition-colors"
+              className={`inline-flex items-center gap-1.5 text-xs font-semibold rounded-lg px-3 py-1.5 transition-colors border ${
+                daysUntil === 0
+                  ? "text-blue-300 border-blue-700/50 bg-blue-900/20 hover:bg-blue-900/40"
+                  : "text-emerald-300 border-emerald-700/50 bg-emerald-900/20 hover:bg-emerald-900/40"
+              }`}
             >
               {locale === "en" ? "Check in now" : "Hacer check-in"}
               <ExternalLink className="h-3 w-3" />
