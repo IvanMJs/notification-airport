@@ -111,18 +111,45 @@ export function FlightCountdownBadge({ flight, locale }: FlightCountdownBadgePro
       : `Departs in ${totalMinutes}min`;
   }
 
+  const totalDuration = 24 * 60; // 24h window in minutes
+  const elapsed = Math.max(0, totalDuration - totalMinutes);
+  const progress = Math.min(100, (elapsed / totalDuration) * 100);
+
   return (
     <div
       className={[
-        "flex items-center gap-2 rounded-full px-3 py-1.5 text-sm",
+        "w-full rounded-xl overflow-hidden border",
         isUrgent
-          ? "bg-amber-900/40 border border-amber-700/40 text-amber-300"
-          : "bg-violet-900/40 border border-violet-700/40 text-violet-300",
+          ? "bg-amber-950/40 border-amber-700/40"
+          : "bg-violet-950/40 border-violet-700/40",
         flashing ? "animate-success-flash" : "",
       ].join(" ")}
     >
-      <Plane className="h-3.5 w-3.5 shrink-0" />
-      <span className="font-semibold tabular-nums">{label}</span>
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+        <div className="flex items-center gap-2 min-w-0">
+          <Plane className={`h-4 w-4 shrink-0 ${isUrgent ? "text-amber-400" : "text-violet-400"}`} />
+          <div className="min-w-0">
+            <p className={`text-xs font-bold ${isUrgent ? "text-amber-300" : "text-violet-300"}`}>
+              {label}
+            </p>
+            <p className={`text-[11px] truncate ${isUrgent ? "text-amber-400/60" : "text-violet-400/60"}`}>
+              {flight.flightCode} · {flight.originCode} → {flight.destinationCode} · {flight.departureTime}
+            </p>
+          </div>
+        </div>
+        {isUrgent && (
+          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-900/50 border border-amber-700/40 rounded-full px-2 py-0.5 shrink-0 animate-pulse">
+            {locale === "es" ? "Hoy" : "Today"}
+          </span>
+        )}
+      </div>
+      {/* Progress bar */}
+      <div className={`h-0.5 w-full ${isUrgent ? "bg-amber-900/40" : "bg-violet-900/40"}`}>
+        <div
+          className={`h-full transition-all duration-1000 ${isUrgent ? "bg-amber-500/60" : "bg-violet-500/60"}`}
+          style={{ width: `${progress}%` }}
+        />
+      </div>
     </div>
   );
 }

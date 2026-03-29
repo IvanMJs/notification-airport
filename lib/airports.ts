@@ -206,6 +206,7 @@ export function drivingEstimate(
   const airport = AIRPORTS[airportIata];
   if (!airport?.lat) return null;
   const straight = haversineKm(userLat, userLng, airport.lat, airport.lng);
+  if (straight > 150) return null;
   const km = Math.round(straight * 1.35);
   const minutes = Math.round((km / 55) * 60);
   return { km, minutes };
