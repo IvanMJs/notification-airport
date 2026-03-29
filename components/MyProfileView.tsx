@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { motion, type Easing } from "framer-motion";
-import { TrendingUp, Globe, Plane, MapPin, Zap, Award } from "lucide-react";
+import { TrendingUp, Globe, Plane, MapPin, Zap, Award, Share2, Check } from "lucide-react";
 import { TripTab } from "@/lib/types";
 import { computeTripStats } from "@/lib/tripStats";
 import { PLANS } from "@/lib/mercadopago";
@@ -31,6 +31,13 @@ const LABELS = {
     upgradeBtn: "Mejorar a Premium →",
     premiumPlan: "Plan Premium ⭐",
     premiumPerks: "Viajes ilimitados",
+    wrapped: {
+      title: "Mi Travel Wrapped",
+      share: "Compartir mis stats",
+      copied: "¡Copiado!",
+      tagline: (flights: number, km: number, countries: number) =>
+        `${flights} vuelo${flights !== 1 ? "s" : ""} · ${km.toLocaleString()} km · ${countries} país${countries !== 1 ? "es" : ""} · TripCopilot ✈️`,
+    },
     badges: {
       firstFlight: "Primer vuelo",
       explorer: "Explorador",
@@ -57,6 +64,13 @@ const LABELS = {
     upgradeBtn: "Upgrade to Premium →",
     premiumPlan: "Premium Plan ⭐",
     premiumPerks: "Unlimited trips",
+    wrapped: {
+      title: "My Travel Wrapped",
+      share: "Share my stats",
+      copied: "Copied!",
+      tagline: (flights: number, km: number, countries: number) =>
+        `${flights} flight${flights !== 1 ? "s" : ""} · ${km.toLocaleString()} km · ${countries} countr${countries !== 1 ? "ies" : "y"} · TripCopilot ✈️`,
+    },
     badges: {
       firstFlight: "First flight",
       explorer: "Explorer",
@@ -79,6 +93,7 @@ const fadeUp = (delay: number) => ({
 
 export function MyProfileView({ trips, locale, userPlan, onUpgrade }: MyProfileViewProps) {
   const L = LABELS[locale];
+  const [wrappedCopied, setWrappedCopied] = useState(false);
 
   const stats = useMemo(() => {
     const allFlights = trips.flatMap((t) => t.flights);
@@ -241,6 +256,92 @@ export function MyProfileView({ trips, locale, userPlan, onUpgrade }: MyProfileV
               <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">{L.favoriteRoute}</p>
             </div>
             <p className="font-mono text-2xl font-black text-white">{stats.mostFrequentRoute}</p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Section 5b — Travel Wrapped shareable card */}
+      {stats.totalFlights >= 1 && (
+        <motion.div {...fadeUp(0.22)} className="px-4 pb-4">
+          {/* Visual card */}
+          <div className="rounded-2xl overflow-hidden border border-violet-700/30 bg-gradient-to-br from-violet-900/50 via-blue-900/30 to-indigo-950/60 p-5">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-violet-300/60 mb-1">
+                  {L.wrapped.title}
+                </p>
+                <p className="text-3xl font-black text-white leading-none">
+                  {stats.totalFlights}
+                  <span className="text-lg text-violet-300/80 font-bold ml-1">
+                    {locale === "es" ? "vuelos" : "flights"}
+                  </span>
+                </p>
+              </div>
+              <span className="text-4xl" aria-hidden>✈️</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="text-center">
+                <p className="text-xl font-black text-white leading-none">
+                  {stats.totalDistanceKm >= 1000
+                    ? `${Math.round(stats.totalDistanceKm / 1000)}k`
+                    : stats.totalDistanceKm}
+                </p>
+                <p className="text-[10px] text-violet-300/60 mt-0.5 font-medium">km</p>
+              </div>
+              <div className="text-center border-x border-violet-700/30">
+                <p className="text-xl font-black text-white leading-none">{stats.countriesVisited.length}</p>
+                <p className="text-[10px] text-violet-300/60 mt-0.5 font-medium">
+                  {locale === "es" ? "países" : "countries"}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xl font-black text-white leading-none">{stats.totalDurationHours}h</p>
+                <p className="text-[10px] text-violet-300/60 mt-0.5 font-medium">
+                  {locale === "es" ? "en vuelo" : "airborne"}
+                </p>
+              </div>
+            </div>
+
+            {stats.timesAroundEarth >= 0.1 && (
+              <p className="text-xs text-violet-200/60 mb-4 leading-relaxed">
+                🌍 {L.aroundEarth(stats.timesAroundEarth)}
+              </p>
+            )}
+
+            <button
+              onClick={async () => {
+                const text = L.wrapped.tagline(
+                  stats.totalFlights,
+                  stats.totalDistanceKm,
+                  stats.countriesVisited.length,
+                );
+                try {
+                  if (navigator.share) {
+                    await navigator.share({ text, title: "TripCopilot" });
+                  } else {
+                    await navigator.clipboard.writeText(text);
+                    setWrappedCopied(true);
+                    setTimeout(() => setWrappedCopied(false), 2000);
+                  }
+                } catch {
+                  // cancelled or unavailable
+                }
+              }}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/[0.15] active:scale-95 border border-white/[0.12] text-white text-sm font-bold py-2.5 transition-all"
+            >
+              {wrappedCopied ? (
+                <>
+                  <Check className="h-4 w-4 text-emerald-400" />
+                  {L.wrapped.copied}
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-4 w-4" />
+                  {L.wrapped.share}
+                </>
+              )}
+            </button>
           </div>
         </motion.div>
       )}

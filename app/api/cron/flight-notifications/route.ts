@@ -785,6 +785,86 @@ export async function GET(request: Request) {
     await sendInBatches(priceAlerts as PriceAlertRow[], processPriceAlert, 10);
   }
 
+  // ── Weekly Morning Briefing (flights in next 14 days) ─────────────────────
+  // Runs once per week per user. Deduplication via notification_log with key
+  // "weekly_briefing_YYYY-WW" so the same user only gets it once that week.
+  {
+    const isoWeek = (() => {
+      const d = new Date(now);
+      d.setUTCHours(0, 0, 0, 0);
+      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+      return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+    })();
+
+    // Only on Monday (UTC day 1) to avoid spamming every cron run
+    if (now.getUTCDay() === 1) {
+      const fourteenDaysISO = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10);
+
+      const { data: upcomingFlights } = await supabase
+        .from("flights")
+        .select("trip_id, flight_code, origin_code, destination_code, iso_date, trips!inner(user_id)")
+        .gt("iso_date", todayISO)
+        .lte("iso_date", fourteenDaysISO);
+
+      if (upcomingFlights?.length) {
+        // Group by user_id
+        type UpcomingRow = { trip_id: string; flight_code: string; origin_code: string; destination_code: string; iso_date: string; trips: { user_id: string } };
+        const byUser = new Map<string, UpcomingRow[]>();
+        for (const f of upcomingFlights as unknown as UpcomingRow[]) {
+          const uid = f.trips.user_id;
+          if (!byUser.has(uid)) byUser.set(uid, []);
+          byUser.get(uid)!.push(f);
+        }
+
+        for (const [userId, userFlights] of Array.from(byUser)) {
+          const briefingType = `weekly_briefing_${isoWeek}`;
+
+          // Deduplicate: skip if already sent this week
+          const { data: existing } = await supabase
+            .from("notification_log")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("type", briefingType)
+            .limit(1)
+            .maybeSingle();
+          if (existing) continue;
+
+          const { data: subs } = await supabase
+            .from("push_subscriptions")
+            .select("endpoint, p256dh, auth")
+            .eq("user_id", userId);
+          if (!subs?.length) continue;
+
+          const userLocale = await getUserLocale(userId);
+          const count = userFlights.length;
+          const next = userFlights.sort((a: UpcomingRow, b: UpcomingRow) => a.iso_date.localeCompare(b.iso_date))[0];
+          const [, nextMonth, nextDay] = next.iso_date.split("-");
+
+          const title = userLocale === "es"
+            ? `☀️ Tus próximos vuelos esta semana`
+            : `☀️ Your upcoming flights this week`;
+          const body = userLocale === "es"
+            ? `Tenés ${count} vuelo${count !== 1 ? "s" : ""} en los próximos 14 días. Próximo: ${next.flight_code} ${next.origin_code}→${next.destination_code} el ${nextDay}/${nextMonth}.`
+            : `You have ${count} flight${count !== 1 ? "s" : ""} in the next 14 days. Next: ${next.flight_code} ${next.origin_code}→${next.destination_code} on ${nextMonth}/${nextDay}.`;
+
+          const failed = await pushToAll(subs, supabase, { title, body, url: "/app" }, briefingType);
+          notificationsSent++;
+          notificationsFailed += failed;
+
+          await supabase.from("notification_log").insert({
+            user_id: userId,
+            type: briefingType,
+            sent_at: new Date().toISOString(),
+          });
+        }
+      }
+    }
+  }
+
   await supabase.from("cron_runs").insert({
     flights_processed: flights.length,
     notifications_sent: notificationsSent,

@@ -49,6 +49,7 @@ import { TripAssistant } from "@/components/TripAssistant";
 import { DepartureBoard } from "@/components/DepartureBoard";
 import { DiscoverView } from "@/components/DiscoverView";
 import { MyProfileView } from "@/components/MyProfileView";
+import { TripDebriefModal } from "@/components/TripDebriefModal";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { PLANS } from "@/lib/mercadopago";
@@ -127,6 +128,9 @@ export default function HomePage() {
 
   // Delete confirmation modal
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; flightCount: number } | null>(null);
+
+  // Trip debrief — shown once per trip after all flights have passed
+  const [debriefTrip, setDebriefTrip] = useState<typeof userTrips[0] | null>(null);
 
   // Draft leave confirmation (shown when navigating away from unsaved draft)
   const [draftLeaveConfirm, setDraftLeaveConfirm] = useState<{ targetTab: string } | null>(null);
@@ -219,6 +223,23 @@ export default function HomePage() {
       localStorage.setItem(key, "1");
     }
   }, [mounted, locale, userTrips]);
+
+  // Trip debrief: check once when trips load
+  useEffect(() => {
+    if (!mounted || userTrips.length === 0) return;
+    const todayISO = new Date().toISOString().slice(0, 10);
+    for (const trip of userTrips) {
+      if (trip.flights.length === 0) continue;
+      const allPast = trip.flights.every((f) => f.isoDate < todayISO);
+      if (!allPast) continue;
+      const key = `tc_debrief_${trip.id}`;
+      if (localStorage.getItem(key)) continue;
+      localStorage.setItem(key, "1");
+      setDebriefTrip(trip);
+      break; // show one at a time
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, userTrips]);
 
   // Aggregate trip airports
   const tripAirports = userTrips.flatMap((t) =>
@@ -541,6 +562,14 @@ export default function HomePage() {
           onDiscard={discardDraft}
           onCancel={() => setDraftLeaveConfirm(null)}
           onNavigate={(tab) => { setActiveTab(tab); setDraftLeaveConfirm(null); }}
+        />
+      )}
+
+      {debriefTrip && (
+        <TripDebriefModal
+          trip={debriefTrip}
+          locale={locale}
+          onClose={() => setDebriefTrip(null)}
         />
       )}
 
