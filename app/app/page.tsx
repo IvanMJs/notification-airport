@@ -48,6 +48,8 @@ import { TimezoneBanner } from "@/components/TimezoneBanner";
 import { TripAssistant } from "@/components/TripAssistant";
 import { DepartureBoard } from "@/components/DepartureBoard";
 import { DiscoverView } from "@/components/DiscoverView";
+import { MyProfileView } from "@/components/MyProfileView";
+import { TripDebriefModal } from "@/components/TripDebriefModal";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { PLANS } from "@/lib/mercadopago";
@@ -99,7 +101,7 @@ export default function HomePage() {
   } = useUserTrips();
 
   // All navigable tab IDs in display order for directional slide
-  const allTabIds = ["airports", "today", "flights", "search", "discover", "trips", ...userTrips.map((t) => t.id), DRAFT_ID, EXAMPLE_ID, "help"];
+  const allTabIds = ["airports", "today", "flights", "profile", "discover", "trips", ...userTrips.map((t) => t.id), DRAFT_ID, EXAMPLE_ID, "help"];
 
   function setActiveTab(newTab: string) {
     const prevIdx = allTabIds.indexOf(prevTabRef.current);
@@ -126,6 +128,9 @@ export default function HomePage() {
 
   // Delete confirmation modal
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; flightCount: number } | null>(null);
+
+  // Trip debrief — shown once per trip after all flights have passed
+  const [debriefTrip, setDebriefTrip] = useState<typeof userTrips[0] | null>(null);
 
   // Draft leave confirmation (shown when navigating away from unsaved draft)
   const [draftLeaveConfirm, setDraftLeaveConfirm] = useState<{ targetTab: string } | null>(null);
@@ -218,6 +223,23 @@ export default function HomePage() {
       localStorage.setItem(key, "1");
     }
   }, [mounted, locale, userTrips]);
+
+  // Trip debrief: check once when trips load
+  useEffect(() => {
+    if (!mounted || userTrips.length === 0) return;
+    const todayISO = new Date().toISOString().slice(0, 10);
+    for (const trip of userTrips) {
+      if (trip.flights.length === 0) continue;
+      const allPast = trip.flights.every((f) => f.isoDate < todayISO);
+      if (!allPast) continue;
+      const key = `tc_debrief_${trip.id}`;
+      if (localStorage.getItem(key)) continue;
+      localStorage.setItem(key, "1");
+      setDebriefTrip(trip);
+      break; // show one at a time
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, userTrips]);
 
   // Aggregate trip airports
   const tripAirports = userTrips.flatMap((t) =>
@@ -543,6 +565,14 @@ export default function HomePage() {
         />
       )}
 
+      {debriefTrip && (
+        <TripDebriefModal
+          trip={debriefTrip}
+          locale={locale}
+          onClose={() => setDebriefTrip(null)}
+        />
+      )}
+
       {/* Offline banner */}
       {mounted && !isOnline && (
         <div className="fixed top-0 inset-x-0 z-50 flex items-center justify-center gap-2 bg-yellow-900/95 border-b border-yellow-700/60 px-4 py-2.5 backdrop-blur-sm"
@@ -781,8 +811,13 @@ export default function HomePage() {
               <MyFlightsPanel statusMap={statusMap} weatherMap={weatherMap} />
             )}
 
-            {activeTab === "search" && (
-              <FlightSearch statusMap={statusMap} />
+            {activeTab === "profile" && (
+              <MyProfileView
+                trips={userTrips}
+                locale={locale}
+                userPlan={userPlan}
+                onUpgrade={() => setShowUpgradeModal(true)}
+              />
             )}
 
             {activeTab === "discover" && (
@@ -967,7 +1002,7 @@ export default function HomePage() {
           userTrips={userTrips}
           draftTrip={draftTrip}
           draftId={DRAFT_ID}
-          tabLabels={{ airports: t.tabAirports, search: t.tabSearch }}
+          tabLabels={{ airports: t.tabAirports, profile: locale === "es" ? "Mis stats" : "My stats" }}
           onNavigate={navigateAway}
           onNewTrip={openCreateTripModal}
           onDiscardDraft={discardDraft}
