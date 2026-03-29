@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, MapPin, Moon, Thermometer, Copy, Check } from "lucide-react";
 import { getDestinationProfile, getDestinationConfig } from "@/lib/destinationConfig";
 import { TripAdviceResult } from "@/lib/types/tripAdvice";
@@ -243,46 +244,56 @@ function DestinationCard({
             })}
           </div>
 
-          {/* Tab content */}
-          <div className="px-4 py-3">
-            {activeTab === "packing" && (
-              <ul className="space-y-1">
-                {profile.packing.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
-                    <span className="text-gray-600 mt-0.5">•</span>
-                    <span>{locale === "es" ? item.es : item.en}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {activeTab === "activities" && profile && (
-              <ul className="space-y-2">
-                {profile.activities.length === 0 ? (
-                  <li className="text-xs text-gray-500">
-                    {locale === "es" ? "Sin actividades registradas." : "No activities listed."}
-                  </li>
-                ) : (
-                  profile.activities.map((act, i) => (
-                    <li key={i} className="text-xs">
-                      <span className="font-medium text-gray-300">{locale === "es" ? act.name : act.nameEn}</span>
-                      {(locale === "es" ? act.desc : act.descEn) && (
-                        <span className="text-gray-500 ml-1">— {locale === "es" ? act.desc : act.descEn}</span>
-                      )}
-                    </li>
-                  ))
+          {/* Tab content with crossfade */}
+          <div className="px-4 py-3 relative">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.16 }}
+              >
+                {activeTab === "packing" && (
+                  <ul className="space-y-1">
+                    {profile.packing.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
+                        <span className="text-gray-600 mt-0.5">•</span>
+                        <span>{locale === "es" ? item.es : item.en}</span>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              </ul>
-            )}
-            {activeTab === "tips" && (
-              <ul className="space-y-1">
-                {tips.map((t, i) => (
-                  <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
-                    <span className="text-violet-500 mt-0.5">✦</span>
-                    <span>{locale === "es" ? t.es : t.en}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
+                {activeTab === "activities" && profile && (
+                  <ul className="space-y-2">
+                    {profile.activities.length === 0 ? (
+                      <li className="text-xs text-gray-500">
+                        {locale === "es" ? "Sin actividades registradas." : "No activities listed."}
+                      </li>
+                    ) : (
+                      profile.activities.map((act, i) => (
+                        <li key={i} className="text-xs">
+                          <span className="font-medium text-gray-300">{locale === "es" ? act.name : act.nameEn}</span>
+                          {(locale === "es" ? act.desc : act.descEn) && (
+                            <span className="text-gray-500 ml-1">— {locale === "es" ? act.desc : act.descEn}</span>
+                          )}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                )}
+                {activeTab === "tips" && (
+                  <ul className="space-y-1">
+                    {tips.map((t, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-gray-400">
+                        <span className="text-violet-500 mt-0.5">✦</span>
+                        <span>{locale === "es" ? t.es : t.en}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       )}
@@ -696,19 +707,22 @@ export function TripAdvisor({ flights, locale }: TripAdvisorProps) {
                 {ACTIVITY_CHIPS.map((chip) => {
                   const selected = selectedActivities.includes(chip.id);
                   return (
-                    <button
+                    <motion.button
                       key={chip.id}
                       onClick={() => toggleActivity(chip.id)}
-                      className={`inline-flex items-center gap-1 text-xs font-medium px-4 py-2 rounded-xl border transition-all ${
+                      whileTap={{ scale: 0.91 }}
+                      animate={selected ? { scale: 1.04 } : { scale: 1 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 22 }}
+                      className={`inline-flex items-center gap-1 text-xs font-medium px-4 py-2 rounded-xl border transition-colors ${
                         selected
-                          ? "bg-violet-600/20 text-violet-200 border-violet-500/50 scale-[1.02]"
+                          ? "bg-violet-600/20 text-violet-200 border-violet-500/50"
                           : "bg-white/[0.04] text-gray-300 border-white/[0.08] hover:border-white/20"
                       }`}
                     >
                       {selected && <span className="text-violet-400 text-[10px]">✓ </span>}
                       <span>{chip.emoji}</span>
                       <span>{locale === "es" ? chip.label : chip.labelEn}</span>
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>

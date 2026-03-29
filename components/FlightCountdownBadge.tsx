@@ -125,7 +125,7 @@ export function FlightCountdownBadge({ flight, locale }: FlightCountdownBadgePro
         flashing ? "animate-success-flash" : "",
       ].join(" ")}
     >
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+      <div className="flex items-center justify-between gap-3 px-4 pt-2.5 pb-1.5">
         <div className="flex items-center gap-2 min-w-0">
           <Plane className={`h-4 w-4 shrink-0 ${isUrgent ? "text-amber-400" : "text-violet-400"}`} />
           <div className="min-w-0">
@@ -143,12 +143,36 @@ export function FlightCountdownBadge({ flight, locale }: FlightCountdownBadgePro
           </span>
         )}
       </div>
-      {/* Progress bar */}
-      <div className={`h-0.5 w-full ${isUrgent ? "bg-amber-900/40" : "bg-violet-900/40"}`}>
-        <div
-          className={`h-full transition-all duration-1000 ${isUrgent ? "bg-amber-500/60" : "bg-violet-500/60"}`}
-          style={{ width: `${progress}%` }}
-        />
+
+      {/* Progress bar with airplane */}
+      <div className="px-4 pb-3">
+        <div className="relative h-2 rounded-full overflow-visible">
+          {/* Track */}
+          <div className={`absolute inset-0 rounded-full ${isUrgent ? "bg-amber-900/50" : "bg-violet-900/50"}`} />
+          {/* Fill */}
+          <div
+            className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ${isUrgent ? "bg-amber-500/70" : "bg-violet-500/70"}`}
+            style={{ width: `${progress}%` }}
+          />
+          {/* Airplane indicator */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 transition-all duration-1000"
+            style={{ left: `clamp(6px, ${progress}%, calc(100% - 6px))` }}
+          >
+            <Plane className={`h-3.5 w-3.5 drop-shadow-lg ${isUrgent ? "text-amber-300" : "text-violet-300"}`} />
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-1.5">
+          <span className={`text-[10px] ${isUrgent ? "text-amber-500/50" : "text-violet-500/50"}`}>
+            {locale === "es" ? "24h antes" : "24h before"}
+          </span>
+          <span className={`text-[10px] font-bold tabular-nums ${isUrgent ? "text-amber-300" : "text-violet-300"}`}>
+            {Math.round(progress)}%
+          </span>
+          <span className={`text-[10px] ${isUrgent ? "text-amber-500/50" : "text-violet-500/50"}`}>
+            {locale === "es" ? "Salida" : "Departure"}
+          </span>
+        </div>
       </div>
     </div>
   );
