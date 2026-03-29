@@ -236,11 +236,13 @@ export function TripTimeline({
 
             const dotColor = hasIssue
               ? "bg-orange-500 ring-orange-500/30"
-              : daysUntil !== null && daysUntil <= 0
-              ? "bg-red-400 ring-red-400/30"
+              : daysUntil !== null && daysUntil < 0
+              ? "bg-white/20 ring-white/10"
+              : daysUntil !== null && daysUntil === 0
+              ? "bg-emerald-400 ring-emerald-400/40"
               : daysUntil !== null && daysUntil <= 7
-              ? "bg-yellow-400 ring-yellow-400/30"
-              : "bg-blue-400 ring-blue-400/30";
+              ? "bg-amber-400 ring-amber-400/30"
+              : "bg-violet-400 ring-violet-400/30";
 
             return (
               <div key={idx} className="flex items-start">
@@ -253,7 +255,7 @@ export function TripTimeline({
                     }}
                     onPointerEnter={(e) => { if (e.pointerType === "mouse") { cancelClose(); openTooltip(e.currentTarget, idx); } }}
                     onPointerLeave={(e) => { if (e.pointerType === "mouse") scheduleClose(); }}
-                    className={`h-4 w-4 rounded-full ring-4 ring-offset-1 transition-transform focus:outline-none cursor-pointer ${dotColor} ${isActive ? "scale-125" : "hover:scale-125"}`}
+                    className={`h-4 w-4 rounded-full ring-4 ring-offset-1 transition-transform focus:outline-none cursor-pointer ${dotColor} ${isActive ? "scale-125" : "hover:scale-125"} ${daysUntil === 0 && !hasIssue ? "animate-pulse" : ""}`}
                     style={{ "--tw-ring-offset-color": "#0a0a0f" } as React.CSSProperties}
                     aria-label={`${node.code}${node.isOrigin ? ": " + formatDate(node.isoDate, locale) : ""}`}
                   />
@@ -274,10 +276,10 @@ export function TripTimeline({
                   )}
                   {node.isOrigin && daysUntil !== null && (
                     <span className={`text-xs font-semibold ${
-                      daysUntil < 0   ? "text-white/35"   :
-                      daysUntil === 0 ? "text-red-400 animate-pulse" :
-                      daysUntil <= 7  ? "text-yellow-400" :
-                      "text-emerald-400"
+                      daysUntil < 0   ? "text-white/30"        :
+                      daysUntil === 0 ? "text-emerald-400 animate-pulse" :
+                      daysUntil <= 7  ? "text-amber-400"        :
+                      "text-violet-400"
                     }`}>
                       {daysUntil < 0  ? (locale === "en" ? "Done"  : "Listo") :
                        daysUntil === 0 ? (locale === "en" ? "TODAY" : "HOY")   :

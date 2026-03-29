@@ -731,89 +731,102 @@ export function TripPanel({
 
       {/* Action bar */}
       {(panelTab === "flights" || isDraft) && trip.flights.length > 0 && (
-        <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={handleExportICS}
-            className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/8 hover:text-white transition-colors"
-          >
-            <Calendar className="h-3.5 w-3.5" />
-            {locale === "en" ? "Export .ics" : "Exportar .ics"}
-          </button>
-
-          {!isDraft && (
+        <div className="space-y-2">
+          {/* Primary actions */}
+          <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={handleExportPdf}
-              className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/8 hover:text-white transition-colors"
+              onClick={handleShareWhatsApp}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-800/50 bg-emerald-950/30 px-3 py-2.5 text-xs font-semibold text-emerald-400 hover:bg-emerald-950/50 transition-colors"
             >
-              🖨️ {locale === "en" ? "Export PDF" : "Exportar PDF"}
+              <Share2 className="h-3.5 w-3.5" />
+              {waCopied
+                ? (locale === "en" ? "Copied!" : "¡Copiado!")
+                : "WhatsApp"}
             </button>
-          )}
 
-          <div className="relative">
-            <button
-              onClick={() => setShowGcal((v) => !v)}
-              className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/8 hover:text-white transition-colors"
-            >
-              <Calendar className="h-3.5 w-3.5 text-blue-400" />
-              Google Calendar
-            </button>
-            {showGcal && (
-              <div className="absolute top-full mt-1 left-0 z-20 min-w-[220px] rounded-xl border border-white/8 bg-[#0f0f17] shadow-2xl py-1">
-                {calFlights.map((cf, i) => (
-                  <a
-                    key={i}
-                    href={buildGoogleCalendarURL(cf)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => setShowGcal(false)}
-                    className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-white/6 hover:text-white transition-colors"
-                  >
-                    <span>
-                      <span className="font-semibold">{cf.flightCode}</span>
-                      <span className="text-gray-500 ml-1">{cf.originCode}→{cf.destinationCode}</span>
-                    </span>
-                    <span className="text-gray-500 shrink-0">
-                      {new Date(cf.isoDate + "T00:00:00").toLocaleDateString(
-                        locale === "en" ? "en-US" : "es-AR",
-                        { day: "numeric", month: "short" }
-                      )}
-                    </span>
-                  </a>
-                ))}
-              </div>
+            {!isDraft ? (
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-violet-800/50 bg-violet-950/30 px-3 py-2.5 text-xs font-semibold text-violet-400 hover:bg-violet-950/50 transition-colors"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                {locale === "en" ? "Share" : "Compartir"}
+              </button>
+            ) : (
+              <button
+                onClick={handleShareLink}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-white/8 bg-white/4 px-3 py-2.5 text-xs font-semibold text-gray-300 hover:bg-white/8 transition-colors"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? (locale === "en" ? "Copied!" : "¡Copiado!") : (locale === "en" ? "Copy link" : "Copiar link")}
+              </button>
             )}
           </div>
 
-          <button
-            onClick={handleShareWhatsApp}
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-800/50 bg-emerald-950/20 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-950/40 hover:text-emerald-300 transition-colors"
-          >
-            <Share2 className="h-3.5 w-3.5" />
-            {waCopied
-              ? (locale === "en" ? "Copied! Paste in WhatsApp" : "¡Copiado! Pegalo en WhatsApp")
-              : "WhatsApp"}
-          </button>
-
-          {!isDraft && (
+          {/* Secondary actions */}
+          <div className="flex gap-2 flex-wrap">
             <button
-              onClick={() => setShowShareModal(true)}
-              title={locale === "es" ? "Compartir viaje con colaboradores" : "Share trip with collaborators"}
-              className="flex items-center gap-1.5 rounded-lg border border-violet-800/50 bg-violet-950/20 px-3 py-1.5 text-xs text-violet-400 hover:bg-violet-950/40 hover:text-violet-300 transition-colors"
+              onClick={handleExportICS}
+              className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/8 transition-colors"
             >
-              <Share2 className="h-3.5 w-3.5" />
-              {locale === "en" ? "Share" : "Compartir"}
+              <Calendar className="h-3.5 w-3.5" />
+              {locale === "en" ? "Export .ics" : "Exportar .ics"}
             </button>
-          )}
 
-          <button
-            onClick={handleShareLink}
-            className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/8 hover:text-white transition-colors"
-          >
-            {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
-            {copied
-              ? (locale === "en" ? "Copied!" : "¡Copiado!")
-              : (locale === "en" ? "Copy link" : "Copiar link")}
-          </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowGcal((v) => !v)}
+                className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/8 transition-colors"
+              >
+                <Calendar className="h-3.5 w-3.5 text-blue-400/70" />
+                Google Cal
+              </button>
+              {showGcal && (
+                <div className="absolute top-full mt-1 left-0 z-20 min-w-[220px] rounded-xl border border-white/8 bg-[#0f0f17] shadow-2xl py-1">
+                  {calFlights.map((cf, i) => (
+                    <a
+                      key={i}
+                      href={buildGoogleCalendarURL(cf)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => setShowGcal(false)}
+                      className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-gray-300 hover:bg-white/6 hover:text-white transition-colors"
+                    >
+                      <span>
+                        <span className="font-semibold">{cf.flightCode}</span>
+                        <span className="text-gray-500 ml-1">{cf.originCode}→{cf.destinationCode}</span>
+                      </span>
+                      <span className="text-gray-500 shrink-0">
+                        {new Date(cf.isoDate + "T00:00:00").toLocaleDateString(
+                          locale === "en" ? "en-US" : "es-AR",
+                          { day: "numeric", month: "short" }
+                        )}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {!isDraft && (
+              <button
+                onClick={handleExportPdf}
+                className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/8 transition-colors"
+              >
+                🖨️ PDF
+              </button>
+            )}
+
+            {!isDraft && (
+              <button
+                onClick={handleShareLink}
+                className="flex items-center gap-1.5 rounded-lg border border-white/8 bg-white/4 px-3 py-1.5 text-xs text-gray-400 hover:text-white hover:bg-white/8 transition-colors"
+              >
+                {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? (locale === "en" ? "Copied!" : "¡Copiado!") : (locale === "en" ? "Copy link" : "Copiar link")}
+              </button>
+            )}
+          </div>
         </div>
       )}
 
