@@ -892,11 +892,19 @@ export async function GET(request: Request) {
 
 // ── Flight status API ──────────────────────────────────────────────────────
 
-async function fetchFlightStatus(
+type FlightStatusResult = {
+  delayMinutes: number;
+  estimatedDeparture: string | null;
+  gate: string | null;
+  cancelled: boolean;
+  landed: boolean;
+};
+
+async function fetchFlightStatusFromAeroDataBox(
   flightCode: string,
   isoDate: string,
   rapidApiKey: string,
-): Promise<{ delayMinutes: number; estimatedDeparture: string | null; gate: string | null; cancelled: boolean; landed: boolean } | null> {
+): Promise<FlightStatusResult | null> {
   try {
     const url = `https://aerodatabox.p.rapidapi.com/flights/number/${flightCode}/${isoDate}`;
     const res = await fetch(url, {
@@ -923,6 +931,58 @@ async function fetchFlightStatus(
   } catch {
     return null;
   }
+}
+
+async function fetchFlightStatusFromAviationStack(
+  flightCode: string,
+  isoDate: string,
+): Promise<FlightStatusResult | null> {
+  const apiKey = process.env.AVIATIONSTACK_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const params = new URLSearchParams({
+      access_key: apiKey,
+      flight_iata: flightCode,
+      flight_date: isoDate,
+      limit: "1",
+    });
+    const res = await fetch(`http://api.aviationstack.com/v1/flights?${params}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json() as { data?: Array<{
+      flight_status?: string;
+      departure?: { delay?: number; estimated?: string; actual?: string; gate?: string };
+    }> };
+    const raw = json.data?.[0];
+    if (!raw) return null;
+
+    const st = raw.flight_status ?? "";
+    const cancelled = st === "cancelled";
+    const landed    = st === "landed";
+    const delayMinutes = typeof raw.departure?.delay === "number" ? raw.departure.delay : 0;
+    const gate: string | null = raw.departure?.gate ?? null;
+    // AviationStack returns ISO strings — extract HH:MM
+    const actualOrEst = raw.departure?.actual ?? raw.departure?.estimated ?? null;
+    const estimatedDeparture = actualOrEst ? actualOrEst.slice(11, 16) : null;
+
+    return { delayMinutes, estimatedDeparture, gate, cancelled, landed };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchFlightStatus(
+  flightCode: string,
+  isoDate: string,
+  rapidApiKey: string,
+): Promise<FlightStatusResult | null> {
+  // Try AeroDataBox first (better delay data); fall back to AviationStack
+  const adb = await fetchFlightStatusFromAeroDataBox(flightCode, isoDate, rapidApiKey);
+  if (adb !== null) return adb;
+
+  console.warn(`[cron] AeroDataBox failed for ${flightCode}, trying AviationStack…`);
+  return fetchFlightStatusFromAviationStack(flightCode, isoDate);
 }
 
 // ── Notification log helpers ───────────────────────────────────────────────
