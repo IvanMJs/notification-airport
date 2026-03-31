@@ -323,11 +323,14 @@ export async function GET(request: Request) {
       }
     }
 
-    // D: Real-time flight status (2–4h before) — 1 API call per flight, ever
-    if (hoursUntil !== null && hoursUntil >= 2 && hoursUntil <= 4 && rapidApiKey) {
-      const alreadyFetched = await checkFlightLog(supabase, flight.id, "flight_status_fetched", Infinity);
+    // D: Real-time flight status — re-checks every 90 min within 1–8h of scheduled departure.
+    // Window is wide (8h) to catch delays announced hours before departure.
+    // Uses bracket-based dedup so users get notified again when delay worsens significantly.
+    if (hoursUntil !== null && hoursUntil >= 1 && hoursUntil <= 8 && rapidApiKey) {
+      // Re-check every 90 minutes (not one-shot) so delays discovered after the first check are caught
+      const alreadyFetched = await checkFlightLog(supabase, flight.id, "flight_status_fetched", 1.5);
       if (!alreadyFetched) {
-        // Log immediately so parallel cron runs don't double-fetch
+        // Log immediately so parallel cron runs don't double-fetch within the same 90-min window
         await supabase.from("notification_log").insert({
           flight_id: flight.id,
           user_id: userId,
@@ -346,9 +349,15 @@ export async function GET(request: Request) {
               ? `${Math.floor(flightStatus.delayMinutes / 60)}h ${flightStatus.delayMinutes % 60}min`
               : `${flightStatus.delayMinutes} min`;
             const gateText = flightStatus.gate ? ` · ${locale === "es" ? "Puerta" : "Gate"} ${flightStatus.gate}` : "";
-            const { title, body } = L.flightDelay(flight.flight_code, delayText, flightStatus.estimatedDeparture, departureTime ?? "?", gateText, originCode, destCode, flightStatus.delayMinutes);
-            notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, "flight_delay_real", { title, body, url: "/app" });
-            notificationsSent++;
+            // Bracket-based dedup: notify once per bracket (20–59 min, 60–119 min, 120+ min)
+            // This ensures users are re-notified if the delay increases significantly
+            const delayBracket = flightStatus.delayMinutes >= 120 ? "120" : flightStatus.delayMinutes >= 60 ? "60" : "20";
+            const alreadySentDelay = await checkFlightLog(supabase, flight.id, `flight_delay_real_${delayBracket}`, Infinity);
+            if (!alreadySentDelay) {
+              const { title, body } = L.flightDelay(flight.flight_code, delayText, flightStatus.estimatedDeparture, departureTime ?? "?", gateText, originCode, destCode, flightStatus.delayMinutes);
+              notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, `flight_delay_real_${delayBracket}`, { title, body, url: "/app" });
+              notificationsSent++;
+            }
 
             // A6: Connection rescue — check if this delay impacts the next flight in the trip
             {
@@ -883,11 +892,19 @@ export async function GET(request: Request) {
 
 // ── Flight status API ──────────────────────────────────────────────────────
 
-async function fetchFlightStatus(
+type FlightStatusResult = {
+  delayMinutes: number;
+  estimatedDeparture: string | null;
+  gate: string | null;
+  cancelled: boolean;
+  landed: boolean;
+};
+
+async function fetchFlightStatusFromAeroDataBox(
   flightCode: string,
   isoDate: string,
   rapidApiKey: string,
-): Promise<{ delayMinutes: number; estimatedDeparture: string | null; gate: string | null; cancelled: boolean; landed: boolean } | null> {
+): Promise<FlightStatusResult | null> {
   try {
     const url = `https://aerodatabox.p.rapidapi.com/flights/number/${flightCode}/${isoDate}`;
     const res = await fetch(url, {
@@ -914,6 +931,58 @@ async function fetchFlightStatus(
   } catch {
     return null;
   }
+}
+
+async function fetchFlightStatusFromAviationStack(
+  flightCode: string,
+  isoDate: string,
+): Promise<FlightStatusResult | null> {
+  const apiKey = process.env.AVIATIONSTACK_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const params = new URLSearchParams({
+      access_key: apiKey,
+      flight_iata: flightCode,
+      flight_date: isoDate,
+      limit: "1",
+    });
+    const res = await fetch(`http://api.aviationstack.com/v1/flights?${params}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json() as { data?: Array<{
+      flight_status?: string;
+      departure?: { delay?: number; estimated?: string; actual?: string; gate?: string };
+    }> };
+    const raw = json.data?.[0];
+    if (!raw) return null;
+
+    const st = raw.flight_status ?? "";
+    const cancelled = st === "cancelled";
+    const landed    = st === "landed";
+    const delayMinutes = typeof raw.departure?.delay === "number" ? raw.departure.delay : 0;
+    const gate: string | null = raw.departure?.gate ?? null;
+    // AviationStack returns ISO strings — extract HH:MM
+    const actualOrEst = raw.departure?.actual ?? raw.departure?.estimated ?? null;
+    const estimatedDeparture = actualOrEst ? actualOrEst.slice(11, 16) : null;
+
+    return { delayMinutes, estimatedDeparture, gate, cancelled, landed };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchFlightStatus(
+  flightCode: string,
+  isoDate: string,
+  rapidApiKey: string,
+): Promise<FlightStatusResult | null> {
+  // Try AeroDataBox first (better delay data); fall back to AviationStack
+  const adb = await fetchFlightStatusFromAeroDataBox(flightCode, isoDate, rapidApiKey);
+  if (adb !== null) return adb;
+
+  console.warn(`[cron] AeroDataBox failed for ${flightCode}, trying AviationStack…`);
+  return fetchFlightStatusFromAviationStack(flightCode, isoDate);
 }
 
 // ── Notification log helpers ───────────────────────────────────────────────

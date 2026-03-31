@@ -75,6 +75,80 @@ const EMPTY_RESPONSE = (flightNumber: string): LiveFlightData => ({
   terminal: null,
 });
 
+// ── AviationStack fallback ────────────────────────────────────────────────
+
+interface AviationStackFlight {
+  flight_status?: string;
+  departure?: {
+    delay?: number;
+    scheduled?: string;
+    estimated?: string;
+    actual?: string;
+    gate?: string;
+    terminal?: string;
+  };
+  arrival?: {
+    estimated?: string;
+    actual?: string;
+    gate?: string;
+  };
+}
+
+function normalizeAvsStatus(raw: string | undefined): LiveFlightData["status"] {
+  switch (raw) {
+    case "active":    return "departed";
+    case "landed":    return "landed";
+    case "cancelled": return "cancelled";
+    case "scheduled": return "scheduled";
+    default:          return "unknown";
+  }
+}
+
+async function fetchFromAviationStack(
+  flight: string,
+  date: string,
+): Promise<LiveFlightData | null> {
+  const apiKey = process.env.AVIATIONSTACK_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const params = new URLSearchParams({
+      access_key: apiKey,
+      flight_iata: flight,
+      flight_date: date,
+      limit: "1",
+    });
+    const res = await fetch(`http://api.aviationstack.com/v1/flights?${params}`, {
+      next: { revalidate: 180 },
+    });
+    if (!res.ok) return null;
+    const json = await res.json() as { data?: AviationStackFlight[] };
+    const raw = json.data?.[0];
+    if (!raw) return null;
+
+    const delayMinutes = typeof raw.departure?.delay === "number" ? raw.departure.delay : 0;
+    const rawStatus = normalizeAvsStatus(raw.flight_status);
+    const status: LiveFlightData["status"] =
+      rawStatus === "scheduled" && delayMinutes > 0 ? "delayed" : rawStatus;
+
+    return {
+      flightNumber: flight,
+      status,
+      departureGate: raw.departure?.gate ?? null,
+      arrivalGate: raw.arrival?.gate ?? null,
+      scheduledDeparture: raw.departure?.scheduled ?? null,
+      actualDeparture: raw.departure?.actual ?? raw.departure?.estimated ?? null,
+      scheduledArrival: null,
+      actualArrival: raw.arrival?.actual ?? raw.arrival?.estimated ?? null,
+      delayMinutes,
+      terminal: raw.departure?.terminal ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────
+
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const supabase = await createClient();
   const {
@@ -87,72 +161,61 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   }
 
   const { searchParams } = new URL(request.url);
-  // Support both ?flight= (new) and ?code= (legacy)
   const flight = searchParams.get("flight") ?? searchParams.get("code");
   const date = searchParams.get("date");
 
   if (!flight || !date) {
-    return NextResponse.json(
-      { error: "Missing flight or date" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Missing flight or date" }, { status: 400 });
   }
 
+  // ── Try AeroDataBox first ─────────────────────────────────────────────
   const apiKey = process.env.AERODATABOX_RAPIDAPI_KEY;
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "AERODATABOX_RAPIDAPI_KEY not configured" },
-      { status: 500 },
-    );
+  if (apiKey) {
+    try {
+      const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight)}/${encodeURIComponent(date)}`;
+      const res = await fetch(url, {
+        headers: {
+          "X-RapidAPI-Key": apiKey,
+          "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com",
+        },
+        next: { revalidate: 180 },
+      });
+
+      if (res.ok) {
+        const raw: unknown = await res.json();
+        const flights = Array.isArray(raw) ? raw : [];
+        const flightData = flights[0] as AeroDataBoxFlight | undefined;
+
+        if (flightData) {
+          const rawStatus = normalizeStatus(flightData.status);
+          const delayMinutes = computeDelayMinutes(flightData);
+          const status: LiveFlightData["status"] =
+            rawStatus === "scheduled" && delayMinutes > 0 ? "delayed" : rawStatus;
+
+          return NextResponse.json<LiveFlightData>({
+            flightNumber: flight,
+            status,
+            departureGate: flightData.departure?.gate ?? null,
+            arrivalGate: flightData.arrival?.gate ?? null,
+            scheduledDeparture: toIso(flightData.departure?.scheduledTimeUtc),
+            actualDeparture: toIso(flightData.departure?.actualTimeUtc),
+            scheduledArrival: toIso(flightData.arrival?.scheduledTimeUtc),
+            actualArrival: toIso(flightData.arrival?.actualTimeUtc ?? flightData.arrival?.estimatedTimeUtc),
+            delayMinutes,
+            terminal: flightData.departure?.terminal?.name ?? null,
+          });
+        }
+      }
+    } catch {
+      // fall through to AviationStack
+    }
   }
 
-  try {
-    const url = `https://aerodatabox.p.rapidapi.com/flights/number/${encodeURIComponent(flight)}/${encodeURIComponent(date)}`;
-    const res = await fetch(url, {
-      headers: {
-        "X-RapidAPI-Key": apiKey,
-        "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com",
-      },
-      next: { revalidate: 180 }, // 3-minute cache
-    });
-
-    if (!res.ok) {
-      return NextResponse.json<LiveFlightData>(EMPTY_RESPONSE(flight), { status: 200 });
-    }
-
-    const raw: unknown = await res.json();
-    const flights = Array.isArray(raw) ? raw : [];
-    const flightData = flights[0] as AeroDataBoxFlight | undefined;
-
-    if (!flightData) {
-      return NextResponse.json<LiveFlightData>(EMPTY_RESPONSE(flight));
-    }
-
-    const rawStatus = normalizeStatus(flightData.status);
-    const delayMinutes = computeDelayMinutes(flightData);
-
-    // If delay > 0 and status is still scheduled, promote to delayed
-    const status: LiveFlightData["status"] =
-      rawStatus === "scheduled" && delayMinutes > 0 ? "delayed" : rawStatus;
-
-    const scheduledDeparture = toIso(flightData.departure?.scheduledTimeUtc);
-    const actualDeparture = toIso(flightData.departure?.actualTimeUtc);
-    const scheduledArrival = toIso(flightData.arrival?.scheduledTimeUtc);
-    const actualArrival = toIso(flightData.arrival?.actualTimeUtc ?? flightData.arrival?.estimatedTimeUtc);
-
-    return NextResponse.json<LiveFlightData>({
-      flightNumber: flight,
-      status,
-      departureGate: flightData.departure?.gate ?? null,
-      arrivalGate: flightData.arrival?.gate ?? null,
-      scheduledDeparture,
-      actualDeparture,
-      scheduledArrival,
-      actualArrival,
-      delayMinutes,
-      terminal: flightData.departure?.terminal?.name ?? null,
-    });
-  } catch {
-    return NextResponse.json<LiveFlightData>(EMPTY_RESPONSE(flight));
+  // ── Fallback: AviationStack ───────────────────────────────────────────
+  const avsData = await fetchFromAviationStack(flight, date);
+  if (avsData) {
+    return NextResponse.json<LiveFlightData>(avsData);
   }
+
+  return NextResponse.json<LiveFlightData>(EMPTY_RESPONSE(flight));
 }
