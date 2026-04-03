@@ -95,6 +95,16 @@ function SectionHeader({
   );
 }
 
+function parseTzOffset(tzAbbr: string): number | null {
+  if (!tzAbbr || tzAbbr === "UTC") return 0;
+  const match = tzAbbr.match(/UTC([+-])(\d+)(?::(\d+))?/);
+  if (!match) return null;
+  const sign = match[1] === "+" ? 1 : -1;
+  const hours = parseInt(match[2], 10);
+  const minutes = match[3] ? parseInt(match[3], 10) : 0;
+  return sign * (hours + minutes / 60);
+}
+
 export function FlightCardBody({
   flight,
   locale,
@@ -156,6 +166,11 @@ export function FlightCardBody({
 
   const isToday = daysUntil === 0;
   const airlineAppUrl = AIRLINE_APP_URLS[flight.airlineCode] ?? null;
+
+  const deviceOffsetHours = -new Date().getTimezoneOffset() / 60;
+  const airportOffsetHours = parseTzOffset(displayTzAbbr ?? tzAbbr);
+  const isLocalTime = airportOffsetHours === null ||
+    Math.abs(deviceOffsetHours - airportOffsetHours) < 0.01;
 
   return (
     <motion.div
@@ -328,9 +343,9 @@ export function FlightCardBody({
                   <span className="font-bold text-white ml-1 tabular-nums">
                     {displayDepartureTime ?? flight.departureTime}
                   </span>
-                  {(displayTzAbbr ?? tzAbbr) && (
-                    <span className="text-xs font-medium text-gray-500 bg-white/5 border border-white/8 rounded px-1 py-0.5">
-                      {displayTzAbbr ?? tzAbbr}
+                  {!isLocalTime && (displayTzAbbr ?? tzAbbr) && (
+                    <span className="text-xs font-medium text-amber-400 bg-amber-950/40 border border-amber-700/40 rounded px-1 py-0.5">
+                      {locale === "es" ? "hora del aeropuerto" : "airport time"}
                     </span>
                   )}
                   {onToggleDeviceTz && (
