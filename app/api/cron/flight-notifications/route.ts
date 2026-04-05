@@ -266,7 +266,7 @@ export async function GET(request: Request) {
     if (isRecentlyDeparted && rapidApiKey) {
       const alreadySent = await checkFlightLog(supabase, flight.id, "flight_landed", Infinity);
       if (!alreadySent) {
-        const landingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey);
+        const landingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey, Math.floor((departureDateTime?.getTime() ?? 0) / 1000), AIRPORTS[flight.origin_code]?.icao ?? null);
         if (landingStatus?.landed) {
           const { title, body } = L.flightLanded(flight.flight_code, originCode, destCode);
           notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, "flight_landed", { title, body, url: "/app" });
@@ -338,7 +338,7 @@ export async function GET(request: Request) {
           sent_at: new Date().toISOString(),
         });
 
-        const flightStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey);
+        const flightStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey, Math.floor((departureDateTime?.getTime() ?? 0) / 1000), AIRPORTS[flight.origin_code]?.icao ?? null);
         if (flightStatus) {
           if (flightStatus.cancelled) {
             const { title, body } = L.flightCancelled(flight.flight_code, originCode, destCode);
@@ -357,6 +357,19 @@ export async function GET(request: Request) {
               const { title, body } = L.flightDelay(flight.flight_code, delayText, flightStatus.estimatedDeparture, departureTime ?? "?", gateText, originCode, destCode, flightStatus.delayMinutes);
               notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, `flight_delay_real_${delayBracket}`, { title, body, url: "/app" });
               notificationsSent++;
+
+              // Persist actual delayed departure time to DB so UI shows correct time without live data
+              if (flight.departure_time) {
+                const [dh, dm] = flight.departure_time.split(":").map(Number);
+                const totalMin = dh * 60 + dm + flightStatus.delayMinutes;
+                const ah = Math.floor(totalMin / 60) % 24;
+                const am = totalMin % 60;
+                const actualDepTime = `${String(ah).padStart(2, "0")}:${String(am).padStart(2, "0")}`;
+                await supabase
+                  .from("flights")
+                  .update({ departure_time: actualDepTime })
+                  .eq("id", flight.id);
+              }
             }
 
             // A6: Connection rescue — check if this delay impacts the next flight in the trip
@@ -445,7 +458,7 @@ export async function GET(request: Request) {
     if (hoursUntil !== null && hoursUntil >= 0.4 && hoursUntil <= 0.6 && rapidApiKey) {
       const alreadySent = await checkFlightLog(supabase, flight.id, "boarding_open", Infinity);
       if (!alreadySent) {
-        const boardingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey);
+        const boardingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey, Math.floor((departureDateTime?.getTime() ?? 0) / 1000), AIRPORTS[flight.origin_code]?.icao ?? null);
         if (boardingStatus && !boardingStatus.cancelled && !boardingStatus.landed) {
           const gateText = boardingStatus.gate ? ` — ${locale === "es" ? "Puerta" : "Gate"} ${boardingStatus.gate}` : "";
           const { title, body } = L.boardingOpen(flight.flight_code, originCode, destCode, gateText);
@@ -476,7 +489,7 @@ export async function GET(request: Request) {
         // boarding_open already sent — only fetch if gate_change alert hasn't been sent recently
         const gateChangeAlreadyAlerted = await checkFlightLog(supabase, flight.id, "gate_change", 4);
         if (!gateChangeAlreadyAlerted) {
-          const boardingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey);
+          const boardingStatus = await fetchFlightStatus(flight.flight_code, isoDate, rapidApiKey, Math.floor((departureDateTime?.getTime() ?? 0) / 1000), AIRPORTS[flight.origin_code]?.icao ?? null);
           if (boardingStatus?.gate && boardingStatus.gate !== flight.gate) {
             const { title, body } = L.gateChange(
               flight.flight_code,
@@ -972,17 +985,60 @@ async function fetchFlightStatusFromAviationStack(
   }
 }
 
+async function fetchFlightStatusFromOpenSky(
+  flightCode: string,
+  isoDate: string,
+  originIcao: string,
+  scheduledUnix: number,
+): Promise<FlightStatusResult | null> {
+  try {
+    const dayStart = Math.floor(new Date(isoDate + "T00:00:00Z").getTime() / 1000);
+    const dayEnd = dayStart + 86400;
+    const res = await fetch(
+      `https://opensky-network.org/api/flights/departure?airport=${originIcao}&begin=${dayStart}&end=${dayEnd}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!res.ok) return null;
+    const flights: Array<{ callsign: string; firstSeen: number }> = await res.json();
+    const numericSuffix = flightCode.replace(/^[A-Z]+/, "");
+    const match = flights.find((f) => f.callsign?.trim().endsWith(numericSuffix));
+    if (!match) return null;
+    const delayMinutes = scheduledUnix > 0
+      ? Math.max(0, Math.round((match.firstSeen - scheduledUnix) / 60))
+      : 0;
+    return {
+      delayMinutes,
+      estimatedDeparture: new Date(match.firstSeen * 1000).toISOString().slice(11, 16),
+      gate: null,
+      cancelled: false,
+      landed: false,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function fetchFlightStatus(
   flightCode: string,
   isoDate: string,
   rapidApiKey: string,
+  scheduledUnix: number,
+  originIcao: string | null,
 ): Promise<FlightStatusResult | null> {
   // Try AeroDataBox first (better delay data); fall back to AviationStack
   const adb = await fetchFlightStatusFromAeroDataBox(flightCode, isoDate, rapidApiKey);
   if (adb !== null) return adb;
 
   console.warn(`[cron] AeroDataBox failed for ${flightCode}, trying AviationStack…`);
-  return fetchFlightStatusFromAviationStack(flightCode, isoDate);
+  const avs = await fetchFlightStatusFromAviationStack(flightCode, isoDate);
+  if (avs !== null) return avs;
+
+  // Fallback 3: OpenSky Network
+  if (originIcao) {
+    console.warn(`[cron] AviationStack failed for ${flightCode}, trying OpenSky…`);
+    return fetchFlightStatusFromOpenSky(flightCode, isoDate, originIcao, scheduledUnix);
+  }
+  return null;
 }
 
 // ── Notification log helpers ───────────────────────────────────────────────
