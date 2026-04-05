@@ -484,6 +484,8 @@ function ChatSection({
               isoDate:         f.isoDate,
             })),
             tripName,
+            userLocalTime: new Date().toLocaleString("sv-SE", { timeZoneName: "short" }),
+            userTimezone:  Intl.DateTimeFormat().resolvedOptions().timeZone,
           },
         }),
       });
