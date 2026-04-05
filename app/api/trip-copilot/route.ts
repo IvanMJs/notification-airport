@@ -18,8 +18,10 @@ const TripFlightSchema = z.object({
 const BodySchema = z.object({
   question:    z.string().min(1).max(500),
   tripContext: z.object({
-    flights:  z.array(TripFlightSchema).max(50),
-    tripName: z.string().max(200),
+    flights:       z.array(TripFlightSchema).max(50),
+    tripName:      z.string().max(200),
+    userLocalTime: z.string().max(50).optional(),
+    userTimezone:  z.string().max(100).optional(),
   }),
 });
 
@@ -46,9 +48,15 @@ export async function POST(req: NextRequest) {
 
   const { question, tripContext } = parsed.data;
 
+  // Current time context — use what the client sends (device local time + timezone),
+  // falling back to UTC server time if not provided.
+  const userTimezone  = tripContext.userTimezone ?? "UTC";
+  const userLocalTime = tripContext.userLocalTime
+    ?? new Date().toLocaleString("sv-SE", { timeZone: userTimezone });
+
   const flightsText = tripContext.flights.length > 0
     ? tripContext.flights.map((f) => {
-        const parts = [`${f.flightCode} · ${f.originCode}→${f.destinationCode} · ${f.isoDate}`];
+        const parts = [`${f.flightCode || "vuelo"} · ${f.originCode}→${f.destinationCode} · ${f.isoDate}`];
         if (f.departureTime) parts.push(`sale ${f.departureTime}`);
         if (f.arrivalTime) parts.push(`llega ${f.arrivalTime}${f.arrivalDate && f.arrivalDate !== f.isoDate ? " (" + f.arrivalDate + ")" : ""}`);
         if (f.airlineName) parts.push(f.airlineName);
@@ -56,9 +64,26 @@ export async function POST(req: NextRequest) {
       }).join("\n")
     : "Sin vuelos registrados";
 
+  // Identify next flight relative to user's local time
+  const localDateStr = userLocalTime.slice(0, 10); // "YYYY-MM-DD"
+  const nextFlight = tripContext.flights.find((f) => f.isoDate >= localDateStr) ?? null;
+  const nextFlightNote = nextFlight
+    ? `Próximo vuelo según la hora del usuario: ${nextFlight.flightCode || "vuelo"} ${nextFlight.originCode}→${nextFlight.destinationCode} el ${nextFlight.isoDate}${nextFlight.departureTime ? " a las " + nextFlight.departureTime : ""}.`
+    : "No hay vuelos futuros en el itinerario.";
+
   const tripSummary = `Viaje: "${tripContext.tripName}"\nVuelos:\n${flightsText}`;
 
-  const systemPrompt = `Sos un asistente de viaje conciso y práctico. El usuario tiene el siguiente itinerario:\n\n${tripSummary}\n\nRespondé sus preguntas de forma concisa (máximo 3-4 oraciones). Si la pregunta no tiene que ver con viajes, redirigí amablemente al tema.`;
+  const systemPrompt = `Sos un asistente de viaje conciso y práctico.
+
+HORA ACTUAL DEL USUARIO: ${userLocalTime} (zona horaria: ${userTimezone})
+Usá SIEMPRE esta hora como referencia para determinar qué vuelos son pasados, presentes o futuros. Nunca asumas que la hora UTC del servidor es la hora del usuario.
+
+${nextFlightNote}
+
+El usuario tiene el siguiente itinerario:
+${tripSummary}
+
+Respondé de forma concisa (máximo 3-4 oraciones). Si la pregunta no tiene que ver con viajes, redirigí amablemente al tema.`;
 
   const anthropic = new Anthropic({ apiKey });
 
