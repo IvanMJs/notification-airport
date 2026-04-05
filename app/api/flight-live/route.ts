@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { checkUserRateLimit, rateLimitResponse } from "@/lib/rateLimit";
+import { AIRPORTS } from "@/lib/airports";
 
 export interface LiveFlightData {
   flightNumber: string;
@@ -147,6 +148,55 @@ async function fetchFromAviationStack(
   }
 }
 
+// ── OpenSky Network fallback ──────────────────────────────────────────────
+
+async function fetchFromOpenSky(
+  flightCode: string,
+  isoDate: string,
+  originIcao: string,
+  scheduledDepTime: string | null,
+): Promise<LiveFlightData | null> {
+  try {
+    const dayStart = Math.floor(new Date(isoDate + "T00:00:00Z").getTime() / 1000);
+    const dayEnd = dayStart + 86400;
+    const res = await fetch(
+      `https://opensky-network.org/api/flights/departure?airport=${originIcao}&begin=${dayStart}&end=${dayEnd}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (!res.ok) return null;
+    const flights: Array<{ callsign: string; firstSeen: number }> = await res.json();
+    // OpenSky callsigns are ICAO designator + number (e.g. AAL123 for AA123)
+    // Match by numeric suffix of our flight code
+    const numericSuffix = flightCode.replace(/^[A-Z]+/, "");
+    const match = flights.find((f) => f.callsign?.trim().endsWith(numericSuffix));
+    if (!match) return null;
+
+    let delayMinutes = 0;
+    if (scheduledDepTime) {
+      const [h, m] = scheduledDepTime.split(":").map(Number);
+      const scheduledUnix = dayStart + h * 3600 + m * 60;
+      delayMinutes = Math.max(0, Math.round((match.firstSeen - scheduledUnix) / 60));
+    }
+
+    const actualDeparture = new Date(match.firstSeen * 1000).toISOString();
+
+    return {
+      flightNumber: flightCode,
+      status: "departed",
+      departureGate: null,
+      arrivalGate: null,
+      scheduledDeparture: null,
+      actualDeparture,
+      scheduledArrival: null,
+      actualArrival: null,
+      delayMinutes,
+      terminal: null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -215,6 +265,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const avsData = await fetchFromAviationStack(flight, date);
   if (avsData) {
     return NextResponse.json<LiveFlightData>(avsData);
+  }
+
+  // Fallback 3: OpenSky Network (free, no key required)
+  const originParam = searchParams.get("origin");
+  if (originParam) {
+    const icao = AIRPORTS[originParam]?.icao ?? null;
+    const schedDep = searchParams.get("scheduledDep");
+    if (icao) {
+      const openSkyData = await fetchFromOpenSky(flight, date, icao, schedDep);
+      if (openSkyData) return NextResponse.json<LiveFlightData>(openSkyData);
+    }
   }
 
   return NextResponse.json<LiveFlightData>(EMPTY_RESPONSE(flight));
