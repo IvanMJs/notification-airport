@@ -159,7 +159,8 @@ export function FlightCardHeader({
     const h = Math.floor(effectiveHoursUntilDep);
     const min = Math.round((effectiveHoursUntilDep - h) * 60);
     if (h === 0) return locale === "es" ? `Sale en ${min}min` : `Departs in ${min}min`;
-    return locale === "es" ? `Sale en ${h}h` : `Departs in ${h}h`;
+    if (min === 0) return locale === "es" ? `Sale en ${h}h` : `Departs in ${h}h`;
+    return locale === "es" ? `Sale en ${h}h ${min}min` : `Departs in ${h}h ${min}min`;
   })();
 
   const depCountdownColor =
