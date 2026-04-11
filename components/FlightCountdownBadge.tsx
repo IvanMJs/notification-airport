@@ -103,8 +103,8 @@ export function FlightCountdownBadge({ flight, locale }: FlightCountdownBadgePro
     const hours = Math.floor(totalMinutes / 60);
     const mins  = totalMinutes % 60;
     label = locale === "es"
-      ? `Sale en ${hours}h ${mins}min`
-      : `Departs in ${hours}h ${mins}min`;
+      ? (mins === 0 ? `Sale en ${hours}h` : `Sale en ${hours}h ${mins}min`)
+      : (mins === 0 ? `Departs in ${hours}h` : `Departs in ${hours}h ${mins}min`);
   } else {
     label = locale === "es"
       ? `Sale en ${totalMinutes}min`

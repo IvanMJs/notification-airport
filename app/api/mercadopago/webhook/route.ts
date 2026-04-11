@@ -48,12 +48,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const rawBody = await req.text();
 
   const secret = process.env.MP_WEBHOOK_SECRET;
-  if (secret) {
-    if (!verifyMPSignature(req, rawBody, secret)) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("[mp-webhook] MP_WEBHOOK_SECRET is not configured — rejecting request");
+      return NextResponse.json({ error: "Webhook not configured" }, { status: 503 });
     }
-  } else if (process.env.NODE_ENV === "production") {
-    console.warn("[mp-webhook] MP_WEBHOOK_SECRET is not set in production — accepting all requests");
+    // In development without a secret, skip verification
+  } else if (!verifyMPSignature(req, rawBody, secret)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
   let body: { type?: string; data?: { id?: string } };

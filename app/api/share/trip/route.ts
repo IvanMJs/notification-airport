@@ -71,11 +71,12 @@ export async function POST(req: NextRequest) {
 
   const { tripId } = parsed.data;
 
-  // Verify the trip belongs to the requesting user
+  // Verify the trip belongs to the requesting user (explicit + RLS)
   const { data: tripRow, error: tripErr } = await supabase
     .from("trips")
     .select("id")
     .eq("id", tripId)
+    .eq("user_id", user.id)
     .single();
 
   if (tripErr || !tripRow) {
