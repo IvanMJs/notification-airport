@@ -217,11 +217,14 @@ export function BottomNav({
 
           {/* Perfil/Stats */}
           <button
-            onClick={() => onNavigate("profile")}
+            onClick={() => { haptics.impact(); onNavigate("profile"); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "profile" ? "text-violet-400" : "text-gray-500"}`}
           >
-            <motion.div whileTap={{ scale: 0.82 }} className={`flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200 ${activeTab === "profile" ? "bg-violet-500/20" : ""}`}>
-              <BarChart2 className={`w-[22px] h-[22px] transition-colors ${activeTab === "profile" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "profile" ? 2.5 : 1.5} />
+            <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center w-10 h-8 rounded-xl">
+              {activeTab === "profile" && (
+                <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-violet-500/20" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+              )}
+              <BarChart2 className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "profile" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "profile" ? 2.5 : 1.5} />
             </motion.div>
             <span className={`text-xs leading-none ${activeTab === "profile" ? "font-bold" : "font-semibold"}`}>{tabLabels.profile}</span>
           </button>
@@ -232,8 +235,11 @@ export function BottomNav({
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${tripsActive ? "text-violet-400" : "text-gray-500"}`}
           >
             <div className="relative">
-              <motion.div whileTap={{ scale: 0.82 }} className={`flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200 ${tripsActive ? "bg-violet-500/20" : ""}`}>
-                <Map className={`w-[22px] h-[22px] transition-colors ${tripsActive ? "text-violet-400" : "text-gray-500"}`} strokeWidth={tripsActive ? 2.5 : 1.5} />
+              <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center w-10 h-8 rounded-xl">
+                {tripsActive && (
+                  <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-violet-500/20" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+                )}
+                <Map className={`relative w-[22px] h-[22px] transition-colors ${tripsActive ? "text-violet-400" : "text-gray-500"}`} strokeWidth={tripsActive ? 2.5 : 1.5} />
               </motion.div>
               {totalTrips > 1 && (
                 <span className="absolute -top-1.5 -right-2.5 h-4 min-w-[16px] bg-violet-600 text-white text-[11px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
@@ -251,33 +257,42 @@ export function BottomNav({
 
           {/* Aeropuertos */}
           <button
-            onClick={() => onNavigate("airports")}
+            onClick={() => { haptics.impact(); onNavigate("airports"); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "airports" ? "text-violet-400" : "text-gray-500"}`}
           >
-            <motion.div whileTap={{ scale: 0.82 }} className={`flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200 ${activeTab === "airports" ? "bg-violet-500/20" : ""}`}>
-              <MapPin className={`w-[22px] h-[22px] transition-colors ${activeTab === "airports" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "airports" ? 2.5 : 1.5} />
+            <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center w-10 h-8 rounded-xl">
+              {activeTab === "airports" && (
+                <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-violet-500/20" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+              )}
+              <MapPin className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "airports" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "airports" ? 2.5 : 1.5} />
             </motion.div>
             <span className={`text-xs leading-none ${activeTab === "airports" ? "font-bold" : "font-semibold"}`}>{tabLabels.airports}</span>
           </button>
 
           {/* Hoy */}
           <button
-            onClick={() => onNavigate("today")}
+            onClick={() => { haptics.impact(); onNavigate("today"); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "today" ? "text-violet-400" : "text-gray-500"}`}
           >
-            <motion.div whileTap={{ scale: 0.82 }} className={`flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200 ${activeTab === "today" ? "bg-violet-500/20" : ""}`}>
-              <CalendarDays className={`w-[22px] h-[22px] transition-colors ${activeTab === "today" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "today" ? 2.5 : 1.5} />
+            <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center w-10 h-8 rounded-xl">
+              {activeTab === "today" && (
+                <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-violet-500/20" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+              )}
+              <CalendarDays className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "today" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "today" ? 2.5 : 1.5} />
             </motion.div>
             <span className={`text-xs leading-none ${activeTab === "today" ? "font-bold" : "font-semibold"}`}>{locale === "es" ? "Hoy" : "Today"}</span>
           </button>
 
           {/* Explorar */}
           <button
-            onClick={() => onNavigate("discover")}
+            onClick={() => { haptics.impact(); onNavigate("discover"); }}
             className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "discover" ? "text-violet-400" : "text-gray-500"}`}
           >
-            <motion.div whileTap={{ scale: 0.82 }} className={`flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200 ${activeTab === "discover" ? "bg-violet-500/20" : ""}`}>
-              <Compass className={`w-[22px] h-[22px] transition-colors ${activeTab === "discover" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "discover" ? 2.5 : 1.5} />
+            <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center w-10 h-8 rounded-xl">
+              {activeTab === "discover" && (
+                <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-violet-500/20" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+              )}
+              <Compass className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "discover" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "discover" ? 2.5 : 1.5} />
             </motion.div>
             <span className={`text-xs leading-none ${activeTab === "discover" ? "font-bold" : "font-semibold"}`}>
               {locale === "es" ? "Explorar" : "Explore"}
@@ -289,7 +304,7 @@ export function BottomNav({
             onClick={() => { setShowTripPicker(false); onNewTrip(); }}
             className="flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors text-gray-500 hover:text-violet-400"
           >
-            <motion.div whileTap={{ scale: 0.82 }} className="flex items-center justify-center w-10 h-8 rounded-full transition-all duration-200">
+            <motion.div whileTap={{ scale: 0.82 }} className="flex items-center justify-center w-10 h-8 rounded-xl transition-all duration-200">
               <Plus className="w-[22px] h-[22px]" strokeWidth={1.5} />
             </motion.div>
             <span className="text-xs font-semibold leading-none">{locale === "es" ? "Nuevo" : "New"}</span>

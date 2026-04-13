@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/utils/supabase/client";
 import { TripCollaborator, CollaboratorRole } from "@/lib/types";
 
@@ -31,31 +32,23 @@ function toCollaborator(row: DbCollaborator): TripCollaborator {
 }
 
 export function useCollaborators(tripId: string) {
-  const [collaborators, setCollaborators] = useState<TripCollaborator[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const queryKey = ["collaborators", tripId];
 
-  const fetchCollaborators = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const { data, isPending, error: queryError } = useQuery<TripCollaborator[], Error>({
+    queryKey,
+    queryFn: async () => {
+      const res = await fetch(`/api/trips/collaborators?tripId=${encodeURIComponent(tripId)}`);
+      const json = await res.json() as { data?: DbCollaborator[]; error?: string };
 
-    const res = await fetch(`/api/trips/collaborators?tripId=${encodeURIComponent(tripId)}`);
-    const json = await res.json() as { data?: DbCollaborator[]; error?: string };
+      if (!res.ok || json.error) {
+        throw new Error(json.error ?? "Failed to load collaborators");
+      }
 
-    if (!res.ok || json.error) {
-      setError(json.error ?? "Failed to load collaborators");
-      setLoading(false);
-      return;
-    }
-
-    setCollaborators((json.data ?? []).map(toCollaborator));
-    setLoading(false);
-  }, [tripId]);
-
-  // Initial fetch
-  useEffect(() => {
-    void fetchCollaborators();
-  }, [fetchCollaborators]);
+      return (json.data ?? []).map(toCollaborator);
+    },
+    enabled: !!tripId,
+  });
 
   // Realtime subscription for live updates
   useEffect(() => {
@@ -71,7 +64,7 @@ export function useCollaborators(tripId: string) {
           filter: `trip_id=eq.${tripId}`,
         },
         () => {
-          void fetchCollaborators();
+          void queryClient.invalidateQueries({ queryKey });
         },
       )
       .subscribe();
@@ -79,7 +72,8 @@ export function useCollaborators(tripId: string) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [tripId, fetchCollaborators]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId]);
 
   const inviteCollaborator = useCallback(
     async (email: string, role: CollaboratorRole): Promise<string | null> => {
@@ -96,10 +90,11 @@ export function useCollaborators(tripId: string) {
       }
 
       // Refresh list so the new pending invite appears immediately
-      await fetchCollaborators();
+      await queryClient.invalidateQueries({ queryKey });
       return json.token;
     },
-    [tripId, fetchCollaborators],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tripId, queryClient],
   );
 
   const acceptInvite = useCallback(async (token: string): Promise<string | null> => {
@@ -121,7 +116,9 @@ export function useCollaborators(tripId: string) {
   const revokeAccess = useCallback(
     async (collaboratorId: string): Promise<void> => {
       // Optimistic update
-      setCollaborators((prev) => prev.filter((c) => c.id !== collaboratorId));
+      queryClient.setQueryData<TripCollaborator[]>(queryKey, (prev) =>
+        (prev ?? []).filter((c) => c.id !== collaboratorId),
+      );
 
       const res = await fetch(
         `/api/trips/collaborators?collaboratorId=${encodeURIComponent(collaboratorId)}`,
@@ -130,21 +127,22 @@ export function useCollaborators(tripId: string) {
 
       if (!res.ok) {
         // Revert on failure
-        await fetchCollaborators();
+        await queryClient.invalidateQueries({ queryKey });
         const json = await res.json().catch(() => ({})) as { error?: string };
         throw new Error(json.error ?? "Could not revoke access");
       }
     },
-    [fetchCollaborators],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [queryClient, tripId],
   );
 
   return {
-    collaborators,
-    loading,
-    error,
+    collaborators: data ?? [],
+    loading: isPending,
+    error: queryError ? queryError.message : null,
     inviteCollaborator,
     acceptInvite,
     revokeAccess,
-    refresh: fetchCollaborators,
+    refresh: () => queryClient.invalidateQueries({ queryKey }),
   };
 }

@@ -19,6 +19,16 @@ const config: Config = {
           deep:    "#080810",
           raised:  "#14141e",
         },
+        // Design token bridge — maps CSS variables to Tailwind utilities
+        primary:          "rgb(var(--color-primary) / <alpha-value>)",
+        "text-secondary": "rgb(var(--tw-text-secondary) / 0.6)",
+        "text-muted":     "rgb(var(--tw-text-muted) / 0.4)",
+        "surface-1":      "rgb(var(--tw-surface-1) / 0.03)",
+        "surface-2":      "rgb(var(--tw-surface-2) / 0.05)",
+        "surface-3":      "rgb(var(--tw-surface-3) / 0.08)",
+        "border-subtle":  "rgb(var(--tw-border-subtle) / 0.05)",
+        "border-default": "rgb(var(--tw-border-default) / 0.08)",
+        "border-strong":  "rgb(var(--tw-border-strong) / 0.15)",
       },
       animation: {
         // Existing
