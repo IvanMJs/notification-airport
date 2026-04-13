@@ -676,11 +676,17 @@ export function TripPanel({
                           {locale === "es" ? "Hoy" : "Today"}
                         </span>
                       </div>
-                      {todayFlights.map((flight) => (
-                        <div key={flight.id} className="relative">
+                      {todayFlights.map((flight, index) => (
+                        <motion.div
+                          key={flight.id}
+                          className="relative"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: Math.min(index, 8) * 0.05, duration: 0.25 }}
+                        >
                           <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-violet-600/30 to-transparent pointer-events-none" />
                           <div className="relative">{renderFlightCard(flight)}</div>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   )}
@@ -697,7 +703,16 @@ export function TripPanel({
                           </span>
                           <div className="flex-1 h-px bg-white/5" />
                         </div>
-                        {dayFlights.map((flight) => renderFlightCard(flight))}
+                        {dayFlights.map((flight, index) => (
+                          <motion.div
+                            key={flight.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: Math.min(index, 8) * 0.05, duration: 0.25 }}
+                          >
+                            {renderFlightCard(flight)}
+                          </motion.div>
+                        ))}
                       </div>
                     ))}
                 </AnimatePresence>

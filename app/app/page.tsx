@@ -23,6 +23,7 @@ import { DeleteTripModal } from "@/components/DeleteTripModal";
 import { DraftLeaveModal } from "@/components/DraftLeaveModal";
 import { TripTabBar } from "@/components/TripTabBar";
 import { BottomNav } from "@/components/BottomNav";
+import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { TripPanelSkeleton } from "@/components/TripPanelSkeleton";
 import { AirportStatusMap, DelayStatus, TripFlight, Accommodation } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
@@ -602,7 +603,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="min-h-screen bg-gray-950 px-4 pb-nav pt-4 md:pt-6 md:pb-6"
+      <div className="min-h-screen bg-gray-950 px-4 pb-nav pt-4 md:pt-6 md:pb-6 md:pl-72"
         style={{ '--bg-tint': hasCriticalDelay ? 'rgba(239,68,68,0.008)' : 'transparent' } as React.CSSProperties}
       >
         <div className="mx-auto max-w-6xl space-y-4 md:space-y-6">
@@ -613,10 +614,6 @@ export default function HomePage() {
               <div className="flex md:hidden items-center">
                 <img src="/tripcopliot-avatar.svg" alt="TripCopilot" className="h-10 w-auto" />
               </div>
-              <h1 className="hidden md:flex items-center gap-3 text-3xl font-black tracking-tight text-white">
-                <img src="/tripcopliot-avatar.svg" alt="TripCopilot" className="h-10 w-auto shrink-0" />
-                <span className="truncate">{t.appTitle}</span>
-              </h1>
               <p className="hidden md:block mt-1 text-sm text-gray-400 font-medium">{t.appSubtitle}</p>
             </div>
 
@@ -1018,6 +1015,24 @@ export default function HomePage() {
 
       {/* ── PWA install banner ── */}
       {mounted && <PwaInstallBanner hasTrip={userTrips.length > 0} />}
+
+      {/* ── Desktop sidebar navigation ── */}
+      {mounted && (
+        <DesktopSidebar
+          locale={locale}
+          activeTab={activeTab}
+          userTrips={userTrips}
+          draftTrip={draftTrip}
+          draftId={DRAFT_ID}
+          tabLabels={{ airports: t.tabAirports, profile: locale === "es" ? "Mis stats" : "My stats" }}
+          onNavigate={navigateAway}
+          onNewTrip={openCreateTripModal}
+          onDiscardDraft={discardDraft}
+          onDeleteTrip={deleteTrip}
+          onRenameTrip={(id, name) => renameTripDB(id, name, locale)}
+          onRenameDraft={(name) => setDraftTrip((prev) => prev ? { ...prev, name } : prev)}
+        />
+      )}
 
       {/* ── Mobile bottom navigation ── */}
       {mounted && (

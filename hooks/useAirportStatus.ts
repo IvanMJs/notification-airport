@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AirportStatusMap } from "@/lib/types";
 import { parseXML } from "@/lib/faa";
 import toast from "react-hot-toast";
@@ -46,16 +47,8 @@ export function useAirportStatus(
   locale: "es" | "en" = "es",
   showSwNotification?: (title: string, options?: NotificationOptions) => void,
 ) {
-  const [statusMap, setStatusMap] = useState<AirportStatusMap>(() => {
-    const cached = readCache();
-    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.data;
-    return {};
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [secondsUntilRefresh, setSecondsUntilRefresh] = useState(
-    refreshIntervalMinutes * 60
+    refreshIntervalMinutes * 60,
   );
   const [changedAirports, setChangedAirports] = useState<Set<string>>(new Set());
   const [consecutiveErrors, setConsecutiveErrors] = useState(0);
@@ -75,6 +68,14 @@ export function useAirportStatus(
     return cached !== null && Date.now() - cached.ts < CACHE_TTL_MS;
   })());
   const flashTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Stable refs so queryFn closure captures current values without re-creating the query key
+  const localeRef = useRef(locale);
+  const notificationsEnabledRef = useRef(notificationsEnabled);
+  const showSwNotificationRef = useRef(showSwNotification);
+  useEffect(() => { localeRef.current = locale; }, [locale]);
+  useEffect(() => { notificationsEnabledRef.current = notificationsEnabled; }, [notificationsEnabled]);
+  useEffect(() => { showSwNotificationRef.current = showSwNotification; }, [showSwNotification]);
 
   // On mount, check if notifications are already granted
   useEffect(() => {
@@ -96,91 +97,121 @@ export function useAirportStatus(
     setNotificationsEnabled(false);
   }, []);
 
-  const fetchStatus = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const cachedData = readCache();
+  const validCachedData =
+    cachedData && Date.now() - cachedData.ts < CACHE_TTL_MS ? cachedData.data : undefined;
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+  const {
+    data: statusMap = {},
+    isPending,
+    error: queryError,
+    refetch,
+  } = useQuery<AirportStatusMap, Error>({
+    queryKey: ["airport-status", refreshIntervalMinutes],
+    queryFn: async () => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 12000);
 
-    try {
-      const faaRes = await fetch("/api/faa-status", { signal: controller.signal });
-      clearTimeout(timeout);
+      try {
+        const faaRes = await fetch("/api/faa-status", { signal: controller.signal });
+        clearTimeout(timeout);
 
-      if (!faaRes.ok) throw new Error("Error fetching FAA data");
-      const xml = await faaRes.text();
-      lastXmlRef.current = xml;
-      const newMap = parseXML(xml, locale);
+        if (!faaRes.ok) throw new Error("Error fetching FAA data");
+        const xml = await faaRes.text();
+        lastXmlRef.current = xml;
+        const newMap = parseXML(xml, localeRef.current);
+        writeCache(newMap);
+        return newMap;
+      } catch (e) {
+        clearTimeout(timeout);
+        throw e;
+      }
+    },
+    initialData: validCachedData,
+    refetchInterval: refreshIntervalMinutes * 60 * 1000,
+    staleTime: CACHE_TTL_MS,
+  });
 
-      if (initialLoadDone.current) {
-        const prev = prevStatusRef.current;
-        const changed = new Set<string>();
-        Object.keys(newMap).forEach((iata) => {
-          const prevStatus = prev[iata]?.status;
-          const newStatus = newMap[iata]?.status;
-          if (prevStatus !== undefined && prevStatus !== newStatus) {
-            changed.add(iata);
-            if (newStatus === "ok") {
-              toast.success(`${iata}: ${TOAST_MESSAGES[locale].cleared} ✅`);
+  // Derive error string from query error
+  const error = queryError
+    ? queryError.name === "AbortError"
+      ? locale === "en"
+        ? "Timeout — FAA did not respond in 12 seconds"
+        : "Timeout — FAA no respondió en 12 segundos"
+      : String(queryError)
+    : null;
+
+  // Track consecutive errors
+  useEffect(() => {
+    if (queryError) {
+      setConsecutiveErrors((prev) => prev + 1);
+    }
+  }, [queryError]);
+
+  // Track last updated time and reset countdown on new data
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(() => {
+    const cached = readCache();
+    if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return new Date(cached.ts);
+    return null;
+  });
+
+  // Change detection, toasts, push notifications, and state reset on new data
+  useEffect(() => {
+    if (!statusMap || Object.keys(statusMap).length === 0) return;
+
+    if (initialLoadDone.current) {
+      const prev = prevStatusRef.current;
+      const changed = new Set<string>();
+      const currentLocale = localeRef.current;
+
+      Object.keys(statusMap).forEach((iata) => {
+        const prevStatus = prev[iata]?.status;
+        const newStatus = statusMap[iata]?.status;
+        if (prevStatus !== undefined && prevStatus !== newStatus) {
+          changed.add(iata);
+          if (newStatus === "ok") {
+            toast.success(`${iata}: ${TOAST_MESSAGES[currentLocale].cleared} ✅`);
+          } else {
+            toast.error(`${iata}: ${TOAST_MESSAGES[currentLocale].changed} ⚠️`);
+          }
+          // Push notification — prefer SW-based (works on Android PWA lock screen)
+          if (notificationsEnabledRef.current && Notification.permission === "granted") {
+            const msg =
+              newStatus === "ok"
+                ? TOAST_MESSAGES[currentLocale].cleared
+                : TOAST_MESSAGES[currentLocale].changed;
+            const title = `✈ ${iata}: ${msg}`;
+            if (showSwNotificationRef.current) {
+              showSwNotificationRef.current(title, { tag: iata });
             } else {
-              toast.error(`${iata}: ${TOAST_MESSAGES[locale].changed} ⚠️`);
-            }
-            // Push notification — prefer SW-based (works on Android PWA lock screen)
-            if (notificationsEnabled && Notification.permission === "granted") {
-              const msg = newStatus === "ok"
-                ? TOAST_MESSAGES[locale].cleared
-                : TOAST_MESSAGES[locale].changed;
-              const title = `✈ ${iata}: ${msg}`;
-              if (showSwNotification) {
-                showSwNotification(title, { tag: iata });
-              } else {
-                new Notification(title, { icon: "/icon.svg", tag: iata });
-              }
+              new Notification(title, { icon: "/icon.svg", tag: iata });
             }
           }
-        });
-        if (changed.size > 0) {
-          setChangedAirports(changed);
-          if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
-          flashTimeoutRef.current = setTimeout(() => setChangedAirports(new Set()), 4000);
         }
-      }
+      });
 
-      prevStatusRef.current = newMap;
-      setStatusMap(newMap);
-      writeCache(newMap);
-      setLastUpdated(new Date());
-      setSecondsUntilRefresh(refreshIntervalMinutes * 60);
-      initialLoadDone.current = true;
-      setConsecutiveErrors(0);
-    } catch (e) {
-      clearTimeout(timeout);
-      setConsecutiveErrors((prev) => prev + 1);
-      if ((e as Error).name === "AbortError") {
-        setError(locale === "en" ? "Timeout — FAA did not respond in 12 seconds" : "Timeout — FAA no respondió en 12 segundos");
-      } else {
-        setError(String(e));
+      if (changed.size > 0) {
+        setChangedAirports(changed);
+        if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
+        flashTimeoutRef.current = setTimeout(() => setChangedAirports(new Set()), 4000);
       }
-    } finally {
-      setLoading(false);
     }
-  }, [refreshIntervalMinutes, locale, notificationsEnabled, showSwNotification]);
+
+    prevStatusRef.current = statusMap;
+    setLastUpdated(new Date());
+    setSecondsUntilRefresh(refreshIntervalMinutes * 60);
+    setConsecutiveErrors(0);
+    initialLoadDone.current = true;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusMap]);
 
   // Re-parse cached XML when locale changes (no re-fetch needed)
   useEffect(() => {
     if (lastXmlRef.current) {
       const reparsed = parseXML(lastXmlRef.current, locale);
-      setStatusMap(reparsed);
       prevStatusRef.current = reparsed;
     }
   }, [locale]);
-
-  // Auto-refresh
-  useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(fetchStatus, refreshIntervalMinutes * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchStatus, refreshIntervalMinutes]);
 
   // Countdown ticker
   useEffect(() => {
@@ -195,12 +226,12 @@ export function useAirportStatus(
 
   return {
     statusMap,
-    loading,
+    loading: isPending,
     error,
     lastUpdated,
     secondsUntilRefresh,
     totalSeconds: refreshIntervalMinutes * 60,
-    refresh: fetchStatus,
+    refresh: refetch,
     changedAirports,
     consecutiveErrors,
     isStale,

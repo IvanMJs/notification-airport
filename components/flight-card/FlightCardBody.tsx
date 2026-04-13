@@ -435,7 +435,8 @@ export function FlightCardBody({
                 </p>
               </div>
             ) : (
-              <button
+              <motion.button
+                whileTap={{ scale: 0.96 }}
                 onClick={() => {
                   setNoteText(currentNote);
                   setShowNoteInput(true);
@@ -447,7 +448,7 @@ export function FlightCardBody({
                 {currentNote
                   ? locale === "es" ? "Editar nota" : "Edit note"
                   : locale === "es" ? "Agregar nota" : "Add note"}
-              </button>
+              </motion.button>
             )}
 
             {/* Upgrade indicator */}
