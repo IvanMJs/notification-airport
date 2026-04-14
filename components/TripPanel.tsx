@@ -61,6 +61,10 @@ import { GeoPosition } from "@/hooks/useGeolocation";
 import { FlightArcAnimation } from "./FlightArcAnimation";
 import { TripWeatherSummary } from "./TripWeatherSummary";
 import { openTripReportPrint } from "@/lib/tripReport";
+import { SmartPackingList } from "./SmartPackingList";
+import { TripCountdownWidget } from "./TripCountdownWidget";
+import { TripChatPanel } from "./TripChatPanel";
+import { FlightPriceAlertTeaser } from "./FlightPriceAlertTeaser";
 
 // ── Connection Separator ──────────────────────────────────────────────────────
 
@@ -148,6 +152,7 @@ export function TripPanel({
   const [showQuickExpense, setShowQuickExpense] = useState(false);
   const [tripCardLoading, setTripCardLoading] = useState(false);
   const [arcAnimation, setArcAnimation] = useState<{ origin: string; dest: string } | null>(null);
+  const [showPackingList, setShowPackingList] = useState(false);
 
   const sorted = useMemo(
     () => [...trip.flights].sort((a, b) => {
@@ -230,6 +235,25 @@ export function TripPanel({
     () => calculateTripRiskScore(sorted, statusMap, locale),
     [sorted, statusMap, locale],
   );
+
+  // ── Countdown widget data ────────────────────────────────────────────────────
+  const countdownData = useMemo(() => {
+    if (sorted.length === 0) return null;
+    const first = sorted[0];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dep = new Date(first.isoDate + "T00:00:00");
+    const daysLeft = Math.round((dep.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysLeft <= 0) return null;
+    const lastFlight = sorted[sorted.length - 1];
+    const route = `${first.originCode} → ${lastFlight.destinationCode}`;
+    const destination = AIRPORTS[lastFlight.destinationCode]?.city ?? lastFlight.destinationCode;
+    const departureDate = dep.toLocaleDateString(
+      locale === "en" ? "en-US" : "es-AR",
+      { day: "numeric", month: "short", year: "numeric" },
+    );
+    return { destination, daysLeft, departureDate, route };
+  }, [sorted, locale]);
 
   const advisorFlights = useMemo(() =>
     sorted.map((f) => ({
@@ -498,6 +522,17 @@ export function TripPanel({
             )}
           </button>
         </div>
+      )}
+
+      {/* Countdown Widget — shown when first flight is in the future */}
+      {countdownData && (
+        <TripCountdownWidget
+          destination={countdownData.destination}
+          daysLeft={countdownData.daysLeft}
+          departureDate={countdownData.departureDate}
+          route={countdownData.route}
+          locale={locale}
+        />
       )}
 
       {/* Flight Countdown Badge */}
@@ -824,6 +859,23 @@ export function TripPanel({
         <CarbonFootprint flights={sorted} locale={locale} />
       )}
 
+      {/* Flight price alert teaser — shown in flights tab when there are flights */}
+      {panelTab === "flights" && !isDraft && sorted.length > 0 && (() => {
+        const firstFlight = sorted[0];
+        const lastFlight = sorted[sorted.length - 1];
+        const origin = firstFlight.originCode;
+        const destination = lastFlight.destinationCode;
+        return (
+          <FlightPriceAlertTeaser
+            origin={origin}
+            destination={destination}
+            locale={locale}
+            planType={userPlan ?? "free"}
+            onUpgrade={onUpgrade}
+          />
+        );
+      })()}
+
       {/* Premium teaser cards — free users only, flights tab */}
       {panelTab === "flights" && !isDraft && sorted.length > 0 && userPlan === "free" && (
         <div className="space-y-3">
@@ -1089,12 +1141,62 @@ export function TripPanel({
               <span aria-hidden="true" className="text-sm leading-none">📸</span>
               Instagram
             </button>
+
+            {/* Packing list button */}
+            {!isDraft && (
+              <button
+                onClick={() => setShowPackingList(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-emerald-800/40 bg-emerald-950/15 px-3 py-1.5 text-xs text-emerald-400 hover:bg-emerald-950/35 transition-colors"
+              >
+                <span aria-hidden="true" className="text-sm leading-none">🧳</span>
+                {locale === "es" ? "Lista de equipaje" : "Packing list"}
+              </button>
+            )}
           </div>
         </div>
       )}
 
+      {/* Smart Packing List modal */}
+      <AnimatePresence>
+        {showPackingList && (() => {
+          const firstFlight = sorted[0];
+          const lastFlight = sorted[sorted.length - 1];
+          const destination = AIRPORTS[lastFlight?.destinationCode]?.city ?? (lastFlight?.destinationCode ?? trip.name);
+          const firstDate = firstFlight?.isoDate ?? new Date().toISOString().slice(0, 10);
+          const lastDate = lastFlight?.isoDate ?? firstDate;
+          const durationDays = Math.max(
+            1,
+            Math.round(
+              (new Date(lastDate).getTime() - new Date(firstDate).getTime()) /
+              (1000 * 60 * 60 * 24),
+            ) + 1,
+          );
+          return (
+            <SmartPackingList
+              tripId={trip.id}
+              destination={destination}
+              durationDays={durationDays}
+              tempC={20}
+              locale={locale}
+              onClose={() => setShowPackingList(false)}
+            />
+          );
+        })()}
+      </AnimatePresence>
+
       {/* Trip guide */}
       {(panelTab === "flights" || isDraft) && sorted.length > 0 && <TripAdvisor flights={advisorFlights} locale={locale} />}
+
+      {/* Collaborative trip chat — shown in flights tab for non-draft trips with collaborators */}
+      {panelTab === "flights" && !isDraft && (
+        <TripChatPanel
+          tripId={trip.id}
+          locale={locale}
+          planType={userPlan ?? "free"}
+          hasCollaborators={!!trip.isShared}
+          onUpgrade={onUpgrade}
+        />
+      )}
 
       {/* Add flight — hidden for viewer role */}
       {canEdit && (panelTab === "flights" || isDraft) && sorted.length > 0 && !showAddForm && (
