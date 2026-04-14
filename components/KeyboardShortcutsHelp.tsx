@@ -17,9 +17,9 @@ interface KeyboardShortcutsHelpProps {
 
 const SHORTCUTS_ES: Shortcut[] = [
   { keys: ["Ctrl", "N"],    description: "Nuevo viaje" },
-  { keys: ["Ctrl", "1"],    description: "Ir a Aeropuertos (tab 1)" },
-  { keys: ["Ctrl", "2"],    description: "Ir a Hoy (tab 2)" },
-  { keys: ["Ctrl", "3"],    description: "Ir a Vuelos (tab 3)" },
+  { keys: ["Ctrl", "1"],    description: "Ir a Hoy (tab 1)" },
+  { keys: ["Ctrl", "2"],    description: "Ir a Mis viajes (tab 2)" },
+  { keys: ["Ctrl", "3"],    description: "Ir a Descubrir (tab 3)" },
   { keys: ["Ctrl", "4"],    description: "Ir a Perfil (tab 4)" },
   { keys: ["Esc"],          description: "Cerrar modal / hoja" },
   { keys: ["?"],            description: "Mostrar esta ayuda" },
@@ -27,9 +27,9 @@ const SHORTCUTS_ES: Shortcut[] = [
 
 const SHORTCUTS_EN: Shortcut[] = [
   { keys: ["Ctrl", "N"],    description: "New trip" },
-  { keys: ["Ctrl", "1"],    description: "Go to Airports (tab 1)" },
-  { keys: ["Ctrl", "2"],    description: "Go to Today (tab 2)" },
-  { keys: ["Ctrl", "3"],    description: "Go to Flights (tab 3)" },
+  { keys: ["Ctrl", "1"],    description: "Go to Today (tab 1)" },
+  { keys: ["Ctrl", "2"],    description: "Go to My trips (tab 2)" },
+  { keys: ["Ctrl", "3"],    description: "Go to Discover (tab 3)" },
   { keys: ["Ctrl", "4"],    description: "Go to Profile (tab 4)" },
   { keys: ["Esc"],          description: "Close modal / sheet" },
   { keys: ["?"],            description: "Show this help" },

@@ -108,7 +108,7 @@ export function CurrencyConverter({ locale, tripFlights }: CurrencyConverterProp
     if (!tripFlights || tripFlights.length === 0) return;
     const last = [...tripFlights].sort((a, b) => b.isoDate.localeCompare(a.isoDate))[0];
     const detected = AIRPORT_CURRENCY[last.destinationCode];
-    if (detected && detected !== fromCcy) {
+    if (detected) {
       setToCcy(detected);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps

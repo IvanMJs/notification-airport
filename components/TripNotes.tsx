@@ -48,6 +48,13 @@ export function TripNotes({ tripId, locale }: TripNotesProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, []);
+
   // Load from localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {

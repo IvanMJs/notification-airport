@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { CommonFlightInfo } from "@/lib/commonFlights";
 
@@ -34,6 +34,13 @@ export function FlightLookupInput({ locale, onAutoFill }: FlightLookupInputProps
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const L = LABELS[locale];
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   async function lookup(code: string) {
     if (code.length < 4) {

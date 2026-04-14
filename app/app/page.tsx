@@ -563,7 +563,7 @@ export default function HomePage() {
   }, []);
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────────
-  const kbdTabMap = ["airports", "today", "flights", "profile"];
+  const kbdTabMap = ["today", "trips", "discover", "profile"];
   useKeyboardShortcuts({
     onNewTrip: openCreateTripModal,
     onSwitchTab: (index) => {
