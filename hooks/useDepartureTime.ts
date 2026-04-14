@@ -9,11 +9,19 @@ import {
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
+/**
+ * "planning"  = 24–72h before departure (muted, informational)
+ * "normal"    = 4–24h before departure
+ * "urgent"    = <4h before departure
+ */
+export type PlanningMode = "planning" | "normal" | "urgent";
+
 export interface DepartureTimeResult extends DepartureCalculatorResult {
-  /** "Salir a las 14:30" / "Leave at 2:30 PM" */
+  /** "Salir a las 14:30" / "Leave at 2:30 PM" or planning-mode label */
   leaveAtFormatted: string;
-  /** "Faltan 2 horas 15 minutos" / "2 hours 15 minutes left" */
+  /** "Faltan 2 horas 15 minutos" / "2 hours 15 minutes left". Empty in planning mode. */
   countdownText: string;
+  planningMode: PlanningMode;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -52,13 +60,34 @@ function buildCountdownText(
   }
 }
 
+function buildPlanningLabel(leaveAt: Date, locale: "es" | "en"): string {
+  const msLeft = leaveAt.getTime() - Date.now();
+  const totalHours = Math.ceil(msLeft / (60 * 60 * 1000));
+  const days = Math.floor(totalHours / 24);
+  const timeStr = leaveAt.toLocaleTimeString(locale === "es" ? "es-AR" : "en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: locale === "en",
+  });
+  if (locale === "es") {
+    return days === 1
+      ? `Mañana, salir a las ${timeStr}`
+      : `En ${days} días, salir a las ${timeStr}`;
+  }
+  return days === 1
+    ? `Tomorrow, leave at ${timeStr}`
+    : `In ${days} days, leave at ${timeStr}`;
+}
+
+const SEVENTY_TWO_HOURS_MS = 72 * 60 * 60 * 1000;
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+const FOUR_HOURS_MS        =  4 * 60 * 60 * 1000;
 
 // ── Hook ───────────────────────────────────────────────────────────────────
 
 /**
  * Calculates and formats departure time for a flight, refreshing every minute.
- * Returns null if the flight departs more than 24 hours from now.
+ * Returns null if the flight departs more than 72 hours from now or is past.
  */
 export function useDepartureTime(
   flightDepartureISO: string,
@@ -72,8 +101,8 @@ export function useDepartureTime(
     const departureDate = new Date(flightDepartureISO);
     const msUntilDeparture = departureDate.getTime() - Date.now();
 
-    // Only show the widget for flights within the next 24 hours
-    if (msUntilDeparture > TWENTY_FOUR_HOURS_MS || msUntilDeparture < 0) {
+    // Show the widget for flights within the next 72 hours
+    if (msUntilDeparture > SEVENTY_TWO_HOURS_MS || msUntilDeparture < 0) {
       return null;
     }
 
@@ -83,10 +112,22 @@ export function useDepartureTime(
       geoPosition,
     });
 
+    const planningMode: PlanningMode =
+      msUntilDeparture > TWENTY_FOUR_HOURS_MS
+        ? "planning"
+        : msUntilDeparture > FOUR_HOURS_MS
+          ? "normal"
+          : "urgent";
+
+    const isPlanning = planningMode === "planning";
+
     return {
       ...result,
-      leaveAtFormatted: formatLeaveAt(result.leaveAt, locale),
-      countdownText: buildCountdownText(result.leaveAt, locale),
+      leaveAtFormatted: isPlanning
+        ? buildPlanningLabel(result.leaveAt, locale)
+        : formatLeaveAt(result.leaveAt, locale),
+      countdownText: isPlanning ? "" : buildCountdownText(result.leaveAt, locale),
+      planningMode,
     };
   }, [flightDepartureISO, originCode, geoPosition, locale]);
 

@@ -52,6 +52,67 @@ export const DEFAULT_CHECKLIST_ITEMS: ChecklistItem[] = [
   { id: "trn-home",         labelEs: "Casa asegurada (luces/llaves)", labelEn: "Home security (lights/locks)", category: "transport", checked: false },
 ];
 
+export type TripType = "domestic" | "international" | "first_international";
+
+/** Item IDs excluded for domestic trips (no international documents needed). */
+const DOMESTIC_EXCLUDED_IDS = new Set([
+  "doc-passport",
+  "doc-visa",
+  "doc-insurance",
+  "lug-chargers", // adapters not needed for domestic
+  "hlt-vaccines",
+]);
+
+/** Extra items appended for first-time international travelers. */
+const FIRST_INTERNATIONAL_EXTRA: ChecklistItem[] = [
+  {
+    id: "doc-passport-copy",
+    labelEs: "Fotocopias de pasaporte",
+    labelEn: "Passport copies",
+    category: "documents",
+    checked: false,
+  },
+  {
+    id: "doc-intl-health-insurance",
+    labelEs: "Seguro médico internacional",
+    labelEn: "International health insurance",
+    category: "documents",
+    checked: false,
+  },
+  {
+    id: "doc-embassy-numbers",
+    labelEs: "Números de emergencia del consulado",
+    labelEn: "Embassy emergency numbers",
+    category: "documents",
+    checked: false,
+  },
+  {
+    id: "trn-local-currency",
+    labelEs: "Moneda local o tarjeta sin comisiones",
+    labelEn: "Local currency or fee-free card",
+    category: "transport",
+    checked: false,
+  },
+];
+
+export function getChecklistForTripType(tripType: TripType): ChecklistItem[] {
+  if (tripType === "domestic") {
+    return DEFAULT_CHECKLIST_ITEMS
+      .filter((item) => !DOMESTIC_EXCLUDED_IDS.has(item.id))
+      .map((item) => ({ ...item }));
+  }
+
+  if (tripType === "first_international") {
+    return [
+      ...DEFAULT_CHECKLIST_ITEMS.map((item) => ({ ...item })),
+      ...FIRST_INTERNATIONAL_EXTRA.map((item) => ({ ...item })),
+    ];
+  }
+
+  // "international" — default list
+  return DEFAULT_CHECKLIST_ITEMS.map((item) => ({ ...item }));
+}
+
 export function getItemsByCategory(
   items: ChecklistItem[],
   categoryId: ChecklistCategory["id"],

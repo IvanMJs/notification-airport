@@ -7,6 +7,7 @@ import { AirportStatusMap } from "@/lib/types";
 import { calculateTripRiskScore } from "@/lib/tripRiskScore";
 import { TripListSkeleton } from "./TripListSkeleton";
 import { formatRelativeDate } from "@/lib/formatDate";
+import { AIRPORTS } from "@/lib/airports";
 
 interface TripListViewProps {
   trips: TripTab[];
@@ -45,15 +46,19 @@ function uniqueDestinations(trip: TripTab): string[] {
   return Array.from(new Set(trip.flights.map((f) => f.destinationCode)));
 }
 
+function airportLabel(iata: string): string {
+  return AIRPORTS[iata]?.city ?? iata;
+}
+
 function buildRouteLabel(trip: TripTab): string {
-  const airports: string[] = [];
+  const codes: string[] = [];
   for (const f of trip.flights) {
-    if (!airports.includes(f.originCode)) airports.push(f.originCode);
-    if (!airports.includes(f.destinationCode)) airports.push(f.destinationCode);
+    if (!codes.includes(f.originCode)) codes.push(f.originCode);
+    if (!codes.includes(f.destinationCode)) codes.push(f.destinationCode);
   }
-  if (airports.length === 0) return "";
-  if (airports.length <= 4) return airports.join(" → ");
-  return `${airports[0]} → ${airports[1]} → +${airports.length - 2} más`;
+  if (codes.length === 0) return "";
+  if (codes.length <= 4) return codes.map(airportLabel).join(" → ");
+  return `${airportLabel(codes[0])} → ${airportLabel(codes[1])} +${codes.length - 2}`;
 }
 
 function getNextFlightLabel(trip: TripTab, locale: "es" | "en"): { label: string; isToday: boolean } | null {

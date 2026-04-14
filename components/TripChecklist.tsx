@@ -6,8 +6,9 @@ import { Check, Plus, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import {
   ChecklistItem,
   ChecklistCategory,
+  TripType,
   CHECKLIST_CATEGORIES,
-  DEFAULT_CHECKLIST_ITEMS,
+  getChecklistForTripType,
   getItemsByCategory,
   countChecked,
 } from "@/lib/checklistDefaults";
@@ -16,53 +17,100 @@ import {
 
 const LABELS = {
   es: {
-    title:            "Lista de verificación",
-    resetBtn:         "Reiniciar",
-    resetConfirm:     "¿Reiniciar todos los ítems?",
-    addPlaceholder:   "Nuevo ítem…",
-    addBtn:           "Agregar",
-    cancel:           "Cancelar",
-    completed:        "completados",
-    of:               "de",
-    items:            "ítems",
-    addCustom:        "Agregar ítem",
+    title:                    "Lista de verificación",
+    resetBtn:                 "Reiniciar",
+    resetConfirm:             "¿Reiniciar todos los ítems?",
+    addPlaceholder:           "Nuevo ítem…",
+    addBtn:                   "Agregar",
+    cancel:                   "Cancelar",
+    completed:                "completados",
+    of:                       "de",
+    items:                    "ítems",
+    addCustom:                "Agregar ítem",
+    templateTitle:            "¿Qué tipo de viaje?",
+    templateSubtitle:         "Elegí una plantilla para personalizar tu checklist",
+    templateChangeCta:        "Cambiar plantilla",
+    templateChangeConfirm:    "Esto reiniciará tu checklist. ¿Continuar?",
+    templates: {
+      domestic:              { label: "Doméstico", desc: "Vuelo dentro del país, sin pasaporte ni visa." },
+      international:         { label: "Internacional", desc: "Viaje al exterior con documentación completa." },
+      first_international:   { label: "Primera vez al exterior", desc: "Lista extendida con guía para viajeros nuevos." },
+    },
   },
   en: {
-    title:            "Pre-trip checklist",
-    resetBtn:         "Reset all",
-    resetConfirm:     "Reset all items?",
-    addPlaceholder:   "New item…",
-    addBtn:           "Add",
-    cancel:           "Cancel",
-    completed:        "completed",
-    of:               "of",
-    items:            "items",
-    addCustom:        "Add item",
+    title:                    "Pre-trip checklist",
+    resetBtn:                 "Reset all",
+    resetConfirm:             "Reset all items?",
+    addPlaceholder:           "New item…",
+    addBtn:                   "Add",
+    cancel:                   "Cancel",
+    completed:                "completed",
+    of:                       "of",
+    items:                    "items",
+    addCustom:                "Add item",
+    templateTitle:            "What kind of trip?",
+    templateSubtitle:         "Choose a template to personalize your checklist",
+    templateChangeCta:        "Change template",
+    templateChangeConfirm:    "This will reset your checklist. Continue?",
+    templates: {
+      domestic:              { label: "Domestic", desc: "Domestic flight — no passport or visa needed." },
+      international:         { label: "International", desc: "International travel with full documentation." },
+      first_international:   { label: "First time abroad", desc: "Extended list with guidance for first-time travelers." },
+    },
   },
 } as const;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function storageKey(tripId: string) {
+function itemsKey(tripId: string) {
   return `tripcopilot-checklist-${tripId}`;
 }
 
-function loadItems(tripId: string): ChecklistItem[] {
-  if (typeof window === "undefined") return DEFAULT_CHECKLIST_ITEMS.map((i) => ({ ...i }));
+function typeKey(tripId: string) {
+  return `tripcopilot-checklist-type-${tripId}`;
+}
+
+interface StoredPayload {
+  tripType: TripType;
+  items: ChecklistItem[];
+}
+
+/** Returns null when no data is stored — caller shows template selector. */
+function loadPayload(tripId: string): StoredPayload | null {
+  if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(storageKey(tripId));
-    if (!raw) return DEFAULT_CHECKLIST_ITEMS.map((i) => ({ ...i }));
-    return JSON.parse(raw) as ChecklistItem[];
+    // Check for the trip-type key first (new format)
+    const storedType = window.localStorage.getItem(typeKey(tripId)) as TripType | null;
+    const rawItems   = window.localStorage.getItem(itemsKey(tripId));
+
+    if (!rawItems) return null;
+
+    const items = JSON.parse(rawItems) as ChecklistItem[];
+
+    // Backward-compat: if old data exists but no type key, treat as "international"
+    const tripType: TripType = storedType ?? "international";
+
+    return { tripType, items };
   } catch {
-    return DEFAULT_CHECKLIST_ITEMS.map((i) => ({ ...i }));
+    return null;
   }
 }
 
-function saveItems(tripId: string, items: ChecklistItem[]): void {
+function savePayload(tripId: string, tripType: TripType, items: ChecklistItem[]): void {
   try {
-    window.localStorage.setItem(storageKey(tripId), JSON.stringify(items));
+    window.localStorage.setItem(itemsKey(tripId), JSON.stringify(items));
+    window.localStorage.setItem(typeKey(tripId), tripType);
   } catch {
     // storage quota exceeded or private mode — fail silently
+  }
+}
+
+function clearPayload(tripId: string): void {
+  try {
+    window.localStorage.removeItem(itemsKey(tripId));
+    window.localStorage.removeItem(typeKey(tripId));
+  } catch {
+    // fail silently
   }
 }
 
@@ -240,6 +288,54 @@ function CategorySection({ category, items, locale, onToggle, onAddCustom }: Cat
   );
 }
 
+// ── TemplatePicker ────────────────────────────────────────────────────────────
+
+const TRIP_TYPES: TripType[] = ["domestic", "international", "first_international"];
+
+const TRIP_TYPE_ICONS: Record<TripType, string> = {
+  domestic:            "🏠",
+  international:       "🌍",
+  first_international: "✈",
+};
+
+interface TemplatePickerProps {
+  locale: "es" | "en";
+  onSelect: (tripType: TripType) => void;
+}
+
+function TemplatePicker({ locale, onSelect }: TemplatePickerProps) {
+  const L = LABELS[locale];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
+          {L.templateTitle}
+        </h3>
+        <p className="text-xs text-gray-500 mt-1">{L.templateSubtitle}</p>
+      </div>
+      <div className="space-y-2">
+        {TRIP_TYPES.map((type) => {
+          const tpl = L.templates[type];
+          return (
+            <button
+              key={type}
+              onClick={() => onSelect(type)}
+              className="w-full flex items-start gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-4 text-left hover:bg-white/[0.06] hover:border-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/60"
+            >
+              <span className="text-2xl leading-none mt-0.5">{TRIP_TYPE_ICONS[type]}</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-200">{tpl.label}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{tpl.desc}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── TripChecklist ─────────────────────────────────────────────────────────────
 
 interface TripChecklistProps {
@@ -250,18 +346,39 @@ interface TripChecklistProps {
 export function TripChecklist({ tripId, locale }: TripChecklistProps) {
   const L = LABELS[locale];
 
-  const [items, setItems] = useState<ChecklistItem[]>(() => loadItems(tripId));
-  const [confirmReset, setConfirmReset] = useState(false);
+  // null tripType means "not yet selected" — show the template picker
+  const [tripType, setTripType] = useState<TripType | null>(() => {
+    const payload = loadPayload(tripId);
+    return payload?.tripType ?? null;
+  });
+  const [items, setItems] = useState<ChecklistItem[]>(() => {
+    const payload = loadPayload(tripId);
+    return payload?.items ?? [];
+  });
+  const [confirmReset, setConfirmReset]           = useState(false);
+  const [confirmChangeTemplate, setConfirmChangeTemplate] = useState(false);
 
-  // Persist on every change
+  // Persist whenever items or tripType change (only when a template is selected)
   useEffect(() => {
-    saveItems(tripId, items);
-  }, [tripId, items]);
+    if (tripType) {
+      savePayload(tripId, tripType, items);
+    }
+  }, [tripId, tripType, items]);
 
   // Reload when tripId changes
   useEffect(() => {
-    setItems(loadItems(tripId));
+    const payload = loadPayload(tripId);
+    setTripType(payload?.tripType ?? null);
+    setItems(payload?.items ?? []);
     setConfirmReset(false);
+    setConfirmChangeTemplate(false);
+  }, [tripId]);
+
+  const handleSelectTemplate = useCallback((type: TripType) => {
+    const newItems = getChecklistForTripType(type);
+    setTripType(type);
+    setItems(newItems);
+    savePayload(tripId, type, newItems);
   }, [tripId]);
 
   const handleToggle = useCallback((id: string) => {
@@ -287,9 +404,27 @@ export function TripChecklist({ tripId, locale }: TripChecklistProps) {
       setConfirmReset(true);
       return;
     }
-    setItems(DEFAULT_CHECKLIST_ITEMS.map((i) => ({ ...i })));
+    if (tripType) {
+      setItems(getChecklistForTripType(tripType));
+    }
     setConfirmReset(false);
-  }, [confirmReset]);
+  }, [confirmReset, tripType]);
+
+  const handleChangeTemplate = useCallback(() => {
+    if (!confirmChangeTemplate) {
+      setConfirmChangeTemplate(true);
+      return;
+    }
+    clearPayload(tripId);
+    setTripType(null);
+    setItems([]);
+    setConfirmChangeTemplate(false);
+  }, [confirmChangeTemplate, tripId]);
+
+  // Template not yet chosen — show picker
+  if (!tripType) {
+    return <TemplatePicker locale={locale} onSelect={handleSelectTemplate} />;
+  }
 
   const { checked, total } = countChecked(items);
   const progressPct = total === 0 ? 0 : Math.round((checked / total) * 100);
@@ -301,17 +436,31 @@ export function TripChecklist({ tripId, locale }: TripChecklistProps) {
         <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
           {L.title}
         </h3>
-        <button
-          onClick={handleReset}
-          className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-            confirmReset
-              ? "border-red-500/50 bg-red-500/10 text-red-400 hover:bg-red-500/20"
-              : "border-white/[0.08] text-gray-500 hover:text-gray-300 hover:border-white/20"
-          }`}
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          {confirmReset ? L.resetConfirm : L.resetBtn}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Change template button */}
+          <button
+            onClick={handleChangeTemplate}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+              confirmChangeTemplate
+                ? "border-amber-500/50 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+                : "border-white/[0.08] text-gray-500 hover:text-gray-300 hover:border-white/20"
+            }`}
+          >
+            {confirmChangeTemplate ? L.templateChangeConfirm : L.templateChangeCta}
+          </button>
+          {/* Reset button */}
+          <button
+            onClick={handleReset}
+            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+              confirmReset
+                ? "border-red-500/50 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                : "border-white/[0.08] text-gray-500 hover:text-gray-300 hover:border-white/20"
+            }`}
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            {confirmReset ? L.resetConfirm : L.resetBtn}
+          </button>
+        </div>
       </div>
 
       {/* Progress bar */}

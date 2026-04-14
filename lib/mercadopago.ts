@@ -48,7 +48,7 @@ export const PLANS = {
       "Viajes y vuelos ilimitados",
       "Todo lo de Explorer",
       "AI Health Check 48h antes",
-      "Viajes compartidos (coming soon)",
+      "Viajes compartidos",
       "Morning Briefing semanal",
       "Soporte prioritario",
     ],
