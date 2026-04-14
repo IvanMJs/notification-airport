@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, X, ChevronDown, Wallet } from "lucide-react";
 import { useTripExpenses } from "@/hooks/useTripExpenses";
 import { TripExpense } from "@/lib/types";
@@ -16,16 +16,93 @@ const CATEGORIES: { value: TripExpense["category"]; labelEs: string; labelEn: st
 
 const CURRENCIES = ["ARS", "USD", "EUR", "GBP", "BRL", "UYU"];
 
+const HINT_KEY = "tc-quickexpense-hint-seen";
+
 interface TripExpensesProps {
   tripId: string;
   locale: "es" | "en";
   readOnly?: boolean;
+  onQuickAdd?: () => void;
 }
 
-export function TripExpenses({ tripId, locale, readOnly = false }: TripExpensesProps) {
+export function TripExpenses({ tripId, locale, readOnly = false, onQuickAdd }: TripExpensesProps) {
   const { expenses, loading, error, addExpense, removeExpense, totalByCurrency } = useTripExpenses(tripId);
   const [expanded, setExpanded] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showHint, setShowHint]           = useState(false);
+
+  // Long-press state refs
+  const longPressTimer  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pointerStartPos = useRef<{ x: number; y: number } | null>(null);
+  const didLongPress    = useRef(false);
+
+  // Cleanup long-press timer on unmount
+  useEffect(() => {
+    return () => cancelLongPress();
+  // cancelLongPress is stable (no deps), safe to omit
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Show hint once (only when onQuickAdd is wired up)
+  useEffect(() => {
+    if (!onQuickAdd) return;
+    if (typeof window === "undefined") return;
+    if (!localStorage.getItem(HINT_KEY)) {
+      setShowHint(true);
+    }
+  }, [onQuickAdd]);
+
+  function dismissHint() {
+    setShowHint(false);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(HINT_KEY, "1");
+    }
+  }
+
+  function handlePointerDown(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!onQuickAdd) return;
+    didLongPress.current = false;
+    pointerStartPos.current = { x: e.clientX, y: e.clientY };
+    longPressTimer.current = setTimeout(() => {
+      didLongPress.current = true;
+      navigator.vibrate?.(10);
+      dismissHint();
+      onQuickAdd();
+    }, 400);
+  }
+
+  function cancelLongPress() {
+    if (longPressTimer.current !== null) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
+  function handlePointerUp() {
+    cancelLongPress();
+  }
+
+  function handlePointerLeave() {
+    cancelLongPress();
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+    if (!pointerStartPos.current) return;
+    const dx = e.clientX - pointerStartPos.current.x;
+    const dy = e.clientY - pointerStartPos.current.y;
+    if (Math.sqrt(dx * dx + dy * dy) > 5) {
+      cancelLongPress();
+    }
+  }
+
+  function handleClick() {
+    // If long-press already fired, skip toggle
+    if (didLongPress.current) {
+      didLongPress.current = false;
+      return;
+    }
+    setExpanded((v) => !v);
+  }
 
   // Form state
   const [formAmount, setFormAmount]       = useState("");
@@ -66,10 +143,14 @@ export function TripExpenses({ tripId, locale, readOnly = false }: TripExpensesP
 
   return (
     <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] overflow-hidden">
-      {/* Header toggle */}
+      {/* Header toggle (long-press opens QuickExpenseSheet if wired) */}
       <button
-        onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left"
+        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+        onPointerMove={handlePointerMove}
+        className="w-full flex items-center justify-between px-4 py-3 text-left select-none"
         aria-expanded={expanded}
       >
         <div className="flex items-center gap-2">
@@ -87,6 +168,24 @@ export function TripExpenses({ tripId, locale, readOnly = false }: TripExpensesP
           className={`h-3.5 w-3.5 text-gray-600 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
         />
       </button>
+
+      {/* First-use hint for long-press */}
+      {showHint && onQuickAdd && (
+        <div className="mx-4 mb-2 flex items-center justify-between gap-2 rounded-lg bg-violet-950/30 border border-violet-800/30 px-3 py-2">
+          <p className="text-xs text-violet-300">
+            {locale === "es"
+              ? "Mantén presionado el encabezado para agregar un gasto rápido."
+              : "Long-press the header to quickly add an expense."}
+          </p>
+          <button
+            onClick={dismissHint}
+            className="shrink-0 text-violet-400 hover:text-violet-200 transition-colors"
+            aria-label={locale === "es" ? "Cerrar" : "Dismiss"}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
 
       {expanded && (
         <div className="px-4 pb-4 space-y-3">

@@ -50,6 +50,8 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 import { TimezoneBanner } from "@/components/TimezoneBanner";
 import dynamic from "next/dynamic";
 import { DepartureBoard } from "@/components/DepartureBoard";
+import { SmartAlertsPanel } from "@/components/SmartAlertsPanel";
+import { useSmartAlerts } from "@/hooks/useSmartAlerts";
 import { DiscoverView } from "@/components/DiscoverView";
 import { MyProfileView } from "@/components/MyProfileView";
 import { UpgradeModal } from "@/components/UpgradeModal";
@@ -314,6 +316,9 @@ export default function HomePage() {
   }, [userTrips, watchedAirports, locale, lastUpdated]);
 
   const statusMap: AirportStatusMap = { ...intlStatusMap, ...faaStatusMap };
+
+  // ── Smart alerts ─────────────────────────────────────────────────────────
+  const { alerts: smartAlerts, dismiss: dismissSmartAlert } = useSmartAlerts(userTrips, statusMap, locale);
 
   // ── Offline sync ──────────────────────────────────────────────────────────
   const { isOnline: offlineIsOnline, lastSync } = useOfflineSync(userId, userTrips, statusMap);
@@ -824,7 +829,10 @@ export default function HomePage() {
             )}
 
             {activeTab === "today" && (
-              <DepartureBoard trips={userTrips} statusMap={statusMap} locale={locale} geoPosition={userPosition} />
+              <div className="space-y-4">
+                <SmartAlertsPanel alerts={smartAlerts} onDismiss={dismissSmartAlert} locale={locale} />
+                <DepartureBoard trips={userTrips} statusMap={statusMap} locale={locale} geoPosition={userPosition} />
+              </div>
             )}
 
             {activeTab === "flights" && (

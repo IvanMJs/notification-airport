@@ -19,6 +19,7 @@ import { WeatherData } from "@/hooks/useWeather";
 import { useTaf } from "@/hooks/useTaf";
 import { useSigmet, SigmetFeature, routeIntersectsSigmet } from "@/hooks/useSigmet";
 import { TripTimeline } from "./TripTimeline";
+import { TripTimelineView } from "./TripTimelineView";
 import { AddFlightForm } from "./FlightForm";
 import { estimateArrivalDate } from "./AccommodationCard";
 import { CalendarFlight, generateICS, downloadICS, buildGoogleCalendarURL } from "@/lib/calendarExport";
@@ -31,6 +32,7 @@ import { ItineraryImportModal } from "./ItineraryImportModal";
 import { CarbonFootprint } from "./CarbonFootprint";
 import { TripExpenses } from "./TripExpenses";
 import { TripBudgetCard } from "./TripBudgetCard";
+import { QuickExpenseSheet } from "./QuickExpenseSheet";
 import { ParsedFlight } from "@/lib/importFlights";
 import { FlightCard } from "./FlightCard";
 import { FlightCardSkeleton } from "./FlightCardSkeleton";
@@ -136,6 +138,7 @@ export function TripPanel({
   const [saving, setSaving]             = useState(false);
   const [viewMode, setViewMode]         = useState<"list" | "timeline">("list");
   const [panelTab, setPanelTab]         = useState<"flights" | "expenses" | "alerts" | "passengers" | "checklist">("flights");
+  const [showQuickExpense, setShowQuickExpense] = useState(false);
 
   const sorted = useMemo(
     () => [...trip.flights].sort((a, b) => {
@@ -530,7 +533,12 @@ export function TripPanel({
       {panelTab === "expenses" && !isDraft && (
         <>
           <TripBudgetCard trip={trip} locale={locale} />
-          <TripExpenses tripId={trip.id} locale={locale} readOnly={!canEdit} />
+          <TripExpenses
+            tripId={trip.id}
+            locale={locale}
+            readOnly={!canEdit}
+            onQuickAdd={canEdit ? () => setShowQuickExpense(true) : undefined}
+          />
         </>
       )}
 
@@ -617,7 +625,7 @@ export function TripPanel({
           </div>
 
           {viewMode === "timeline" ? (
-            <TripTimeline flights={trip.flights} accommodations={trip.accommodations} statusMap={statusMap} connectionMap={connectionMap} />
+            <TripTimelineView trip={trip} locale={locale} statusMap={statusMap} />
           ) : (
             (() => {
               const todayIso = new Date().toISOString().slice(0, 10);
@@ -982,6 +990,14 @@ export function TripPanel({
           tripName={trip.name}
           locale={locale}
           onClose={() => setShowShareModal(false)}
+        />
+      )}
+
+      {showQuickExpense && canEdit && !isDraft && (
+        <QuickExpenseSheet
+          tripId={trip.id}
+          locale={locale}
+          onClose={() => setShowQuickExpense(false)}
         />
       )}
     </section>
