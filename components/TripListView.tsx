@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plane, ChevronRight, Trash2, Plus, MapPin, X, Clock, ChevronDown, ChevronUp, Eye, Pencil as PencilIcon } from "lucide-react";
+import { Plane, ChevronRight, Trash2, Plus, MapPin, X, History, ChevronDown, ChevronUp, Eye, Pencil as PencilIcon } from "lucide-react";
+import { TripArchiveCard } from "./TripArchiveCard";
 import { TripTab } from "@/lib/types";
 import { AirportStatusMap } from "@/lib/types";
 import { calculateTripRiskScore } from "@/lib/tripRiskScore";
@@ -127,7 +128,8 @@ export function TripListView({
   onSelectExample,
   onDismissExample,
 }: TripListViewProps) {
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyOpen, setHistoryOpen]   = useState(false);
+  const [showAllPast, setShowAllPast]   = useState(false);
   const { landedFlight, dismiss: dismissWelcome } = usePostFlightWelcome(trips);
 
   if (loading) {
@@ -483,9 +485,9 @@ export function TripListView({
             className="w-full flex items-center justify-between gap-2 py-2 text-xs text-gray-500 hover:text-gray-400 transition-colors group"
           >
             <div className="flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5" />
+              <History className="h-3.5 w-3.5" />
               <span className="font-semibold uppercase tracking-wider">
-                {locale === "es" ? "Historial" : "History"}
+                {locale === "es" ? "Historial de viajes" : "Trip history"}
               </span>
               <span className="px-1.5 py-0.5 rounded-full bg-white/[0.06] text-gray-600 font-medium">
                 {pastTrips.length}
@@ -499,56 +501,35 @@ export function TripListView({
 
           {historyOpen && (
             <div className="space-y-2 mt-1">
-              {pastTrips.map((trip) => {
-                const dests   = uniqueDestinations(trip);
-                const range   = tripDateRange(trip, locale);
-                const fCount  = trip.flights.length;
-                const fLabel  = locale === "es"
-                  ? `${fCount} vuelo${fCount !== 1 ? "s" : ""}`
-                  : `${fCount} flight${fCount !== 1 ? "s" : ""}`;
-
-                return (
-                  <div
-                    key={trip.id}
-                    className="rounded-2xl border border-white/[0.05] overflow-hidden opacity-70 hover:opacity-90 transition-opacity"
-                    style={{ background: "linear-gradient(150deg, rgba(12,12,20,0.97) 0%, rgba(8,8,16,0.99) 100%)" }}
-                  >
-                    <div className="flex items-center gap-2 pr-3">
-                      <button
-                        onClick={() => onSelect(trip.id)}
-                        className="flex-1 min-w-0 text-left px-4 py-3.5 flex items-center gap-3 tap-scale"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="text-sm font-bold text-gray-300 truncate">{trip.name}</span>
-                            <span className="text-xs text-gray-600 font-medium shrink-0">{range}</span>
-                          </div>
-                          <div className="flex items-center gap-3 flex-wrap">
-                            <span className="flex items-center gap-1 text-xs text-gray-600">
-                              <Plane className="h-3 w-3" />
-                              {fLabel}
-                            </span>
-                            {dests.length > 0 && (
-                              <span className="flex items-center gap-1 text-xs text-gray-600">
-                                <MapPin className="h-3 w-3" />
-                                {dests.join(", ")}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <ChevronRight className="h-3.5 w-3.5 text-gray-700 shrink-0" />
-                      </button>
-                      <button
-                        onClick={() => onDeleteTrip(trip.id)}
-                        className="shrink-0 p-2 rounded-xl text-gray-800 hover:text-red-400 hover:bg-red-950/30 transition-colors tap-scale"
-                        title={locale === "es" ? "Eliminar viaje" : "Delete trip"}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+              {(showAllPast ? pastTrips : pastTrips.slice(0, 3)).map((trip) => (
+                <TripArchiveCard
+                  key={trip.id}
+                  trip={trip}
+                  locale={locale}
+                  onSelect={onSelect}
+                  onDelete={onDeleteTrip}
+                />
+              ))}
+              {pastTrips.length > 3 && (
+                <button
+                  onClick={() => setShowAllPast((v) => !v)}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs text-gray-600 hover:text-gray-400 transition-colors"
+                >
+                  {showAllPast ? (
+                    <>
+                      <ChevronUp className="h-3.5 w-3.5" />
+                      {locale === "es" ? "Ver menos" : "See less"}
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      {locale === "es"
+                        ? `Ver todo (${pastTrips.length - 3} más)`
+                        : `See all (${pastTrips.length - 3} more)`}
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           )}
         </div>
