@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Car, PersonStanding, ShieldCheck, Clock } from "lucide-react";
 import { TripFlight } from "@/lib/types";
 import { GeoPosition } from "@/hooks/useGeolocation";
-import { useDepartureTime } from "@/hooks/useDepartureTime";
+import { useDepartureTime, PlanningMode } from "@/hooks/useDepartureTime";
 import { UrgencyLevel } from "@/lib/departureCalculator";
 import { AIRPORTS } from "@/lib/airports";
 
@@ -12,23 +12,35 @@ import { AIRPORTS } from "@/lib/airports";
 
 const LABELS = {
   es: {
-    sectionTitle: "¿Cuándo salir al aeropuerto?",
-    drive:        "Traslado",
-    checkin:      "Check-in",
-    security:     "Seguridad",
-    totalBuffer:  "Buffer total",
-    min:          "min",
-    noGeo:        "Activá la ubicación para un cálculo exacto",
+    sectionTitle:        "¿Cuándo salir al aeropuerto?",
+    sectionTitlePlanning:"Planificá tu salida",
+    drive:               "Traslado",
+    checkin:             "Check-in",
+    security:            "Seguridad",
+    totalBuffer:         "Buffer total",
+    min:                 "min",
+    noGeo:               "Activá la ubicación para un cálculo exacto",
   },
   en: {
-    sectionTitle: "When to leave for the airport?",
-    drive:        "Drive",
-    checkin:      "Check-in",
-    security:     "Security",
-    totalBuffer:  "Total buffer",
-    min:          "min",
-    noGeo:        "Enable location for an exact estimate",
+    sectionTitle:        "When to leave for the airport?",
+    sectionTitlePlanning:"Plan your departure",
+    drive:               "Drive",
+    checkin:             "Check-in",
+    security:            "Security",
+    totalBuffer:         "Total buffer",
+    min:                 "min",
+    noGeo:               "Enable location for an exact estimate",
   },
+} as const;
+
+// ── Planning-mode styling ──────────────────────────────────────────────────
+
+const PLANNING_STYLE = {
+  border:    "border-white/[0.08]",
+  bg:        "bg-white/[0.03]",
+  text:      "text-gray-400",
+  badge:     "bg-white/[0.08]",
+  badgeText: "text-gray-400",
 } as const;
 
 // ── Urgency styling ────────────────────────────────────────────────────────
@@ -149,43 +161,55 @@ export function DepartureTimeWidget({
     locale,
   );
 
-  // Don't render if the hook determined it's not within 24 hours
+  // Don't render if the hook determined it's not within 72 hours
   if (!result) return null;
 
-  const style = URGENCY_STYLES[result.urgencyLevel];
+  const isPlanning = result.planningMode === "planning";
   const isPast = result.urgencyLevel === "past";
+
+  // Use muted neutral styles for the planning window (24–72h), urgency styles otherwise
+  const style = isPlanning ? null : URGENCY_STYLES[result.urgencyLevel];
+  const borderClass  = isPlanning ? PLANNING_STYLE.border  : style!.border;
+  const bgClass      = isPlanning ? PLANNING_STYLE.bg      : style!.bg;
+  const textClass    = isPlanning ? PLANNING_STYLE.text    : style!.text;
+  const badgeClass   = isPlanning ? PLANNING_STYLE.badge   : style!.badge;
+  const badgeTextCls = isPlanning ? PLANNING_STYLE.badgeText : style!.badgeText;
+  const badgeLabel   = isPlanning
+    ? (locale === "es" ? "Planificando" : "Planning")
+    : style!.badgeLabel[locale];
+  const sectionTitle = isPlanning ? L.sectionTitlePlanning : L.sectionTitle;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: -12, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 320, damping: 26 }}
-      className={`rounded-xl border ${style.border} ${style.bg} overflow-hidden`}
+      className={`rounded-xl border ${borderClass} ${bgClass} overflow-hidden`}
     >
       {/* Header row */}
       <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Clock className={`h-3.5 w-3.5 shrink-0 ${style.text}`} />
+          <Clock className={`h-3.5 w-3.5 shrink-0 ${textClass}`} />
           <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
-            {L.sectionTitle}
+            {sectionTitle}
           </p>
         </div>
         <span
-          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${style.badge} ${style.badgeText}`}
+          className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${badgeClass} ${badgeTextCls}`}
         >
-          {style.badgeLabel[locale]}
+          {badgeLabel}
         </span>
       </div>
 
       {/* Main time display */}
       <div className="px-4 pb-3">
         <p
-          className={`text-2xl font-black tracking-tight ${isPast ? "line-through text-gray-600" : style.text} ${result.isUrgent ? "animate-pulse" : ""}`}
+          className={`text-2xl font-black tracking-tight ${isPast ? "line-through text-gray-600" : textClass} ${result.isUrgent ? "animate-pulse" : ""}`}
         >
           {result.leaveAtFormatted}
         </p>
 
-        {!isPast && (
+        {!isPast && result.countdownText && (
           <p className="text-xs text-gray-500 mt-0.5">{result.countdownText}</p>
         )}
 
@@ -195,7 +219,7 @@ export function DepartureTimeWidget({
         )}
       </div>
 
-      {/* Buffer breakdown */}
+      {/* Buffer breakdown — always visible so users can plan transfers */}
       {!isPast && (
         <div className="border-t border-white/[0.06] px-4 py-2.5 flex items-center gap-4 flex-wrap">
           <BufferItem

@@ -20,43 +20,247 @@ const POPULAR_DESTINATIONS: {
   { iata: "LIM", city: "Lima",          country: "Perú",           photo: "https://source.unsplash.com/400x300/?lima,peru,travel" },
 ];
 
-// Semana Santa / March seasonal inspiration
-const SEASONAL_IDEAS: {
+interface SeasonalIdea {
   iata: string;
   city: string;
   tag: string;
   description: string;
   photo: string;
-}[] = [
-  {
-    iata: "MDZ",
-    city: "Mendoza",
-    tag: "Semana Santa",
-    description: "Bodegas, montañas y los mejores vinos del mundo.",
-    photo: "https://source.unsplash.com/400x300/?mendoza,wine,mountain",
+}
+
+interface SeasonConfig {
+  labelEs: string;
+  labelEn: string;
+  ideas: SeasonalIdea[];
+}
+
+const SEASONS: Record<string, SeasonConfig> = {
+  summer: {
+    labelEs: "Verano",
+    labelEn: "Summer",
+    ideas: [
+      {
+        iata: "PMI",
+        city: "Mallorca",
+        tag: "Verano / Summer",
+        description: "Playas cristalinas, calas secretas y vida mediterránea.",
+        photo: "https://source.unsplash.com/400x300/?mallorca,beach",
+      },
+      {
+        iata: "CUN",
+        city: "Cancún",
+        tag: "Verano / Summer",
+        description: "Mar Caribe turquesa, cenotes y resorts de primer nivel.",
+        photo: "https://source.unsplash.com/400x300/?cancun,beach",
+      },
+      {
+        iata: "MIA",
+        city: "Miami",
+        tag: "Verano / Summer",
+        description: "South Beach, nightlife vibrante y shopping inigualable.",
+        photo: "https://source.unsplash.com/400x300/?miami,beach,summer",
+      },
+      {
+        iata: "PUJ",
+        city: "Punta Cana",
+        tag: "Verano / Summer",
+        description: "Playas de arena blanca y todo incluido en el Caribe.",
+        photo: "https://source.unsplash.com/400x300/?punta cana,beach",
+      },
+    ],
   },
-  {
-    iata: "EZE",
-    city: "Buenos Aires",
-    tag: "Semana Santa",
-    description: "Teatro, tango y gastronomía porteña sin igual.",
-    photo: "https://source.unsplash.com/400x300/?buenos aires,city",
+  easter: {
+    labelEs: "Semana Santa",
+    labelEn: "Easter",
+    ideas: [
+      {
+        iata: "MDZ",
+        city: "Mendoza",
+        tag: "Semana Santa",
+        description: "Bodegas, montañas y los mejores vinos del mundo.",
+        photo: "https://source.unsplash.com/400x300/?mendoza,wine,mountain",
+      },
+      {
+        iata: "EZE",
+        city: "Buenos Aires",
+        tag: "Semana Santa",
+        description: "Teatro, tango y gastronomía porteña sin igual.",
+        photo: "https://source.unsplash.com/400x300/?buenos aires,city",
+      },
+      {
+        iata: "MVD",
+        city: "Montevideo",
+        tag: "Semana Santa",
+        description: "Playa, carnaval fuera de temporada y tranquilidad.",
+        photo: "https://source.unsplash.com/400x300/?montevideo,uruguay",
+      },
+      {
+        iata: "CTG",
+        city: "Cartagena",
+        tag: "Semana Santa",
+        description: "Ciudad amurallada, playas caribeñas y calor tropical.",
+        photo: "https://source.unsplash.com/400x300/?cartagena,colombia,caribbean",
+      },
+    ],
   },
-  {
-    iata: "MVD",
-    city: "Montevideo",
-    tag: "Semana Santa",
-    description: "Playa, carnaval fuera de temporada y tranquilidad.",
-    photo: "https://source.unsplash.com/400x300/?montevideo,uruguay",
+  fall: {
+    labelEs: "Otoño",
+    labelEn: "Fall",
+    ideas: [
+      {
+        iata: "SCL",
+        city: "Santiago",
+        tag: "Otoño / Fall",
+        description: "Valle del vino, Andes nevados y gastronomía chilena.",
+        photo: "https://source.unsplash.com/400x300/?santiago,chile,autumn",
+      },
+      {
+        iata: "GRU",
+        city: "São Paulo",
+        tag: "Otoño / Fall",
+        description: "Metrópolis vibrante, arte, gastronomía y cultura.",
+        photo: "https://source.unsplash.com/400x300/?sao paulo,city,autumn",
+      },
+      {
+        iata: "LIM",
+        city: "Lima",
+        tag: "Otoño / Fall",
+        description: "Capital gastronómica de América, historia y mar.",
+        photo: "https://source.unsplash.com/400x300/?lima,peru,travel",
+      },
+      {
+        iata: "USH",
+        city: "Ushuaia",
+        tag: "Otoño / Fall",
+        description: "Fin del mundo, glaciares y auroras australes.",
+        photo: "https://source.unsplash.com/400x300/?ushuaia,patagonia",
+      },
+    ],
   },
-  {
-    iata: "CTG",
-    city: "Cartagena",
-    tag: "Semana Santa",
-    description: "Ciudad amurallada, playas caribeñas y calor tropical.",
-    photo: "https://source.unsplash.com/400x300/?cartagena,colombia,caribbean",
+  winter: {
+    labelEs: "Invierno",
+    labelEn: "Winter",
+    ideas: [
+      {
+        iata: "BRC",
+        city: "Bariloche",
+        tag: "Invierno / Winter",
+        description: "Esquí de clase mundial, chocolate y lagos patagónicos.",
+        photo: "https://source.unsplash.com/400x300/?bariloche,ski,snow",
+      },
+      {
+        iata: "CDG",
+        city: "París",
+        tag: "Invierno / Winter",
+        description: "La ciudad luz en temporada baja: museos sin colas.",
+        photo: "https://source.unsplash.com/400x300/?paris,winter,eiffel",
+      },
+      {
+        iata: "JFK",
+        city: "Nueva York",
+        tag: "Invierno / Winter",
+        description: "Times Square nevado, Broadway y el mejor shopping.",
+        photo: "https://source.unsplash.com/400x300/?new york,winter,snow",
+      },
+      {
+        iata: "FCO",
+        city: "Roma",
+        tag: "Invierno / Winter",
+        description: "Menos turistas, precios bajos y la mejor pasta.",
+        photo: "https://source.unsplash.com/400x300/?rome,italy,winter",
+      },
+    ],
   },
-];
+  spring: {
+    labelEs: "Primavera",
+    labelEn: "Spring",
+    ideas: [
+      {
+        iata: "BCN",
+        city: "Barcelona",
+        tag: "Primavera / Spring",
+        description: "Gaudí, playas, tapas y el mejor clima del año.",
+        photo: "https://source.unsplash.com/400x300/?barcelona,spring",
+      },
+      {
+        iata: "NAT",
+        city: "Natal",
+        tag: "Primavera / Spring",
+        description: "Dunas, lagoas e praias paradisíacas do Nordeste.",
+        photo: "https://source.unsplash.com/400x300/?natal,brazil,beach",
+      },
+      {
+        iata: "BOG",
+        city: "Bogotá",
+        tag: "Primavera / Spring",
+        description: "Ciudad eterna de primavera, café y arte urbano.",
+        photo: "https://source.unsplash.com/400x300/?bogota,colombia",
+      },
+      {
+        iata: "MVD",
+        city: "Montevideo",
+        tag: "Primavera / Spring",
+        description: "Rambla, playa y la ciudad más tranquila del Río de la Plata.",
+        photo: "https://source.unsplash.com/400x300/?montevideo,uruguay,spring",
+      },
+    ],
+  },
+};
+
+/** Returns Easter Sunday for a given year using the Anonymous Gregorian algorithm. */
+function getEasterDate(year: number): Date {
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1; // 0-indexed
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month, day);
+}
+
+/** Returns the seasonal config based on current date (for Argentine travelers). */
+function getSeasonalContent(): SeasonConfig {
+  const now = new Date();
+  const month = now.getMonth(); // 0-indexed
+  const year = now.getFullYear();
+
+  // Check if we're within 10 days before or after Easter (Mar–Apr window)
+  if (month === 2 || month === 3) {
+    const easter = getEasterDate(year);
+    const diffMs = easter.getTime() - now.getTime();
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    if (diffDays >= -3 && diffDays <= 10) {
+      return SEASONS.easter;
+    }
+    return SEASONS.fall;
+  }
+
+  // Dec, Jan, Feb — southern hemisphere summer
+  if (month === 11 || month === 0 || month === 1) {
+    return SEASONS.summer;
+  }
+
+  // Apr, May — southern hemisphere autumn
+  if (month === 4) {
+    return SEASONS.fall;
+  }
+
+  // Jun, Jul, Aug — winter
+  if (month >= 5 && month <= 7) {
+    return SEASONS.winter;
+  }
+
+  // Sep, Oct, Nov — spring
+  return SEASONS.spring;
+}
 
 const CABIN_OPTIONS = [
   { value: "e", label: "Económica" },
@@ -83,6 +287,8 @@ export function DiscoverView({ trips, locale }: Props) {
   const [destination, setDestination] = useState("");
   const [date, setDate]               = useState("");
   const [cabin, setCabin]             = useState("e");
+
+  const seasonal = getSeasonalContent();
 
   // Derive user's most recent departure airport from their trips
   const recentOrigin: string = (() => {
@@ -276,11 +482,11 @@ export function DiscoverView({ trips, locale }: Props) {
             {locale === "es" ? "¿A dónde vas?" : "Where are you going?"}
           </h3>
           <span className="text-xs font-semibold text-amber-500 border border-amber-700/50 rounded px-1.5 py-0.5 ml-1">
-            Semana Santa
+            {locale === "es" ? seasonal.labelEs : seasonal.labelEn}
           </span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {SEASONAL_IDEAS.map((idea) => (
+          {seasonal.ideas.map((idea) => (
             <button
               key={idea.iata}
               onClick={() => openDestination(idea.iata)}

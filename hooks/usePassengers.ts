@@ -9,6 +9,9 @@ export interface Passenger {
   name: string;
   email?: string;
   passportNumber?: string;
+  /** ISO date string (YYYY-MM-DD). Requires a Supabase migration to add
+   *  the `passport_expiry` column to the `passengers` table. */
+  passportExpiry?: string;
   nationality?: string;
   dateOfBirth?: string;
   seatPreference?: string;
@@ -22,6 +25,8 @@ interface DbPassenger {
   name: string;
   email: string | null;
   passport_number: string | null;
+  /** Column `passport_expiry DATE` — migration required before this is populated. */
+  passport_expiry?: string | null;
   nationality: string | null;
   date_of_birth: string | null;
   seat_preference: string | null;
@@ -36,6 +41,7 @@ function toPassenger(row: DbPassenger): Passenger {
     name:           row.name,
     email:          row.email ?? undefined,
     passportNumber: row.passport_number ?? undefined,
+    passportExpiry: row.passport_expiry ?? undefined,
     nationality:    row.nationality ?? undefined,
     dateOfBirth:    row.date_of_birth ?? undefined,
     seatPreference: row.seat_preference ?? undefined,
@@ -108,14 +114,15 @@ export function usePassengers(tripId: string) {
       const { error: insertError } = await supabase
         .from("passengers")
         .insert({
-          trip_id:         data.tripId,
-          name:            data.name,
-          email:           data.email ?? null,
-          passport_number: data.passportNumber ?? null,
-          nationality:     data.nationality ?? null,
-          date_of_birth:   data.dateOfBirth ?? null,
-          seat_preference: data.seatPreference ?? null,
-          meal_preference: data.mealPreference ?? null,
+          trip_id:          data.tripId,
+          name:             data.name,
+          email:            data.email ?? null,
+          passport_number:  data.passportNumber ?? null,
+          passport_expiry:  data.passportExpiry ?? null,
+          nationality:      data.nationality ?? null,
+          date_of_birth:    data.dateOfBirth ?? null,
+          seat_preference:  data.seatPreference ?? null,
+          meal_preference:  data.mealPreference ?? null,
         });
 
       if (insertError) {
@@ -131,13 +138,14 @@ export function usePassengers(tripId: string) {
       const { error: updateError } = await supabase
         .from("passengers")
         .update({
-          ...(data.name            !== undefined && { name:            data.name }),
-          ...(data.email           !== undefined && { email:           data.email ?? null }),
-          ...(data.passportNumber  !== undefined && { passport_number: data.passportNumber ?? null }),
-          ...(data.nationality     !== undefined && { nationality:     data.nationality ?? null }),
-          ...(data.dateOfBirth     !== undefined && { date_of_birth:   data.dateOfBirth ?? null }),
-          ...(data.seatPreference  !== undefined && { seat_preference: data.seatPreference ?? null }),
-          ...(data.mealPreference  !== undefined && { meal_preference: data.mealPreference ?? null }),
+          ...(data.name            !== undefined && { name:             data.name }),
+          ...(data.email           !== undefined && { email:            data.email ?? null }),
+          ...(data.passportNumber  !== undefined && { passport_number:  data.passportNumber ?? null }),
+          ...(data.passportExpiry  !== undefined && { passport_expiry:  data.passportExpiry ?? null }),
+          ...(data.nationality     !== undefined && { nationality:      data.nationality ?? null }),
+          ...(data.dateOfBirth     !== undefined && { date_of_birth:    data.dateOfBirth ?? null }),
+          ...(data.seatPreference  !== undefined && { seat_preference:  data.seatPreference ?? null }),
+          ...(data.mealPreference  !== undefined && { meal_preference:  data.mealPreference ?? null }),
         })
         .eq("id", id);
 

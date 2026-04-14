@@ -532,7 +532,7 @@ export function TripPanel({
 
       {/* Passengers tab */}
       {panelTab === "passengers" && !isDraft && (
-        <TripPassengers tripId={trip.id} />
+        <TripPassengers tripId={trip.id} locale={locale} />
       )}
 
       {/* Checklist tab */}

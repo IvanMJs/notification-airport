@@ -2,22 +2,126 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { UserPlus, Trash2, User, Loader2 } from "lucide-react";
-import { usePassengers, NewPassengerData } from "@/hooks/usePassengers";
+import { UserPlus, Trash2, User, Loader2, AlertTriangle, XCircle } from "lucide-react";
+import { usePassengers, NewPassengerData, Passenger } from "@/hooks/usePassengers";
+
+// ── Labels ────────────────────────────────────────────────────────────────────
+
+const LABELS = {
+  es: {
+    title:                  "Pasajeros",
+    addBtn:                 "Agregar",
+    newPassenger:           "Nuevo pasajero",
+    name:                   "Nombre",
+    email:                  "Email",
+    passport:               "Número de pasaporte",
+    passportExpiry:         "Vencimiento del pasaporte",
+    save:                   "Guardar",
+    cancel:                 "Cancelar",
+    deleteAriaLabel:        (name: string) => `Eliminar ${name}`,
+    noPassengers:           "No hay pasajeros aún",
+    noPassengersHint:       "Agregá pasajeros para gestionar su información de viaje",
+    passportLabel:          "Pasaporte:",
+    passportExpiryLabel:    "Vence:",
+    warnExpiringSoon:       "Pasaporte vence pronto",
+    warnExpired:            "Pasaporte vencido",
+    toastAdded:             "Pasajero agregado",
+    toastRemoved:           (name: string) => `${name} eliminado`,
+    toastAddError:          "No se pudo agregar el pasajero",
+    toastRemoveError:       "No se pudo eliminar el pasajero",
+    nameRequired:           "El nombre es obligatorio",
+  },
+  en: {
+    title:                  "Passengers",
+    addBtn:                 "Add",
+    newPassenger:           "New passenger",
+    name:                   "Name",
+    email:                  "Email",
+    passport:               "Passport number",
+    passportExpiry:         "Passport expiry date",
+    save:                   "Save",
+    cancel:                 "Cancel",
+    deleteAriaLabel:        (name: string) => `Remove ${name}`,
+    noPassengers:           "No passengers yet",
+    noPassengersHint:       "Add passengers to manage their travel information",
+    passportLabel:          "Passport:",
+    passportExpiryLabel:    "Expires:",
+    warnExpiringSoon:       "Passport expiring soon",
+    warnExpired:            "Passport expired",
+    toastAdded:             "Passenger added",
+    toastRemoved:           (name: string) => `${name} removed`,
+    toastAddError:          "Could not add passenger",
+    toastRemoveError:       "Could not remove passenger",
+    nameRequired:           "Name is required",
+  },
+} as const;
+
+// ── Passport expiry helpers ────────────────────────────────────────────────────
+
+type ExpiryStatus = "expired" | "expiring_soon" | "ok" | null;
+
+function getExpiryStatus(passportExpiry: string | undefined): ExpiryStatus {
+  if (!passportExpiry) return null;
+  const expiry = new Date(passportExpiry);
+  if (isNaN(expiry.getTime())) return null;
+  const now = new Date();
+  const sixMonthsFromNow = new Date(now);
+  sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+  if (expiry <= now) return "expired";
+  if (expiry <= sixMonthsFromNow) return "expiring_soon";
+  return "ok";
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 interface Props {
   tripId: string;
+  locale?: "es" | "en";
 }
 
 interface FormState {
   name: string;
   email: string;
   passportNumber: string;
+  passportExpiry: string;
 }
 
-const EMPTY_FORM: FormState = { name: "", email: "", passportNumber: "" };
+const EMPTY_FORM: FormState = {
+  name: "",
+  email: "",
+  passportNumber: "",
+  passportExpiry: "",
+};
 
-export function TripPassengers({ tripId }: Props) {
+function PassportExpiryBadge({
+  status,
+  L,
+}: {
+  status: ExpiryStatus;
+  L: (typeof LABELS)["es"] | (typeof LABELS)["en"];
+}) {
+  if (status === "expired") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-400">
+        <XCircle className="h-3 w-3" />
+        {L.warnExpired}
+      </span>
+    );
+  }
+  if (status === "expiring_soon") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-400">
+        <AlertTriangle className="h-3 w-3" />
+        {L.warnExpiringSoon}
+      </span>
+    );
+  }
+  return null;
+}
+
+export function TripPassengers({ tripId, locale = "es" }: Props) {
+  const L = LABELS[locale];
+
   const { passengers, loading, error, addPassenger, removePassenger } =
     usePassengers(tripId);
 
@@ -30,7 +134,7 @@ export function TripPassengers({ tripId }: Props) {
 
     const trimmedName = form.name.trim();
     if (!trimmedName) {
-      toast.error("El nombre es obligatorio / Name is required");
+      toast.error(L.nameRequired);
       return;
     }
 
@@ -38,16 +142,17 @@ export function TripPassengers({ tripId }: Props) {
     try {
       const data: NewPassengerData = {
         tripId,
-        name:           trimmedName,
-        email:          form.email.trim() || undefined,
-        passportNumber: form.passportNumber.trim() || undefined,
+        name:            trimmedName,
+        email:           form.email.trim() || undefined,
+        passportNumber:  form.passportNumber.trim() || undefined,
+        passportExpiry:  form.passportExpiry || undefined,
       };
       await addPassenger(data);
       setForm(EMPTY_FORM);
       setShowForm(false);
-      toast.success("Pasajero agregado / Passenger added");
+      toast.success(L.toastAdded);
     } catch {
-      toast.error("No se pudo agregar el pasajero / Could not add passenger");
+      toast.error(L.toastAddError);
     } finally {
       setSubmitting(false);
     }
@@ -56,9 +161,9 @@ export function TripPassengers({ tripId }: Props) {
   const handleRemove = async (id: string, name: string) => {
     try {
       await removePassenger(id);
-      toast.success(`${name} eliminado`);
+      toast.success(L.toastRemoved(name));
     } catch {
-      toast.error("No se pudo eliminar el pasajero / Could not remove passenger");
+      toast.error(L.toastRemoveError);
     }
   };
 
@@ -67,14 +172,14 @@ export function TripPassengers({ tripId }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wide">
-          Pasajeros
+          {L.title}
         </h3>
         <button
           onClick={() => setShowForm((v) => !v)}
           className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-500 transition-colors"
         >
           <UserPlus className="h-3.5 w-3.5" />
-          Agregar
+          {L.addBtn}
         </button>
       </div>
 
@@ -84,12 +189,12 @@ export function TripPassengers({ tripId }: Props) {
           onSubmit={(e) => { void handleSubmit(e); }}
           className="rounded-xl border border-slate-700 bg-slate-800/60 p-4 space-y-3"
         >
-          <p className="text-xs font-medium text-slate-400">Nuevo pasajero</p>
+          <p className="text-xs font-medium text-slate-400">{L.newPassenger}</p>
 
           {/* Name */}
           <div>
             <label className="mb-1 block text-xs text-slate-400">
-              Nombre <span className="text-red-400">*</span>
+              {L.name} <span className="text-red-400">*</span>
             </label>
             <input
               type="text"
@@ -103,7 +208,7 @@ export function TripPassengers({ tripId }: Props) {
 
           {/* Email */}
           <div>
-            <label className="mb-1 block text-xs text-slate-400">Email</label>
+            <label className="mb-1 block text-xs text-slate-400">{L.email}</label>
             <input
               type="email"
               value={form.email}
@@ -113,10 +218,10 @@ export function TripPassengers({ tripId }: Props) {
             />
           </div>
 
-          {/* Passport */}
+          {/* Passport number */}
           <div>
             <label className="mb-1 block text-xs text-slate-400">
-              Número de pasaporte
+              {L.passport}
             </label>
             <input
               type="text"
@@ -127,6 +232,29 @@ export function TripPassengers({ tripId }: Props) {
               placeholder="AAA123456"
               className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none"
             />
+          </div>
+
+          {/* Passport expiry */}
+          <div>
+            <label className="mb-1 block text-xs text-slate-400">
+              {L.passportExpiry}
+            </label>
+            <input
+              type="date"
+              value={form.passportExpiry}
+              onChange={(e) =>
+                setForm((f) => ({ ...f, passportExpiry: e.target.value }))
+              }
+              className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-500 focus:outline-none"
+            />
+            {form.passportExpiry && (
+              <div className="mt-1.5">
+                <PassportExpiryBadge
+                  status={getExpiryStatus(form.passportExpiry)}
+                  L={L}
+                />
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -141,7 +269,7 @@ export function TripPassengers({ tripId }: Props) {
               ) : (
                 <UserPlus className="h-3.5 w-3.5" />
               )}
-              Guardar
+              {L.save}
             </button>
             <button
               type="button"
@@ -151,7 +279,7 @@ export function TripPassengers({ tripId }: Props) {
               }}
               className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-400 hover:text-slate-200 hover:border-slate-500 transition-colors"
             >
-              Cancelar
+              {L.cancel}
             </button>
           </div>
         </form>
@@ -175,45 +303,54 @@ export function TripPassengers({ tripId }: Props) {
       {!loading && !error && passengers.length === 0 && (
         <div className="flex flex-col items-center gap-2 py-8 text-center">
           <User className="h-8 w-8 text-slate-600" />
-          <p className="text-sm text-slate-500">
-            No hay pasajeros aún
-          </p>
-          <p className="text-xs text-slate-600">
-            Agregá pasajeros para gestionar su información de viaje
-          </p>
+          <p className="text-sm text-slate-500">{L.noPassengers}</p>
+          <p className="text-xs text-slate-600">{L.noPassengersHint}</p>
         </div>
       )}
 
       {/* Passenger cards */}
       {!loading && passengers.length > 0 && (
         <ul className="space-y-2">
-          {passengers.map((p) => (
-            <li
-              key={p.id}
-              className="flex items-start justify-between gap-3 rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-3"
-            >
-              <div className="min-w-0 flex-1 space-y-0.5">
-                <p className="truncate text-sm font-medium text-slate-100">
-                  {p.name}
-                </p>
-                {p.email && (
-                  <p className="truncate text-xs text-slate-400">{p.email}</p>
-                )}
-                {p.passportNumber && (
-                  <p className="text-xs text-slate-500">
-                    Pasaporte: {p.passportNumber}
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={() => { void handleRemove(p.id, p.name); }}
-                className="mt-0.5 shrink-0 rounded-lg p-1.5 text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                aria-label={`Eliminar ${p.name}`}
+          {passengers.map((p: Passenger) => {
+            const expiryStatus = getExpiryStatus(p.passportExpiry);
+            return (
+              <li
+                key={p.id}
+                className="flex items-start justify-between gap-3 rounded-xl border border-slate-700 bg-slate-800/60 px-4 py-3"
               >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </li>
-          ))}
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="truncate text-sm font-medium text-slate-100">
+                    {p.name}
+                  </p>
+                  {p.email && (
+                    <p className="truncate text-xs text-slate-400">{p.email}</p>
+                  )}
+                  {p.passportNumber && (
+                    <p className="text-xs text-slate-500">
+                      {L.passportLabel} {p.passportNumber}
+                    </p>
+                  )}
+                  {p.passportExpiry && (
+                    <p className="text-xs text-slate-500">
+                      {L.passportExpiryLabel} {p.passportExpiry}
+                    </p>
+                  )}
+                  {expiryStatus !== "ok" && expiryStatus !== null && (
+                    <div className="pt-0.5">
+                      <PassportExpiryBadge status={expiryStatus} L={L} />
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => { void handleRemove(p.id, p.name); }}
+                  className="mt-0.5 shrink-0 rounded-lg p-1.5 text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                  aria-label={L.deleteAriaLabel(p.name)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

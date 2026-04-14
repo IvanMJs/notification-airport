@@ -5,6 +5,7 @@ import { Plus, Search, AlertTriangle, Sparkles } from "lucide-react";
 import { TripFlight } from "@/lib/types";
 import { AIRLINES, parseFlightCode } from "@/lib/flightUtils";
 import { analytics } from "@/lib/analytics";
+import { AirportSearchInput } from "./AirportSearchInput";
 
 // ── Airline preview map ────────────────────────────────────────────────────────
 const AIRLINE_NAMES: Record<string, string> = {
@@ -217,26 +218,22 @@ export function AddFlightForm({ tripId, existingFlights, onAdd, onOpenImport, lo
           <label className={labelClass}>
             {locale === "es" ? "Origen" : "Origin"}
           </label>
-          <input
+          <AirportSearchInput
             value={form.originCode}
-            onChange={(e) => update("originCode", e.target.value.toUpperCase())}
-            onKeyDown={handleKey}
-            placeholder="EZE"
-            maxLength={3}
-            className={inputClass}
+            onChange={(iata) => update("originCode", iata)}
+            placeholder={locale === "es" ? "Buenos Aires…" : "New York…"}
+            locale={locale}
           />
         </div>
         <div>
           <label className={labelClass}>
             {locale === "es" ? "Destino" : "Destination"}
           </label>
-          <input
+          <AirportSearchInput
             value={form.destCode}
-            onChange={(e) => update("destCode", e.target.value.toUpperCase())}
-            onKeyDown={handleKey}
-            placeholder="MIA"
-            maxLength={3}
-            className={inputClass}
+            onChange={(iata) => update("destCode", iata)}
+            placeholder={locale === "es" ? "Miami…" : "Miami…"}
+            locale={locale}
           />
         </div>
         <div>
