@@ -17,6 +17,7 @@ import { FlightSearch } from "@/components/FlightSearch";
 // TripPanel lazy-loaded — only rendered when a trip is selected
 const TripPanel = lazy(() => import("@/components/TripPanel").then((m) => ({ default: m.TripPanel })));
 import { TripListView } from "@/components/TripListView";
+import { TripEmptyState } from "@/components/TripEmptyState";
 import { HelpPanel } from "@/components/HelpPanel";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CreateTripModal } from "@/components/CreateTripModal";
@@ -987,6 +988,21 @@ export default function HomePage() {
             {activeTab === "today" && (
               <div className="space-y-4">
                 <SmartAlertsPanel alerts={smartAlerts} onDismiss={dismissSmartAlert} locale={locale} />
+                {!tripsLoading && userTrips.length === 0 && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-white/[0.01] py-8 flex flex-col items-center text-center gap-4">
+                    <p className="text-sm text-gray-400 max-w-xs leading-relaxed">
+                      {locale === "es"
+                        ? "Agregá tu primer viaje para ver tu briefing de hoy"
+                        : "Add your first trip to see today's briefing"}
+                    </p>
+                    <button
+                      onClick={openCreateTripModal}
+                      className="rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 transition-all"
+                    >
+                      {locale === "es" ? "Crear viaje" : "Create trip"}
+                    </button>
+                  </div>
+                )}
                 <DepartureBoard trips={userTrips} statusMap={statusMap} locale={locale} geoPosition={userPosition} userPlan={userPlan ?? undefined} onUpgrade={() => setShowUpgradeModal(true)} />
               </div>
             )}
@@ -1037,6 +1053,12 @@ export default function HomePage() {
 
             {activeTab === "trips" && (
               <>
+                {!tripsLoading && userTrips.length === 0 && !draftTrip ? (
+                  <TripEmptyState
+                    locale={locale}
+                    onCreateTrip={openCreateTripModal}
+                  />
+                ) : (
                 <TripListView
                   trips={userTrips}
                   statusMap={statusMap}
@@ -1051,6 +1073,7 @@ export default function HomePage() {
                   onCreateSimilar={handleCreateSimilar}
                   onViewArchivedTrip={() => setShowTripHistory(true)}
                 />
+                )}
                 {!tripsLoading && userTrips.length >= PLANS.free.maxTrips && (
                   <div className="mx-4 mb-4 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
