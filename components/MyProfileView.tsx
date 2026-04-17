@@ -245,8 +245,7 @@ function StampCard({ data, locale, onClose }: StampCardProps) {
       animate={{ opacity: 1, scale: 1, rotate: -1.5 }}
       exit={{ opacity: 0, scale: 0.80, rotate: 3 }}
       transition={{ type: "spring", stiffness: 360, damping: 22 }}
-      className="relative mt-3 mx-auto"
-      style={{ maxWidth: 320 }}
+      className="relative w-full"
     >
       {/* Stamp-style visual */}
       <div
@@ -678,14 +677,28 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
                   onAirportClick={(iata) => setSelectedIata((prev) => prev === iata ? null : iata)}
                 />
 
-                {/* Stamp popup */}
+                {/* Stamp modal — rendered as fixed overlay via portal-like pattern */}
                 <AnimatePresence>
                   {selectedIata && stampDataMap[selectedIata] && (
-                    <StampCard
-                      data={stampDataMap[selectedIata]}
-                      locale={locale}
-                      onClose={() => setSelectedIata(null)}
-                    />
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="fixed inset-0 z-50 flex items-center justify-center px-6"
+                      onClick={() => setSelectedIata(null)}
+                    >
+                      {/* Backdrop */}
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                      {/* Card — stop propagation so clicking card doesn't close */}
+                      <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-xs">
+                        <StampCard
+                          data={stampDataMap[selectedIata]}
+                          locale={locale}
+                          onClose={() => setSelectedIata(null)}
+                        />
+                      </div>
+                    </motion.div>
                   )}
                 </AnimatePresence>
               </motion.div>
