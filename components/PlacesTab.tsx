@@ -6,11 +6,13 @@ import { Plane, MapPin, Plus, X, Check } from "lucide-react";
 import { TripTab } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
 import { countryFlag } from "@/lib/countryFlags";
+import { createClient } from "@/utils/supabase/client";
 import {
   VisitedPlace,
   inferVisitedPlaces,
-  loadManualPlaces,
-  saveManualPlaces,
+  fetchDBPlaces,
+  addDBPlace,
+  removeDBPlace,
 } from "@/lib/visitedPlaces";
 
 interface PlacesTabProps {
@@ -18,7 +20,7 @@ interface PlacesTabProps {
   locale: "es" | "en";
 }
 
-const L = {
+const LABELS = {
   es: {
     title: "Lugares visitados",
     empty: "Todavía no visitaste ningún lugar",
@@ -32,7 +34,6 @@ const L = {
     inferred: "Detectado de tus vuelos",
     manual: "Agregado manualmente",
     firstVisit: "Primera visita",
-    noSuggestions: "Sin sugerencias",
   },
   en: {
     title: "Places visited",
@@ -47,7 +48,6 @@ const L = {
     inferred: "Detected from your flights",
     manual: "Added manually",
     firstVisit: "First visit",
-    noSuggestions: "No suggestions",
   },
 } as const;
 
@@ -63,7 +63,7 @@ function formatDate(iso: string | undefined, locale: "es" | "en"): string {
   }
 }
 
-// Build city suggestions from AIRPORTS
+// Build city suggestions from AIRPORTS at module load time
 const CITY_SUGGESTIONS: { city: string; country: string }[] = (() => {
   const seen = new Set<string>();
   const results: { city: string; country: string }[] = [];
@@ -80,29 +80,35 @@ const CITY_SUGGESTIONS: { city: string; country: string }[] = (() => {
 })();
 
 export function PlacesTab({ trips, locale }: PlacesTabProps) {
-  const labels = L[locale];
-  const [manualPlaces, setManualPlaces] = useState<VisitedPlace[]>([]);
+  const L = LABELS[locale];
+  const supabase = createClient();
+
+  const [dbPlaces, setDbPlaces] = useState<VisitedPlace[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [cityQuery, setCityQuery] = useState("");
   const [selectedCity, setSelectedCity] = useState<{ city: string; country: string } | null>(null);
   const [dateValue, setDateValue] = useState("");
-  const [mounted, setMounted] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setManualPlaces(loadManualPlaces());
-    setMounted(true);
+    fetchDBPlaces(supabase).then((places) => {
+      setDbPlaces(places);
+      setLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const inferredPlaces = useMemo(() => inferVisitedPlaces(trips), [trips]);
 
-  // Merge: inferred takes priority; drop manual if same city+country already inferred
+  // Merge: inferred takes priority over manual DB entries with same city+country
   const allPlaces = useMemo<VisitedPlace[]>(() => {
     const inferredKeys = new Set(inferredPlaces.map((p) => `${p.city}|${p.country}`));
-    const filteredManual = manualPlaces.filter((p) => !inferredKeys.has(`${p.city}|${p.country}`));
-    return [...inferredPlaces, ...filteredManual].sort((a, b) =>
+    const filteredDB = dbPlaces.filter((p) => !inferredKeys.has(`${p.city}|${p.country}`));
+    return [...inferredPlaces, ...filteredDB].sort((a, b) =>
       b.dateVisited.localeCompare(a.dateVisited),
     );
-  }, [inferredPlaces, manualPlaces]);
+  }, [inferredPlaces, dbPlaces]);
 
   const suggestions = useMemo(() => {
     if (!cityQuery.trim()) return [];
@@ -110,38 +116,43 @@ export function PlacesTab({ trips, locale }: PlacesTabProps) {
     return CITY_SUGGESTIONS.filter((s) => s.city.toLowerCase().startsWith(q)).slice(0, 6);
   }, [cityQuery]);
 
-  function handleAddConfirm() {
-    if (!selectedCity || !dateValue) return;
-    const newPlace: VisitedPlace = {
-      id: `manual-${Date.now()}`,
+  async function handleAddConfirm() {
+    if (!selectedCity || !dateValue || saving) return;
+    setSaving(true);
+    const saved = await addDBPlace(supabase, {
       city: selectedCity.city,
       country: selectedCity.country,
       dateVisited: dateValue,
-      source: "manual",
-    };
-    const updated = [...manualPlaces, newPlace];
-    setManualPlaces(updated);
-    saveManualPlaces(updated);
+    });
+    if (saved) {
+      setDbPlaces((prev) => [saved, ...prev]);
+    }
+    setSaving(false);
     setShowAdd(false);
     setCityQuery("");
     setSelectedCity(null);
     setDateValue("");
   }
 
-  function handleRemoveManual(id: string) {
-    const updated = manualPlaces.filter((p) => p.id !== id);
-    setManualPlaces(updated);
-    saveManualPlaces(updated);
+  async function handleRemove(id: string) {
+    setDbPlaces((prev) => prev.filter((p) => p.id !== id));
+    await removeDBPlace(supabase, id);
   }
 
-  if (!mounted) return null;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="h-5 w-5 rounded-full border-2 border-violet-500 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 pb-6 space-y-3">
       {/* Header row */}
       <div className="flex items-center justify-between pt-1">
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
-          {labels.title}
+          {L.title}
           {allPlaces.length > 0 && (
             <span className="ml-2 text-violet-400 font-black">{allPlaces.length}</span>
           )}
@@ -151,7 +162,7 @@ export function PlacesTab({ trips, locale }: PlacesTabProps) {
           className="flex items-center gap-1 text-xs font-semibold text-violet-400 hover:text-violet-300 transition-colors"
         >
           <Plus className="h-3.5 w-3.5" />
-          {labels.add}
+          {L.add}
         </button>
       </div>
 
@@ -166,18 +177,15 @@ export function PlacesTab({ trips, locale }: PlacesTabProps) {
             className="overflow-hidden"
           >
             <div className="rounded-xl border border-violet-800/40 bg-violet-950/20 p-3 space-y-3">
-              <p className="text-xs font-bold text-violet-300">{labels.addTitle}</p>
+              <p className="text-xs font-bold text-violet-300">{L.addTitle}</p>
 
               {/* City search */}
               <div className="relative">
                 <input
                   type="text"
                   value={selectedCity ? selectedCity.city : cityQuery}
-                  onChange={(e) => {
-                    setCityQuery(e.target.value);
-                    setSelectedCity(null);
-                  }}
-                  placeholder={labels.cityPlaceholder}
+                  onChange={(e) => { setCityQuery(e.target.value); setSelectedCity(null); }}
+                  placeholder={L.cityPlaceholder}
                   className="w-full text-sm bg-white/[0.05] border border-white/[0.1] rounded-lg px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-violet-600/50"
                 />
                 {selectedCity && (
@@ -188,7 +196,6 @@ export function PlacesTab({ trips, locale }: PlacesTabProps) {
                     <X className="h-3.5 w-3.5" />
                   </button>
                 )}
-                {/* Suggestions dropdown */}
                 {suggestions.length > 0 && !selectedCity && (
                   <div className="absolute top-full left-0 right-0 z-10 mt-1 rounded-lg border border-white/[0.1] bg-gray-900 shadow-xl overflow-hidden">
                     {suggestions.map((s) => (
@@ -208,7 +215,7 @@ export function PlacesTab({ trips, locale }: PlacesTabProps) {
 
               {/* Date */}
               <div>
-                <label className="block text-xs text-gray-500 mb-1">{labels.dateLabel}</label>
+                <label className="block text-xs text-gray-500 mb-1">{L.dateLabel}</label>
                 <input
                   type="date"
                   value={dateValue}
@@ -222,17 +229,17 @@ export function PlacesTab({ trips, locale }: PlacesTabProps) {
               <div className="flex gap-2">
                 <button
                   onClick={handleAddConfirm}
-                  disabled={!selectedCity || !dateValue}
+                  disabled={!selectedCity || !dateValue || saving}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold transition-colors"
                 >
                   <Check className="h-3.5 w-3.5" />
-                  {labels.confirm}
+                  {saving ? "…" : L.confirm}
                 </button>
                 <button
                   onClick={() => { setShowAdd(false); setCityQuery(""); setSelectedCity(null); setDateValue(""); }}
                   className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-gray-400 text-xs font-semibold transition-colors"
                 >
-                  {labels.cancel}
+                  {L.cancel}
                 </button>
               </div>
             </div>
@@ -244,8 +251,8 @@ export function PlacesTab({ trips, locale }: PlacesTabProps) {
       {allPlaces.length === 0 && (
         <div className="flex flex-col items-center justify-center py-10 text-center gap-2">
           <span className="text-4xl">🌍</span>
-          <p className="text-sm font-semibold text-gray-400">{labels.empty}</p>
-          <p className="text-xs text-gray-600 max-w-[260px]">{labels.emptySub}</p>
+          <p className="text-sm font-semibold text-gray-400">{L.empty}</p>
+          <p className="text-xs text-gray-600 max-w-[260px]">{L.emptySub}</p>
         </div>
       )}
 
@@ -257,7 +264,7 @@ export function PlacesTab({ trips, locale }: PlacesTabProps) {
               key={place.id}
               place={place}
               locale={locale}
-              onRemove={place.source === "manual" ? () => handleRemoveManual(place.id) : undefined}
+              onRemove={place.source === "manual" ? () => handleRemove(place.id) : undefined}
             />
           ))}
         </div>
@@ -273,7 +280,7 @@ interface PlaceCardProps {
 }
 
 function PlaceCard({ place, locale, onRemove }: PlaceCardProps) {
-  const labels = L[locale];
+  const L = LABELS[locale];
 
   return (
     <motion.div
@@ -295,7 +302,10 @@ function PlaceCard({ place, locale, onRemove }: PlaceCardProps) {
 
       {/* STAMP watermark */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.06]">
-        <p className="text-5xl font-black text-violet-700 uppercase tracking-widest" style={{ transform: "rotate(-20deg)" }}>
+        <p
+          className="text-5xl font-black text-violet-700 uppercase tracking-widest"
+          style={{ transform: "rotate(-20deg)" }}
+        >
           STAMP
         </p>
       </div>
@@ -303,7 +313,7 @@ function PlaceCard({ place, locale, onRemove }: PlaceCardProps) {
       <div className="relative z-10 px-3 pt-3 pb-3">
         {/* Source icon + remove */}
         <div className="flex items-center justify-between mb-1.5">
-          <span title={place.source === "inferred" ? labels.inferred : labels.manual}>
+          <span title={place.source === "inferred" ? L.inferred : L.manual}>
             {place.source === "inferred"
               ? <Plane className="h-3 w-3 text-violet-600/60" />
               : <MapPin className="h-3 w-3 text-violet-600/60" />
@@ -328,7 +338,7 @@ function PlaceCard({ place, locale, onRemove }: PlaceCardProps) {
 
         {/* Date */}
         <div className="mt-2 pt-2 border-t border-violet-400/20 text-center">
-          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500 mb-0.5">{labels.firstVisit}</p>
+          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-500 mb-0.5">{L.firstVisit}</p>
           <p className="text-[10px] font-black text-gray-700">{formatDate(place.dateVisited, locale)}</p>
         </div>
       </div>
