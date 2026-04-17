@@ -1,18 +1,18 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { TripTab } from "@/lib/types";
 import { AIRPORTS } from "@/lib/airports";
 
 export interface VisitedPlace {
-  id: string;           // city+country slug (inferred) or uuid (manual)
+  id: string;           // uuid from DB (manual) or city+country slug (inferred)
   city: string;
   country: string;
   dateVisited: string;  // "YYYY-MM-DD"
   source: "inferred" | "manual";
 }
 
-const STORAGE_KEY = "tripcopilot-visited-places";
+// ── Inference from flights ────────────────────────────────────────────────────
 
 export function inferVisitedPlaces(trips: TripTab[]): VisitedPlace[] {
-  // Flatten + sort flights chronologically by isoDate+departureTime
   const flights = trips
     .flatMap((t) => t.flights)
     .sort((a, b) => {
@@ -21,7 +21,6 @@ export function inferVisitedPlaces(trips: TripTab[]): VisitedPlace[] {
       return at < bt ? -1 : at > bt ? 1 : 0;
     });
 
-  // earliest visit per city+country key
   const earliest: Record<string, string> = {};
 
   for (let i = 0; i < flights.length - 1; i++) {
@@ -29,15 +28,14 @@ export function inferVisitedPlaces(trips: TripTab[]): VisitedPlace[] {
     const next = flights[i + 1];
     if (curr.destinationCode !== next.originCode) continue;
 
-    // Build arrival timestamp for curr flight
     const arrDate = curr.arrivalDate ?? curr.isoDate;
     const arrTime = curr.arrivalTime ?? null;
-    if (!arrTime) continue; // skip if no arrival time
+    if (!arrTime) continue;
 
     const arrivalMs = new Date(`${arrDate}T${arrTime}:00`).getTime();
     const depMs = new Date(`${next.isoDate}T${next.departureTime}:00`).getTime();
-
     if (isNaN(arrivalMs) || isNaN(depMs)) continue;
+
     const gapHours = (depMs - arrivalMs) / 3_600_000;
     if (gapHours < 4) continue;
 
@@ -63,6 +61,67 @@ export function inferVisitedPlaces(trips: TripTab[]): VisitedPlace[] {
     } satisfies VisitedPlace;
   }).sort((a, b) => b.dateVisited.localeCompare(a.dateVisited));
 }
+
+// ── Supabase DB helpers ───────────────────────────────────────────────────────
+
+interface DBRow {
+  id: string;
+  city: string;
+  country: string;
+  date_visited: string;
+  source: string;
+}
+
+function rowToPlace(row: DBRow): VisitedPlace {
+  return {
+    id: row.id,
+    city: row.city,
+    country: row.country,
+    dateVisited: row.date_visited,
+    source: row.source === "inferred" ? "inferred" : "manual",
+  };
+}
+
+export async function fetchDBPlaces(supabase: SupabaseClient): Promise<VisitedPlace[]> {
+  const { data, error } = await supabase
+    .from("visited_places")
+    .select("id, city, country, date_visited, source")
+    .order("date_visited", { ascending: false });
+
+  if (error || !data) return [];
+  return (data as DBRow[]).map(rowToPlace);
+}
+
+export async function addDBPlace(
+  supabase: SupabaseClient,
+  place: { city: string; country: string; dateVisited: string },
+): Promise<VisitedPlace | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("visited_places")
+    .insert({
+      user_id: user.id,
+      city: place.city,
+      country: place.country,
+      date_visited: place.dateVisited,
+      source: "manual",
+    })
+    .select("id, city, country, date_visited, source")
+    .single();
+
+  if (error || !data) return null;
+  return rowToPlace(data as DBRow);
+}
+
+export async function removeDBPlace(supabase: SupabaseClient, id: string): Promise<void> {
+  await supabase.from("visited_places").delete().eq("id", id);
+}
+
+// ── localStorage fallback (kept for offline/unauthenticated reads) ────────────
+
+const STORAGE_KEY = "tripcopilot-visited-places";
 
 export function loadManualPlaces(): VisitedPlace[] {
   try {
