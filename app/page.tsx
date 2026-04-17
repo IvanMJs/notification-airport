@@ -38,7 +38,7 @@ const FAQ_ITEMS_ES = [
   },
   {
     q: "¿Cómo se detectan las demoras?",
-    a: "Consultamos los datos de la FAA cada 5 minutos y AeroDataBox para vuelos internacionales.",
+    a: "Usamos FlightAware AeroAPI, la fuente de datos de aviación más completa del mundo. Delay, cambio de puerta y cancelaciones llegan por push en menos de 2 minutos. Para el estado general de aeropuertos consultamos la FAA.",
   },
 ];
 
@@ -65,7 +65,7 @@ const FAQ_ITEMS_EN = [
   },
   {
     q: "How are delays detected?",
-    a: "We query FAA data every 5 minutes and AeroDataBox for international flights.",
+    a: "We use FlightAware AeroAPI, the world's most complete aviation data source. Delays, gate changes and cancellations arrive via push notification in under 2 minutes. For airport-level status we query the FAA.",
   },
 ];
 
@@ -244,7 +244,7 @@ export default function LandingPage() {
       bg: "bg-blue-950/40",
       border: "border-blue-800/30",
       title: "Estado FAA en tiempo real",
-      desc: "Alertas de demoras, ground stops y cierres de aeropuertos directamente de la FAA oficial, actualizadas cada 5 minutos.",
+      desc: "Estado de aeropuertos de EE.UU. directamente de la FAA: demoras, ground stops y cierres actualizados en tiempo real.",
     },
     {
       icon: Brain,
@@ -300,7 +300,7 @@ export default function LandingPage() {
       bg: "bg-red-950/40",
       border: "border-red-800/30",
       title: "Alertas en tiempo real",
-      desc: "2-4 horas antes del despegue, TripCopilot consulta el estado real de tu vuelo. Si fue cancelado o tiene demora, te llega al toque.",
+      desc: "Integración con FlightAware AeroAPI — la misma fuente que Flighty. Delay, cambio de puerta o cancelación te llega por push en menos de 2 minutos.",
     },
     {
       icon: MapPin,
@@ -364,7 +364,7 @@ export default function LandingPage() {
     {
       emoji: "😰",
       problem: lang === "en" ? "You find out about delays too late" : "Te enterás tarde de las demoras",
-      solution: lang === "en" ? "TripCopilot monitors the FAA 24/7 and notifies you instantly" : "TripCopilot monitorea la FAA las 24hs y te notifica al instante",
+      solution: lang === "en" ? "FlightAware integration — push notification in under 2 minutes" : "Integración FlightAware · Push en menos de 2 minutos",
     },
     {
       emoji: "😓",
