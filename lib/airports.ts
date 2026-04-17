@@ -93,6 +93,7 @@ export const AIRPORTS: Record<string, {
   CDG: { name: "Charles de Gaulle Airport",           city: "Paris",         state: "FR", lat: 49.0097,  lng: 2.5479,    icao: "LFPG", country: "France",       isFAA: false, timezone: "Europe/Paris" },
   ORY: { name: "Orly Airport",                        city: "Paris",         state: "FR", lat: 48.7233,  lng: 2.3794,    icao: "LFPO", country: "France",       isFAA: false, timezone: "Europe/Paris" },
   AMS: { name: "Amsterdam Airport Schiphol",          city: "Amsterdam",     state: "NL", lat: 52.3086,  lng: 4.7639,    icao: "EHAM", country: "Netherlands",  isFAA: false, timezone: "Europe/Amsterdam" },
+  EIN: { name: "Eindhoven Airport",                   city: "Eindhoven",     state: "NL", lat: 51.4501,  lng: 5.3742,    icao: "EHEH", country: "Netherlands",  isFAA: false, timezone: "Europe/Amsterdam" },
   MAD: { name: "Adolfo Suárez Madrid–Barajas",        city: "Madrid",        state: "ES", lat: 40.4839,  lng: -3.5680,   icao: "LEMD", country: "Spain",        isFAA: false, timezone: "Europe/Madrid" },
   BCN: { name: "Josep Tarradellas Barcelona–El Prat", city: "Barcelona",     state: "ES", lat: 41.2971,  lng: 2.0785,    icao: "LEBL", country: "Spain",        isFAA: false, timezone: "Europe/Madrid" },
   FCO: { name: "Leonardo da Vinci–Fiumicino Airport", city: "Rome",          state: "IT", lat: 41.8003,  lng: 12.2389,   icao: "LIRF", country: "Italy",        isFAA: false, timezone: "Europe/Rome" },
