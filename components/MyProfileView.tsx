@@ -14,6 +14,7 @@ import { TravelStreaks } from "@/components/TravelStreaks";
 import { TravelChallenges } from "@/components/TravelChallenges";
 import { ReferralCard } from "@/components/ReferralCard";
 import { AchievementBadges } from "@/components/AchievementBadges";
+import { COUNTRY_FLAGS, countryFlag } from "@/lib/countryFlags";
 
 interface MyProfileViewProps {
   trips: TripTab[];
@@ -157,65 +158,7 @@ const fadeUp = (delay: number) => ({
   transition: { duration: 0.35, ease: EASE_OUT, delay },
 });
 
-// ── Country flag helper ───────────────────────────────────────────────────────
-
-const COUNTRY_FLAGS: Record<string, string> = {
-  Argentina:          "🇦🇷",
-  Brazil:             "🇧🇷",
-  Chile:              "🇨🇱",
-  Colombia:           "🇨🇴",
-  Peru:               "🇵🇪",
-  Uruguay:            "🇺🇾",
-  Bolivia:            "🇧🇴",
-  Ecuador:            "🇪🇨",
-  Panama:             "🇵🇦",
-  Mexico:             "🇲🇽",
-  Cuba:               "🇨🇺",
-  "Dominican Republic": "🇩🇴",
-  "Puerto Rico":      "🇵🇷",
-  Bahamas:            "🇧🇸",
-  Jamaica:            "🇯🇲",
-  Barbados:           "🇧🇧",
-  Curaçao:            "🇨🇼",
-  Aruba:              "🇦🇼",
-  Antigua:            "🇦🇬",
-  "Trinidad & Tobago":"🇹🇹",
-  "Costa Rica":       "🇨🇷",
-  Guatemala:          "🇬🇹",
-  "El Salvador":      "🇸🇻",
-  "Cayman Islands":   "🇰🇾",
-  "United Kingdom":   "🇬🇧",
-  France:             "🇫🇷",
-  Spain:              "🇪🇸",
-  Italy:              "🇮🇹",
-  Germany:            "🇩🇪",
-  Netherlands:        "🇳🇱",
-  Portugal:           "🇵🇹",
-  Switzerland:        "🇨🇭",
-  Austria:            "🇦🇹",
-  Belgium:            "🇧🇪",
-  Greece:             "🇬🇷",
-  Turkey:             "🇹🇷",
-  Norway:             "🇳🇴",
-  Sweden:             "🇸🇪",
-  Denmark:            "🇩🇰",
-  Finland:            "🇫🇮",
-  Poland:             "🇵🇱",
-  Japan:              "🇯🇵",
-  China:              "🇨🇳",
-  "South Korea":      "🇰🇷",
-  India:              "🇮🇳",
-  Thailand:           "🇹🇭",
-  Singapore:          "🇸🇬",
-  Australia:          "🇦🇺",
-  "New Zealand":      "🇳🇿",
-  Canada:             "🇨🇦",
-  USA:                "🇺🇸",
-};
-
-function countryFlag(country: string): string {
-  return COUNTRY_FLAGS[country] ?? "🌍";
-}
+// ── Country flag helper is imported from @/lib/countryFlags ──────────────────
 
 function formatStampDate(isoDate: string, locale: "es" | "en"): string {
   if (!isoDate) return "";
