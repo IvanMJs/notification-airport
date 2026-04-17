@@ -418,6 +418,14 @@ export function useUserTrips() {
           return { ...t, flights: updated };
         }),
       );
+
+      // Fire-and-forget: register FlightAware alert for real-time push events
+      fetch("/api/flights/register-alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ flightId: data.id }),
+      }).catch(() => null);
+
       return data.id;
     }
     return null;
@@ -434,6 +442,14 @@ export function useUserTrips() {
     );
 
     haptics.delete();
+
+    // Fire-and-forget: cancel FlightAware alert before deleting
+    fetch("/api/flights/cancel-alert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ flightId }),
+    }).catch(() => null);
+
     const supabase = createClient();
     const { error } = await supabase.from("flights").delete().eq("id", flightId);
     if (error) {
