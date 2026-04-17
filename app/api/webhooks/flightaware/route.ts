@@ -13,6 +13,7 @@ interface FAWebhookPayload {
     cancelled?: boolean;
     diverted?: boolean;
     departure_delay?: number; // seconds
+    arrival_delay?: number;   // seconds
     gate_origin?: string;
     terminal_origin?: string;
     estimated_out?: string;
@@ -68,8 +69,11 @@ async function handlePayload(payload: FAWebhookPayload) {
 
   if (!dbFlights?.length) return Response.json({ ok: true });
 
-  const delayMinutes = flight.departure_delay
+  const depDelayMin = flight.departure_delay
     ? Math.round(flight.departure_delay / 60)
+    : 0;
+  const arrDelayMin = flight.arrival_delay
+    ? Math.round(flight.arrival_delay / 60)
     : 0;
   const newGate = flight.gate_origin ?? null;
 
@@ -84,12 +88,14 @@ async function handlePayload(payload: FAWebhookPayload) {
   switch (eventType) {
     case "departure":
       title = `✈️ ${flightIdent} departed`;
-      body  = newGate ? `Departed from gate ${newGate}` : "Flight has departed";
+      body  = newGate ? `Gate ${newGate}` : "Flight has departed";
       break;
 
     case "arrival":
       title = `🛬 ${flightIdent} landed`;
-      body  = "Your flight has arrived";
+      body  = arrDelayMin >= 5
+        ? `Arrived ${arrDelayMin} min late`
+        : "On time";
       break;
 
     case "diverted":
@@ -105,12 +111,16 @@ async function handlePayload(payload: FAWebhookPayload) {
     case "filed":
     default:
       if (gateChanged) {
-        // Gate change takes priority over delay in a "filed" event
+        // Gate change takes priority over delays in a filed event
         title = `🚪 Gate change — ${flightIdent}`;
         body  = `New gate: ${newGate}`;
-      } else if (delayMinutes >= 20) {
-        title = `⏱️ ${flightIdent} delayed ${delayMinutes} min`;
+      } else if (depDelayMin >= 20) {
+        title = `⏱️ ${flightIdent} delayed ${depDelayMin} min`;
         body  = newGate ? `Gate ${newGate}` : "Check updated departure time";
+      } else if (arrDelayMin >= 20) {
+        // In-flight ETA update: arrival pushed back significantly
+        title = `⏱️ ${flightIdent} arriving ${arrDelayMin} min late`;
+        body  = "Updated arrival estimate from FlightAware";
       } else {
         // No actionable change — skip push
         return Response.json({ ok: true });
