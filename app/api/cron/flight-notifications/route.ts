@@ -1210,7 +1210,8 @@ async function fetchFlightStatus(
   scheduledUnix: number,
   originIcao: string | null,
 ): Promise<FlightStatusResult | null> {
-  // Try AeroDataBox first (better delay data); fall back to AviationStack
+  // FlightAware is NOT polled here — real-time events arrive via webhook (push model).
+  // Polling FlightAware per-flight on every cron run would burn API credits unnecessarily.
   const adb = rapidApiKey ? await fetchFlightStatusFromAeroDataBox(flightCode, isoDate, rapidApiKey) : null;
   if (adb !== null) return adb;
 
