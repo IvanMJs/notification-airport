@@ -41,7 +41,6 @@ import { useWatchedAirports } from "@/hooks/useWatchedAirports";
 import { useUserTrips } from "@/hooks/useUserTrips";
 import { NotificationSetupSheet } from "@/components/NotificationSetupSheet";
 import { OnboardingModal } from "@/components/OnboardingModal";
-import { PwaInstallBanner } from "@/components/PwaInstallBanner";
 import { InstallBanner } from "@/components/InstallBanner";
 import { RatingNudge } from "@/components/RatingNudge";
 import { makeExampleTrip } from "@/lib/exampleTrip";
@@ -1260,14 +1259,11 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── PWA install nudge (30s delay, 7-day dismissed TTL) ── */}
-      {mounted && <InstallBanner />}
+      {/* ── PWA install nudge (30s Android / 5s iOS, 7-day dismissed TTL) ── */}
+      {mounted && <InstallBanner locale={locale} />}
 
       {/* ── Rating nudge (shown once after user saves 3rd trip) ── */}
       {mounted && <RatingNudge showAfterTrips={3} tripCount={userTrips.length} />}
-
-      {/* ── PWA install banner ── */}
-      {mounted && <PwaInstallBanner hasTrip={userTrips.length > 0} />}
 
       {/* ── Desktop sidebar navigation ── */}
       {mounted && (

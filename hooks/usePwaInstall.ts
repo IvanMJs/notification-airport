@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const DISMISS_KEY = "pwa-install-dismissed";
 const DISMISS_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const SHOW_DELAY_MS = 30_000; // 30 seconds
+const ANDROID_SHOW_DELAY_MS = 30_000; // 30 seconds
+const IOS_SHOW_DELAY_MS = 5_000;    // 5 seconds
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -12,8 +13,12 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export interface UsePwaInstallResult {
+  /** Android/Chrome: native install prompt available */
   canInstall: boolean;
   install: () => Promise<void>;
+  /** iOS Safari (not standalone): show manual Add-to-Home-Screen instructions */
+  showIosPrompt: boolean;
+  /** Shared dismiss (7-day TTL) */
   isDismissed: boolean;
   dismiss: () => void;
 }
@@ -27,39 +32,53 @@ function isDismissedWithTTL(): boolean {
   return Date.now() - ts < DISMISS_TTL_MS;
 }
 
+function detectIosBrowser(): boolean {
+  if (typeof window === "undefined") return false;
+  const ua = navigator.userAgent;
+  const isIos = /iPad|iPhone|iPod/.test(ua) && !(window as unknown as { MSStream?: unknown }).MSStream;
+  if (!isIos) return false;
+  const standalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as { standalone?: boolean }).standalone === true;
+  return !standalone;
+}
+
 export function usePwaInstall(): UsePwaInstallResult {
   const promptRef = useRef<BeforeInstallPromptEvent | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [canInstall, setCanInstall] = useState(false);
+  const [showIosPrompt, setShowIosPrompt] = useState(false);
   const [isDismissed, setIsDismissed] = useState<boolean>(() => isDismissedWithTTL());
 
   useEffect(() => {
-    // If already dismissed within TTL, do nothing
     if (isDismissedWithTTL()) {
       setIsDismissed(true);
       return;
     }
 
+    // iOS: show instructions banner after short delay
+    if (detectIosBrowser()) {
+      timerRef.current = setTimeout(() => {
+        if (!isDismissedWithTTL()) setShowIosPrompt(true);
+      }, IOS_SHOW_DELAY_MS);
+      return () => {
+        if (timerRef.current !== null) clearTimeout(timerRef.current);
+      };
+    }
+
+    // Android/Chrome: wait for beforeinstallprompt
     function handleBeforeInstallPrompt(e: Event) {
       e.preventDefault();
       promptRef.current = e as BeforeInstallPromptEvent;
-
-      // Wait 30 seconds before surfacing the install prompt
       timerRef.current = setTimeout(() => {
-        if (!isDismissedWithTTL()) {
-          setCanInstall(true);
-        }
-      }, SHOW_DELAY_MS);
+        if (!isDismissedWithTTL()) setCanInstall(true);
+      }, ANDROID_SHOW_DELAY_MS);
     }
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      if (timerRef.current !== null) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
   }, []);
 
@@ -67,16 +86,15 @@ export function usePwaInstall(): UsePwaInstallResult {
     if (!promptRef.current) return;
     await promptRef.current.prompt();
     const { outcome } = await promptRef.current.userChoice;
-    if (outcome === "accepted") {
-      setCanInstall(false);
-    }
+    if (outcome === "accepted") setCanInstall(false);
   }, []);
 
   const dismiss = useCallback((): void => {
     setCanInstall(false);
+    setShowIosPrompt(false);
     setIsDismissed(true);
     localStorage.setItem(DISMISS_KEY, String(Date.now()));
   }, []);
 
-  return { canInstall, install, isDismissed, dismiss };
+  return { canInstall, install, showIosPrompt, isDismissed, dismiss };
 }
