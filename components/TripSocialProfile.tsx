@@ -406,10 +406,10 @@ export function TripSocialProfile({ profile, currentUserId }: Props) {
           transition={{ duration: 0.25, delay: 0.16 }}
           className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4"
         >
-          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3 text-center">
             {L.visitedCountries}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 justify-center">
             {visibleCountries.map((code) => (
               <div
                 key={code}
