@@ -162,33 +162,15 @@ export function TripSocialProfile({ profile, currentUserId }: Props) {
 
   const MAX_COUNTRIES = 20;
 
-  // Shared map computation — done here so it's available for showMap check below.
-  const sharedCountryCodes: Set<string> = profile.friendData
-    ? new Set(
-        (profile.visitedCountries ?? []).filter((c) =>
-          profile.friendData!.viewerCountries.includes(c)
-        )
-      )
-    : new Set<string>();
-
-  const allMapCountries: string[] = profile.friendData
-    ? Array.from(
-        new Set([
-          ...(profile.visitedCountries ?? []),
-          ...profile.friendData.viewerCountries,
-        ])
-      )
-    : (profile.visitedCountries ?? []);
+  // Plain visited countries — only shown when NOT friends
+  const visitedList = profile.visitedCountries ?? [];
+  const visibleCountries = visitedList.slice(0, MAX_COUNTRIES);
+  const extraCountries = Math.max(0, visitedList.length - MAX_COUNTRIES);
 
   const showMap =
+    !profile.friendData &&
     (profile.social_settings.showMap ?? true) &&
-    (profile.friendData ? allMapCountries.length > 0 : (profile.visitedCountries ?? []).length > 0);
-
-  // When friendData is present we show the combined map instead of the
-  // plain visited-countries section, so limit/extra use allMapCountries.
-  const mapCountriesToShow = profile.friendData ? allMapCountries : (profile.visitedCountries ?? []);
-  const visibleCountries = mapCountriesToShow.slice(0, MAX_COUNTRIES);
-  const extraCountries = Math.max(0, mapCountriesToShow.length - MAX_COUNTRIES);
+    visitedList.length > 0;
 
   // Build a lookup: tripId -> reactions[]
   const reactionsByTrip = new Map<
@@ -317,7 +299,7 @@ export function TripSocialProfile({ profile, currentUserId }: Props) {
         </motion.div>
       )}
 
-      {/* ── Visited countries / Shared map ──────────────────────────────────── */}
+      {/* ── Visited countries (non-friends only) ────────────────────────────── */}
       {showMap && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -326,47 +308,18 @@ export function TripSocialProfile({ profile, currentUserId }: Props) {
           className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4"
         >
           <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
-            {profile.friendData ? L.sharedMap : L.visitedCountries}
+            {L.visitedCountries}
           </p>
-          {profile.friendData && (
-            <div className="flex flex-wrap gap-1 mb-3 text-xs text-white/40">
-              <span className="inline-flex items-center gap-1">
-                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-violet-600/20 border border-violet-500/50" />
-                {L.both}
-              </span>
-              <span className="inline-flex items-center gap-1 ml-2">
-                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-white/[0.06] border border-white/[0.07]" />
-                {L.onlyThem}
-              </span>
-              <span className="inline-flex items-center gap-1 ml-2">
-                <span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-600/15 border border-blue-500/40" />
-                {L.youVisited}
-              </span>
-            </div>
-          )}
           <div className="flex flex-wrap gap-2">
-            {visibleCountries.map((code) => {
-              const isBoth = profile.friendData ? sharedCountryCodes.has(code) : false;
-              const isViewerOnly = profile.friendData
-                ? !( profile.visitedCountries ?? []).includes(code)
-                : false;
-              const borderClass = isBoth
-                ? "border-violet-500/50 bg-violet-600/20"
-                : isViewerOnly
-                ? "border-blue-500/40 bg-blue-600/15"
-                : "border-white/[0.07] bg-white/[0.06]";
-              return (
-                <div
-                  key={code}
-                  title={code}
-                  className={`flex items-center rounded-lg border px-1.5 py-1 ${borderClass}`}
-                >
-                  <span className="text-xl leading-none">
-                    {countryCodeToFlag(code)}
-                  </span>
-                </div>
-              );
-            })}
+            {visibleCountries.map((code) => (
+              <div
+                key={code}
+                title={code}
+                className="flex items-center rounded-lg bg-white/[0.06] border border-white/[0.07] px-1.5 py-1"
+              >
+                <span className="text-xl leading-none">{countryCodeToFlag(code)}</span>
+              </div>
+            ))}
             {extraCountries > 0 && (
               <div className="flex items-center rounded-lg bg-white/[0.04] border border-white/[0.06] px-2 py-1">
                 <span className="text-xs font-medium text-gray-500">
@@ -514,6 +467,59 @@ export function TripSocialProfile({ profile, currentUserId }: Props) {
             })}
           </div>
         </motion.div>
+      )}
+
+      {/* ── Section 5: Mapa compartido (friends only) ───────────────────────── */}
+      {profile.friendData && (profile.social_settings.showMap ?? true) && (
+        (() => {
+          const profileCodes = profile.visitedCountries ?? [];
+          const viewerCodes = profile.friendData.viewerCountries;
+          const allCodes = Array.from(new Set([...profileCodes, ...viewerCodes])).slice(0, MAX_COUNTRIES);
+          const sharedSet = new Set(profileCodes.filter((c) => viewerCodes.includes(c)));
+          if (allCodes.length === 0) return null;
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, delay: 0.56 }}
+              className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4"
+            >
+              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">
+                {L.sharedMap}
+              </p>
+              <div className="flex flex-wrap gap-1 mb-3 text-xs text-white/40">
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-2.5 h-2.5 rounded-sm bg-violet-600/20 border border-violet-500/50" />
+                  {L.both}
+                </span>
+                <span className="inline-flex items-center gap-1 ml-2">
+                  <span className="inline-block w-2.5 h-2.5 rounded-sm bg-white/[0.06] border border-white/[0.07]" />
+                  {L.onlyThem}
+                </span>
+                <span className="inline-flex items-center gap-1 ml-2">
+                  <span className="inline-block w-2.5 h-2.5 rounded-sm bg-blue-600/15 border border-blue-500/40" />
+                  {L.youVisited}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {allCodes.map((code) => {
+                  const isBoth = sharedSet.has(code);
+                  const isViewerOnly = !profileCodes.includes(code);
+                  const cls = isBoth
+                    ? "border-violet-500/50 bg-violet-600/20"
+                    : isViewerOnly
+                    ? "border-blue-500/40 bg-blue-600/15"
+                    : "border-white/[0.07] bg-white/[0.06]";
+                  return (
+                    <div key={code} title={code} className={`flex items-center rounded-lg border px-1.5 py-1 ${cls}`}>
+                      <span className="text-xl leading-none">{countryCodeToFlag(code)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          );
+        })()
       )}
     </div>
   );
