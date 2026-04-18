@@ -16,6 +16,12 @@ interface PendingIncoming {
   requesterEmail: string;
 }
 
+interface FollowUser {
+  userId: string;
+  username: string;
+  displayName: string | null;
+}
+
 const LABELS = {
   es: {
     searchPlaceholder: "@username o nombre",
@@ -37,6 +43,10 @@ const LABELS = {
     errorDuplicate: "Ya existe una solicitud con este usuario",
     errorGeneric: "Ocurrió un error. Intentá de nuevo.",
     loadingFriends: "Cargando...",
+    followingTitle: "Viajeros que seguís",
+    followersTitle: "Te siguen",
+    noFollowing: "No seguís a nadie todavía",
+    noFollowers: "Todavía nadie te sigue",
   },
   en: {
     searchPlaceholder: "@username or name",
@@ -58,6 +68,10 @@ const LABELS = {
     errorDuplicate: "A request already exists with this user",
     errorGeneric: "Something went wrong. Please try again.",
     loadingFriends: "Loading...",
+    followingTitle: "People you follow",
+    followersTitle: "Your followers",
+    noFollowing: "Not following anyone yet",
+    noFollowers: "No followers yet",
   },
 } as const;
 
@@ -128,6 +142,9 @@ export function TripSocialView({ locale, userId }: Props) {
   const [pendingIncoming, setPendingIncoming] = useState<PendingIncoming[]>([]);
   const [friendsLoading, setFriendsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [following, setFollowing] = useState<FollowUser[]>([]);
+  const [followers, setFollowers] = useState<FollowUser[]>([]);
+  const [followListLoading, setFollowListLoading] = useState(true);
 
   async function fetchFriends() {
     try {
@@ -152,6 +169,22 @@ export function TripSocialView({ locale, userId }: Props) {
     }
     void fetchFriends();
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) { setFollowListLoading(false); return; }
+    void (async () => {
+      try {
+        const res = await fetch("/api/follows/list");
+        if (res.ok) {
+          const data = await res.json() as { following: FollowUser[]; followers: FollowUser[] };
+          setFollowing(data.following ?? []);
+          setFollowers(data.followers ?? []);
+        }
+      } finally {
+        setFollowListLoading(false);
+      }
+    })();
   }, [userId]);
 
   async function handleAccept(friendshipId: string) {
@@ -428,6 +461,68 @@ export function TripSocialView({ locale, userId }: Props) {
           )
         )}
       </motion.div>
+
+      {/* ── E) Following list — only shown when loading or has data ─────── */}
+      {(followListLoading || following.length > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.2 }}
+          className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 space-y-3"
+        >
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">{L.followingTitle}</p>
+          {followListLoading ? (
+            <div className="space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-10 rounded-xl skeleton" />)}</div>
+          ) : (
+            following.map((f) => (
+              <a
+                key={f.userId}
+                href={`/u/${f.username}`}
+                className="flex items-center gap-3 hover:bg-white/[0.04] rounded-xl p-2 -mx-2 transition-colors"
+              >
+                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-black text-white">{(f.displayName ?? f.username)[0]?.toUpperCase()}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{f.displayName ?? f.username}</p>
+                  <p className="text-xs text-white/40 truncate">@{f.username}</p>
+                </div>
+              </a>
+            ))
+          )}
+        </motion.div>
+      )}
+
+      {/* ── F) Followers list — only shown when loading or has data ──────── */}
+      {(followListLoading || followers.length > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.25 }}
+          className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 space-y-3"
+        >
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">{L.followersTitle}</p>
+          {followListLoading ? (
+            <div className="space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-10 rounded-xl skeleton" />)}</div>
+          ) : (
+            followers.map((f) => (
+              <a
+                key={f.userId}
+                href={`/u/${f.username}`}
+                className="flex items-center gap-3 hover:bg-white/[0.04] rounded-xl p-2 -mx-2 transition-colors"
+              >
+                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-black text-white">{(f.displayName ?? f.username)[0]?.toUpperCase()}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{f.displayName ?? f.username}</p>
+                  <p className="text-xs text-white/40 truncate">@{f.username}</p>
+                </div>
+              </a>
+            ))
+          )}
+        </motion.div>
+      )}
 
       {/* ── D) Add friend form ────────────────────────────────────────────── */}
       <motion.form

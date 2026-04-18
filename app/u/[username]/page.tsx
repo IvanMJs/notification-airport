@@ -196,6 +196,26 @@ export default async function PublicProfilePage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Follower/following counts + viewer-follows check
+  const [{ count: followerCount }, { count: followingCount }, viewerFollowsResult] =
+    await Promise.all([
+      admin
+        .from("follows")
+        .select("*", { count: "exact", head: true })
+        .eq("following_id", profile.id),
+      admin
+        .from("follows")
+        .select("*", { count: "exact", head: true })
+        .eq("follower_id", profile.id),
+      user && user.id !== profile.id
+        ? admin
+            .from("follows")
+            .select("follower_id", { count: "exact", head: true })
+            .eq("follower_id", user.id)
+            .eq("following_id", profile.id)
+        : Promise.resolve({ count: null as number | null }),
+    ]);
+
   // Check friendship and build friend-specific data
   let friendData: PublicProfileData["friendData"] | undefined;
   if (user && user.id !== profile.id) {
@@ -324,6 +344,9 @@ export default async function PublicProfilePage({
     userId: profile.id,
     username: profile.username,
     displayName: profile.display_name,
+    followerCount: followerCount ?? 0,
+    followingCount: followingCount ?? 0,
+    viewerFollows: viewerFollowsResult.count != null && viewerFollowsResult.count > 0,
     social_settings: {
       profileVisible: settings.profileVisible ?? "friends",
       showMap: settings.showMap,
