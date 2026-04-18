@@ -43,6 +43,8 @@ export const AIRPORTS: Record<string, {
   TPA: { name: "Tampa International",                  city: "Tampa",         state: "FL", lat: 27.9756,  lng: -82.5333,  icao: "KTPA", timezone: "America/New_York" },
   PDX: { name: "Portland International",               city: "Portland",      state: "OR", lat: 45.5898,  lng: -122.5951, icao: "KPDX", timezone: "America/Los_Angeles" },
   EZE: { name: "Ministro Pistarini International",     city: "Buenos Aires",  state: "AR", lat: -34.8222, lng: -58.5358,  icao: "SAEZ", country: "Argentina",  isFAA: false, timezone: "America/Argentina/Buenos_Aires" },
+  COR: { name: "Ambrosio L.V. Taravella International", city: "Córdoba",      state: "AR", lat: -31.3236, lng: -64.2080,  icao: "SACO", country: "Argentina",  isFAA: false, timezone: "America/Argentina/Cordoba" },
+  SNU: { name: "Abel Santamaría International",        city: "Santa Clara",   state: "CU", lat:  22.4922, lng: -79.9437,  icao: "MUSC", country: "Cuba",       isFAA: false, timezone: "America/Havana" },
   GCM: { name: "Owen Roberts International",           city: "Grand Cayman",  state: "KY", lat: 19.2928,  lng: -81.3577,  icao: "MWCR", country: "Cayman Islands", isFAA: false, timezone: "America/Cayman" },
 
   // ── Latin America & Caribbean ─────────────────────────────────────────────
