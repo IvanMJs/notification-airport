@@ -27,7 +27,6 @@ interface UserProfileRow {
   username: string;
   display_name: string | null;
   social_settings: SocialSettings | null;
-  visited_places: VisitedPlace[] | null;
 }
 
 interface TripRow {
@@ -66,7 +65,7 @@ export default async function PublicProfilePage({
   // Fetch user profile
   const { data: profileData, error: profileError } = await admin
     .from("user_profiles")
-    .select("id, username, display_name, social_settings, visited_places")
+    .select("id, username, display_name, social_settings")
     .ilike("username", username)
     .maybeSingle();
 
@@ -102,13 +101,26 @@ export default async function PublicProfilePage({
     trips = (tripData ?? []) as TripRow[];
   }
 
+  // Fetch visited_places from the dedicated table
+  let visitedPlaces: VisitedPlace[] = [];
+  if (showMap || showStats) {
+    const { data: vpData } = await admin
+      .from("visited_places")
+      .select("code, country_code")
+      .eq("user_id", profile.id);
+    visitedPlaces = (vpData ?? []).map((r: { code?: string; country_code?: string }) => ({
+      code: r.code,
+      countryCode: r.country_code,
+    }));
+  }
+
   // Build visitedCountries
   let visitedCountries: string[] | undefined;
   if (showMap) {
     const countrySet = new Set<string>();
 
-    if (profile.visited_places && profile.visited_places.length > 0) {
-      for (const place of profile.visited_places) {
+    if (visitedPlaces.length > 0) {
+      for (const place of visitedPlaces) {
         if (place.countryCode) {
           countrySet.add(place.countryCode);
         } else if (place.code) {
@@ -136,8 +148,8 @@ export default async function PublicProfilePage({
     const airportSet = new Set<string>();
     const countrySetForStats = new Set<string>();
 
-    if (profile.visited_places && profile.visited_places.length > 0) {
-      for (const place of profile.visited_places) {
+    if (visitedPlaces.length > 0) {
+      for (const place of visitedPlaces) {
         if (place.code) {
           airportSet.add(place.code);
           const airport = AIRPORTS[place.code];
