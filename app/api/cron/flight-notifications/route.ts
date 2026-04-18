@@ -386,7 +386,7 @@ export async function GET(request: Request) {
                 ? `Escribí 1 dato curioso e interesante sobre el avión ${flight.aircraft_type}${flight.airline_name ? ` de ${flight.airline_name}` : ""}. Máximo 80 caracteres. Sin markdown.`
                 : `Write 1 curious fact about the ${flight.aircraft_type} aircraft${flight.airline_name ? ` by ${flight.airline_name}` : ""}. Max 80 characters. No markdown.`;
               const msg = await anthropicClient.messages.create({
-                model: "claude-sonnet-4-6",
+                model: "claude-haiku-4-5-20251001",
                 max_tokens: 100,
                 messages: [{ role: "user", content: prompt }],
               });

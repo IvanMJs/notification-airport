@@ -382,6 +382,16 @@ export default function LandingPage() {
         ? "Follow friends, react to their trips, and discover travelers with the same destinations."
         : "Seguí a amigos, reaccioná a sus viajes y descubrí viajeros con los mismos destinos.",
     },
+    {
+      icon: MonitorPlay,
+      color: "text-amber-400",
+      bg: "bg-amber-950/40",
+      border: "border-amber-800/30",
+      title: lang === "en" ? "AI Travel Diary" : "Diario de viaje con IA",
+      desc: lang === "en"
+        ? "After each trip, TripCopilot writes a personal first-person story of your adventure. Save it, copy it, or share it."
+        : "Al terminar cada viaje, TripCopilot escribe una historia personal en primera persona de tu aventura. Guardala, copiala o compartila.",
+    },
   ];
 
   const painPoints = [
