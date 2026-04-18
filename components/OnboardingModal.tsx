@@ -41,10 +41,47 @@ export function OnboardingModal({ locale, onSeeExample, onStartFresh }: Onboardi
         {/* Steps — fixed height to prevent layout shift */}
         <div className="relative overflow-hidden" style={{ minHeight: 290 }}>
 
-          {/* Step 0: Welcome + Create your first trip */}
+          {/* Step 0: AI boarding pass scan */}
           {step === 0 && (
             <div
               key="step-0"
+              className={`absolute inset-0 px-6 pt-10 pb-4 flex flex-col items-center justify-center text-center gap-5 ${
+                direction === "forward" ? "animate-slide-in-right" : "animate-slide-in-left"
+              }`}
+            >
+              {/* Scan animation */}
+              <div className="relative h-16 w-16 shrink-0">
+                <div className="h-16 w-16 rounded-2xl bg-violet-600/20 border border-violet-600/30 flex items-center justify-center overflow-hidden">
+                  {/* Document icon */}
+                  <svg className="h-8 w-8 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                    <rect x="4" y="2" width="16" height="20" rx="2" />
+                    <line x1="8" y1="8" x2="16" y2="8" />
+                    <line x1="8" y1="12" x2="16" y2="12" />
+                    <line x1="8" y1="16" x2="12" y2="16" />
+                  </svg>
+                  {/* Scan line */}
+                  <div
+                    className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-violet-400 to-transparent opacity-90 animate-onboarding-scan"
+                  />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-xl font-black text-white mb-2">
+                  {es ? "IA que lee tus vuelos" : "AI that reads your flights"}
+                </h2>
+                <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto">
+                  {es
+                    ? "Sacá foto a tu boarding pass o pegá el texto de la reserva. TripCopilot extrae todo automáticamente — sin tipear nada."
+                    : "Take a photo of your boarding pass or paste your booking text. TripCopilot extracts everything automatically."}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Step 1: Welcome + Create your first trip */}
+          {step === 1 && (
+            <div
+              key="step-1"
               className={`absolute inset-0 px-6 pt-10 pb-4 flex flex-col items-center justify-center text-center gap-5 ${
                 direction === "forward" ? "animate-slide-in-right" : "animate-slide-in-left"
               }`}
@@ -86,43 +123,6 @@ export function OnboardingModal({ locale, onSeeExample, onStartFresh }: Onboardi
                   {es
                     ? "Creá tu primer viaje con el botón + y empezá a monitorear tus vuelos."
                     : "Create your first trip with the + button and start monitoring your flights."}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Step 1: AI boarding pass scan */}
-          {step === 1 && (
-            <div
-              key="step-1"
-              className={`absolute inset-0 px-6 pt-10 pb-4 flex flex-col items-center justify-center text-center gap-5 ${
-                direction === "forward" ? "animate-slide-in-right" : "animate-slide-in-left"
-              }`}
-            >
-              {/* Scan animation */}
-              <div className="relative h-16 w-16 shrink-0">
-                <div className="h-16 w-16 rounded-2xl bg-violet-600/20 border border-violet-600/30 flex items-center justify-center overflow-hidden">
-                  {/* Document icon */}
-                  <svg className="h-8 w-8 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                    <rect x="4" y="2" width="16" height="20" rx="2" />
-                    <line x1="8" y1="8" x2="16" y2="8" />
-                    <line x1="8" y1="12" x2="16" y2="12" />
-                    <line x1="8" y1="16" x2="12" y2="16" />
-                  </svg>
-                  {/* Scan line */}
-                  <div
-                    className="absolute inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-violet-400 to-transparent opacity-90 animate-onboarding-scan"
-                  />
-                </div>
-              </div>
-              <div>
-                <h2 className="text-xl font-black text-white mb-2">
-                  {es ? "IA que lee tus vuelos" : "AI that reads your flights"}
-                </h2>
-                <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto">
-                  {es
-                    ? "Sacá foto a tu boarding pass o pegá el texto de la reserva. TripCopilot extrae todo automáticamente — sin tipear nada."
-                    : "Take a photo of your boarding pass or paste your booking text. TripCopilot extracts everything automatically."}
                 </p>
               </div>
             </div>
