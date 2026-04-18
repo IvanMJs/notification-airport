@@ -22,6 +22,17 @@ interface FollowUser {
   displayName: string | null;
 }
 
+interface FeedItem {
+  tripId: string;
+  userId: string;
+  username: string;
+  displayName: string | null;
+  destinationCode: string;
+  destinationName: string | null;
+  isoDate: string;
+  createdAt: string;
+}
+
 const LABELS = {
   es: {
     searchPlaceholder: "@username o nombre",
@@ -47,6 +58,10 @@ const LABELS = {
     followersTitle: "Te siguen",
     noFollowing: "No seguís a nadie todavía",
     noFollowers: "Todavía nadie te sigue",
+    feedTitle: "Actividad reciente",
+    feedEmpty: "Seguí a viajeros para ver su actividad",
+    feedAdded: "agregó un viaje a",
+    feedUpcoming: "viaja próximamente a",
   },
   en: {
     searchPlaceholder: "@username or name",
@@ -72,6 +87,10 @@ const LABELS = {
     followersTitle: "Your followers",
     noFollowing: "Not following anyone yet",
     noFollowers: "No followers yet",
+    feedTitle: "Recent activity",
+    feedEmpty: "Follow travelers to see their activity",
+    feedAdded: "added a trip to",
+    feedUpcoming: "is traveling soon to",
   },
 } as const;
 
@@ -145,6 +164,8 @@ export function TripSocialView({ locale, userId }: Props) {
   const [following, setFollowing] = useState<FollowUser[]>([]);
   const [followers, setFollowers] = useState<FollowUser[]>([]);
   const [followListLoading, setFollowListLoading] = useState(true);
+  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
+  const [feedLoading, setFeedLoading] = useState(false);
 
   async function fetchFriends() {
     try {
@@ -186,6 +207,22 @@ export function TripSocialView({ locale, userId }: Props) {
       }
     })();
   }, [userId]);
+
+  useEffect(() => {
+    if (followListLoading || following.length === 0) return;
+    setFeedLoading(true);
+    void (async () => {
+      try {
+        const res = await fetch("/api/feed/following");
+        if (res.ok) {
+          const data = await res.json() as { items: FeedItem[] };
+          setFeedItems(data.items ?? []);
+        }
+      } finally {
+        setFeedLoading(false);
+      }
+    })();
+  }, [following, followListLoading]);
 
   async function handleAccept(friendshipId: string) {
     setActionLoading(friendshipId);
@@ -520,6 +557,51 @@ export function TripSocialView({ locale, userId }: Props) {
                 </div>
               </a>
             ))
+          )}
+        </motion.div>
+      )}
+
+      {/* ── G) Activity feed ─────────────────────────────────────────────── */}
+      {(feedLoading || feedItems.length > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.3 }}
+          className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 space-y-3"
+        >
+          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">{L.feedTitle}</p>
+          {feedLoading ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => <div key={i} className="h-12 rounded-xl skeleton" />)}
+            </div>
+          ) : (
+            feedItems.map((item) => {
+              const today = new Date().toISOString().slice(0, 10);
+              const isUpcoming = item.isoDate > today;
+              return (
+                <a
+                  key={item.tripId}
+                  href={`/u/${item.username}`}
+                  className="flex items-center gap-3 hover:bg-white/[0.04] rounded-xl p-2 -mx-2 transition-colors"
+                >
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-br from-violet-600 to-blue-600 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-black text-white">
+                      {(item.displayName ?? item.username)[0]?.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-white/80 leading-snug truncate">
+                      <span className="font-semibold text-white">{item.displayName ?? `@${item.username}`}</span>
+                      {" "}
+                      <span className="text-white/50">{isUpcoming ? L.feedUpcoming : L.feedAdded}</span>
+                      {" "}
+                      <span className="font-semibold text-violet-300">{item.destinationName ?? item.destinationCode}</span>
+                    </p>
+                    <p className="text-xs text-white/30 mt-0.5">{item.isoDate}</p>
+                  </div>
+                </a>
+              );
+            })
           )}
         </motion.div>
       )}
