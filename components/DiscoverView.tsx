@@ -6,6 +6,7 @@ import { AIRPORTS } from "@/lib/airports";
 import { TripTab } from "@/lib/types";
 import { ExploreMap } from "@/components/ExploreMap";
 import { SmartTripSuggestions } from "@/components/SmartTripSuggestions";
+import { DreamTripPlanner } from "@/components/DreamTripPlanner";
 
 // Gradient + emoji visuals keyed by IATA code
 const DESTINATION_VISUALS: Record<string, { gradient: string; emoji: string }> = {
@@ -352,6 +353,13 @@ export function DiscoverView({ trips, locale, onCreateTrip, userPlan, onUpgrade 
 
   return (
     <div className="space-y-8 pb-6">
+
+      {/* Dream Trip Planner — AI travel planning */}
+      <DreamTripPlanner
+        trips={trips}
+        locale={locale}
+        onCreateTrip={onCreateTrip}
+      />
 
       {/* "Para vos" / "For you" section — AI-powered suggestions */}
       {trips.length > 0 && (
