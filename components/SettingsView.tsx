@@ -22,6 +22,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getNotificationPrefs, DEFAULT_PREFS } from "@/lib/notificationPreferences";
+import { SocialPrivacySettings } from "@/components/SocialPrivacySettings";
 import type { ThemePreference } from "@/contexts/ThemeContext";
 import type { Locale } from "@/lib/i18n";
 
@@ -351,6 +352,25 @@ export function SettingsView({
           <h1 className="text-xl font-black text-white">{L.title}</h1>
         </div>
 
+        {/* ── Section: Language ────────────────────────────────────────────── */}
+        <SectionHeader label={locale === "es" ? "Idioma" : "Language"} />
+        <SettingsCard>
+          <SettingsRow>
+            <span className="flex-1 text-sm text-gray-300">{locale === "es" ? "Idioma de la app" : "App language"}</span>
+            <div className="flex rounded-lg border border-white/[0.07] overflow-hidden text-xs font-semibold shrink-0">
+              {(["es", "en"] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLocale(l)}
+                  className={`px-3 py-1.5 transition-colors ${locale === l ? "bg-blue-600 text-white" : "bg-transparent text-gray-400 hover:text-gray-200"}`}
+                >
+                  {l === "es" ? "Español" : "English"}
+                </button>
+              ))}
+            </div>
+          </SettingsRow>
+        </SettingsCard>
+
         {/* ── Section: Profile ─────────────────────────────────────────────── */}
         <SectionHeader label={L.sectionProfile} />
         <SettingsCard>
@@ -631,6 +651,9 @@ export function SettingsView({
             <span className="shrink-0 text-xs font-mono text-gray-600">v{APP_VERSION}</span>
           </SettingsRow>
         </SettingsCard>
+
+        {/* ── Section: Social Privacy ──────────────────────────────────────── */}
+        <SocialPrivacySettings locale={locale} />
 
         {/* ── Section: About ───────────────────────────────────────────────── */}
         <SectionHeader label={L.sectionAbout} />

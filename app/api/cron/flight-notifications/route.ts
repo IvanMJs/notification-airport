@@ -1,5 +1,6 @@
 import webpush from "web-push";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import Anthropic from "@anthropic-ai/sdk";
 import { AIRPORTS } from "@/lib/airports";
 import { parseAeroDataBox } from "@/lib/aerodatabox";
 import { parseXML } from "@/lib/faa";
@@ -72,7 +73,7 @@ export async function GET(request: Request) {
   // Get all flights departing in the next 3 days, with their user_id via trip
   const { data: flights, error } = await supabase
     .from("flights")
-    .select("id, trip_id, flight_code, airline_code, airline_name, airline_icao, flight_number, origin_code, destination_code, iso_date, departure_time, arrival_date, arrival_time, arrival_buffer, gate, wants_upgrade, trips!inner(user_id)")
+    .select("id, trip_id, flight_code, airline_code, airline_name, airline_icao, flight_number, origin_code, destination_code, iso_date, departure_time, arrival_date, arrival_time, arrival_buffer, gate, wants_upgrade, aircraft_type, trips!inner(user_id)")
     .gte("iso_date", todayISO)
     .lte("iso_date", threeDaysISO);
 
@@ -368,6 +369,37 @@ export async function GET(request: Request) {
         const { title, body } = L.checkin24h(flight.flight_code, originCode, destCode, departureTime ?? "?");
         notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, "checkin_24h", { title, body, url: "/app" });
         notificationsSent++;
+      }
+
+      // B2: Aircraft briefing — fun fact about tomorrow's aircraft type
+      if (flight.aircraft_type) {
+        const avionType = "airplane_brief";
+        const avionAlreadySent = await checkFlightLog(supabase, flight.id, avionType, Infinity);
+
+        if (!avionAlreadySent) {
+          let brief: string = flight.aircraft_type;
+          try {
+            const anthropicKey = process.env.ANTHROPIC_API_KEY;
+            if (anthropicKey) {
+              const anthropicClient = new Anthropic({ apiKey: anthropicKey });
+              const prompt = locale === "es"
+                ? `Escribí 1 dato curioso e interesante sobre el avión ${flight.aircraft_type}${flight.airline_name ? ` de ${flight.airline_name}` : ""}. Máximo 80 caracteres. Sin markdown.`
+                : `Write 1 curious fact about the ${flight.aircraft_type} aircraft${flight.airline_name ? ` by ${flight.airline_name}` : ""}. Max 80 characters. No markdown.`;
+              const msg = await anthropicClient.messages.create({
+                model: "claude-haiku-4-5-20251001",
+                max_tokens: 100,
+                messages: [{ role: "user", content: prompt }],
+              });
+              const block = msg.content[0];
+              const text = block.type === "text" ? block.text.trim() : "";
+              if (text) brief = text;
+            }
+          } catch { /* use aircraft type as fallback */ }
+
+          const avionLabel = CRON_LABELS[locale].airplaneBrief(flight.aircraft_type, brief);
+          notificationsFailed += await sendAndLogFlight(supabase, subs, flight.id, userId, avionType, { title: avionLabel.title, body: avionLabel.body, url: "/app" });
+          notificationsSent++;
+        }
       }
     }
 
@@ -1245,6 +1277,111 @@ export async function GET(request: Request) {
       }
 
       await sendInBatches(anniversaryRows as unknown as AnniversaryRow[], processAnniversary, 10);
+    }
+  }
+
+  // ── Weekly Stats push (Mondays — users without upcoming flight OR with one) ─
+  // Sends a Monday-only push with travel status. Non-traveling users get an
+  // inspiration nudge; users with an upcoming trip get a countdown.
+  // Deduplication key: weekly_stats_<week>_<userId>
+  if (now.getUTCDay() === 1) {
+    const thirtyDaysISO = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+
+    // Compute ISO week string "YYYY-WNN" for dedup key (matches isoWeek pattern above)
+    const weeklyStatsWeek = (() => {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+      return `${d.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
+    })();
+
+    // Fetch all users who have push subscriptions
+    const { data: allSubUsers } = await supabase
+      .from("push_subscriptions")
+      .select("user_id, endpoint, p256dh, auth");
+
+    if (allSubUsers?.length) {
+      // Group subscriptions by user
+      type SubUserRow = { user_id: string; endpoint: string; p256dh: string; auth: string };
+      const subsByUser = new Map<string, SubUserRow[]>();
+      for (const row of allSubUsers as SubUserRow[]) {
+        if (!subsByUser.has(row.user_id)) subsByUser.set(row.user_id, []);
+        subsByUser.get(row.user_id)!.push(row);
+      }
+
+      // Fetch all upcoming flights within 30 days for all users at once
+      const { data: upcomingStatsFlights } = await supabase
+        .from("flights")
+        .select("iso_date, destination_code, trips!inner(user_id)")
+        .gte("iso_date", todayISO)
+        .lte("iso_date", thirtyDaysISO);
+
+      type StatsFlightRow = { iso_date: string; destination_code: string; trips: { user_id: string } };
+      // Group by user: find their soonest upcoming flight
+      const soonestByUser = new Map<string, StatsFlightRow>();
+      for (const f of (upcomingStatsFlights ?? []) as unknown as StatsFlightRow[]) {
+        const uid = f.trips.user_id;
+        const current = soonestByUser.get(uid);
+        if (!current || f.iso_date < current.iso_date) {
+          soonestByUser.set(uid, f);
+        }
+      }
+
+      for (const [statsUserId, userSubs] of Array.from(subsByUser)) {
+        try {
+          const statsTag = `weekly_stats_${weeklyStatsWeek}_${statsUserId}`;
+
+          // Dedup: skip if already sent this week
+          const { data: statsExisting } = await supabase
+            .from("notification_log")
+            .select("id")
+            .eq("user_id", statsUserId)
+            .eq("type", statsTag)
+            .limit(1)
+            .maybeSingle();
+          if (statsExisting) continue;
+
+          const statsLocale = await getUserLocale(statsUserId);
+          const statsLabels = CRON_LABELS[statsLocale].weeklyStats;
+
+          let statsTitle: string;
+          let statsBody: string;
+
+          const nearestFlight = soonestByUser.get(statsUserId);
+          if (nearestFlight) {
+            const flightMidnight = new Date(nearestFlight.iso_date + "T00:00:00Z").getTime();
+            const todayMidnight  = new Date(todayISO + "T00:00:00Z").getTime();
+            const daysUntil = Math.round((flightMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
+            const dest = AIRPORTS[nearestFlight.destination_code]?.city ?? nearestFlight.destination_code;
+            const upcomingLabel = statsLabels.upcoming(dest, daysUntil);
+            statsTitle = upcomingLabel.title;
+            statsBody  = upcomingLabel.body;
+          } else {
+            statsTitle = statsLabels.noTrips.title;
+            statsBody  = statsLabels.noTrips.body;
+          }
+
+          const statsFailed = await pushToAll(
+            userSubs as unknown as PushSubRow[],
+            supabase,
+            { title: statsTitle, body: statsBody, url: "/app" },
+            statsTag,
+          );
+          notificationsSent++;
+          notificationsFailed += statsFailed;
+
+          await supabase.from("notification_log").insert({
+            user_id: statsUserId,
+            type: statsTag,
+            sent_at: new Date().toISOString(),
+          });
+        } catch (err) {
+          cronErrors.push(`weeklyStats ${statsUserId}: ${String(err)}`);
+        }
+      }
     }
   }
 

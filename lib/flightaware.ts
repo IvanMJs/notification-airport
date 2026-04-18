@@ -68,6 +68,8 @@ export interface FlightAwareResult {
   landed: boolean;
   faFlightId: string | null;
   rawStatus: string | null;
+  arrivalIataCode: string | null;
+  estimatedArrival: string | null; // HH:MM UTC approx
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -139,6 +141,9 @@ export async function fetchFlightStatusFromFlightAware(
       ? /arrived|landed|completed/i.test(rawStatus)
       : false;
 
+    const arrivalIataCode = flight.destination?.code_iata ?? flight.destination?.code ?? null;
+    const estimatedArrival = isoToHHMM(flight.estimated_in ?? flight.scheduled_in ?? null);
+
     return {
       delayMinutes,
       estimatedDeparture,
@@ -149,6 +154,8 @@ export async function fetchFlightStatusFromFlightAware(
       landed,
       faFlightId: flight.fa_flight_id ?? null,
       rawStatus,
+      arrivalIataCode,
+      estimatedArrival,
     };
   } catch (e) {
     console.error(`[FlightAware] fetch error for ${flightCode}:`, e);

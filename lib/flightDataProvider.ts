@@ -26,7 +26,7 @@ export interface FlightData {
     delay?: number;
   };
   aircraft?: string;
-  provider: "aviationstack" | "opensky" | "cache";
+  provider: "aviationstack" | "opensky" | "cache" | "flightaware";
 }
 
 export type FlightDataResult =

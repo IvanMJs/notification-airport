@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Rate limit: 20 requests per hour per user
-  if (!(await checkUserRateLimit(supabase, user.id, "airport-guide", 20))) {
+  // Rate limit: 5 requests per hour per user (Sonnet — keep costs low in beta)
+  if (!(await checkUserRateLimit(supabase, user.id, "airport-guide", 5))) {
     return rateLimitResponse();
   }
 
