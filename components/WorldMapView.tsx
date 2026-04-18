@@ -15,11 +15,13 @@ import { TripTab } from "@/lib/types";
 import { createClient } from "@/utils/supabase/client";
 import { fetchDBPlaces, VisitedPlace } from "@/lib/visitedPlaces";
 import { countryFlag } from "@/lib/countryFlags";
+import type { FriendWithLocation } from "@/lib/friends";
 
 interface WorldMapViewProps {
   trips: TripTab[];
   locale: "es" | "en";
   onAirportClick?: (iata: string) => void;
+  friendLocations?: FriendWithLocation[];
 }
 
 const GEO_URL = "/world-110m.json";
@@ -82,7 +84,7 @@ const COUNTRY_PLACE   = "rgba(109,40,217,0.12)";  // softer violet — visited b
 const COUNTRY_HOVER   = "rgba(109,40,217,0.50)";
 const COUNTRY_UNVISITED_HOVER = "rgba(0,0,0,0.08)";
 
-export function WorldMapView({ trips, locale, onAirportClick }: WorldMapViewProps) {
+export function WorldMapView({ trips, locale, onAirportClick, friendLocations }: WorldMapViewProps) {
   const L = LABELS[locale];
   const supabase = createClient();
 
@@ -282,6 +284,30 @@ export function WorldMapView({ trips, locale, onAirportClick }: WorldMapViewProp
             </text>
           </Marker>
         ))}
+
+        {/* 🟡 Friend location markers */}
+        {(friendLocations ?? [])
+          .filter((f) => f.currentLocation !== null)
+          .map((f) => {
+            const loc = f.currentLocation!;
+            const displayName = f.email.split("@")[0];
+            return (
+              <Marker key={f.userId} coordinates={[loc.lng, loc.lat]}>
+                <text
+                  textAnchor="middle"
+                  style={{ fontSize: emojiSize, cursor: "default", userSelect: "none" }}
+                  onMouseEnter={() =>
+                    setTooltip(
+                      `🟡 ${displayName} ${locale === "es" ? "está en" : "is in"} ${loc.city}`,
+                    )
+                  }
+                  onMouseLeave={() => setTooltip(null)}
+                >
+                  🟡
+                </text>
+              </Marker>
+            );
+          })}
       </ZoomableGroup>
     </ComposableMap>
   );
@@ -307,6 +333,14 @@ export function WorldMapView({ trips, locale, onAirportClick }: WorldMapViewProp
         <span aria-hidden>🌍</span>
         {L.world(worldPct)}
       </span>
+      {(friendLocations ?? []).filter((f) => f.currentLocation !== null).length > 0 && (
+        <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 border border-yellow-300/60 px-2.5 py-1 text-xs font-semibold text-yellow-700">
+          <span aria-hidden>🟡</span>
+          {(friendLocations ?? []).filter((f) => f.currentLocation !== null).length}
+          {" "}
+          {locale === "es" ? "amigo/s viajando" : "friend/s traveling"}
+        </span>
+      )}
     </div>
   );
 

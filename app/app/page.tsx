@@ -1246,7 +1246,15 @@ export default function HomePage() {
                         );
                         return;
                       }
-                      addFlightDB(trip.id, flight);
+                      void addFlightDB(trip.id, flight).then((newId) => {
+                        if (newId && flight.destinationCode) {
+                          void fetch("/api/friends/notify-destination", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ destinationCode: flight.destinationCode }),
+                          });
+                        }
+                      });
                     }}
                     onRemoveFlight={(_, flightId) => removeFlightDB(trip.id, flightId)}
                     onAddAccommodation={(_, acc) => addAccommodationDB(trip.id, acc)}
