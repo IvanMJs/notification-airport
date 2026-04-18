@@ -103,6 +103,21 @@ export const CRON_LABELS = {
       ({ title: `🚪 Cambio de puerta · ${code}`, body: `Nueva puerta: ${newGate} · ${origin}→${dest}${oldGate !== null ? ` (antes ${oldGate})` : ""}` }),
     anniversary: (years: number, city: string) =>
       ({ title: `Hoy hace ${years} año${years !== 1 ? "s" : ""} llegaste a ${city} ✈️`, body: `¿Lo recordás?` }),
+    weeklyStats: {
+      noTrips: { title: "¿Cuándo es tu próxima aventura? ✈️", body: "Planificá tu próximo viaje en TripCopilot" },
+      upcoming: (dest: string, days: number) => ({
+        title: `Tu próximo viaje a ${dest} en ${days} día${days !== 1 ? "s" : ""} ✈️`,
+        body: "TripCopilot te tiene cubierto",
+      }),
+    },
+    dejaVu: (city: string, monthsAgo: number, tempC: number | null) => ({
+      title: `¡Bienvenido de vuelta a ${city}! 🧠`,
+      body: `Ya estuviste acá hace ${monthsAgo} mes${monthsAgo !== 1 ? "es" : ""}${tempC !== null ? `. ${tempC}°C ahora` : ""}`,
+    }),
+    airplaneBrief: (aircraftType: string, brief: string) => ({
+      title: `Tu avión de mañana: ${aircraftType} ✈️`,
+      body: brief,
+    }),
   },
   en: {
     statusLabel: {
@@ -142,6 +157,21 @@ export const CRON_LABELS = {
       ({ title: `🚪 Gate change · ${code}`, body: `New gate: ${newGate} · ${origin}→${dest}${oldGate !== null ? ` (was ${oldGate})` : ""}` }),
     anniversary: (years: number, city: string) =>
       ({ title: `${years} year${years !== 1 ? "s" : ""} ago today you landed in ${city} ✈️`, body: `Remember that trip?` }),
+    weeklyStats: {
+      noTrips: { title: "When's your next adventure? ✈️", body: "Plan your next trip in TripCopilot" },
+      upcoming: (dest: string, days: number) => ({
+        title: `Your next trip to ${dest} in ${days} day${days !== 1 ? "s" : ""} ✈️`,
+        body: "TripCopilot has you covered",
+      }),
+    },
+    dejaVu: (city: string, monthsAgo: number, tempC: number | null) => ({
+      title: `Welcome back to ${city}! 🧠`,
+      body: `You visited ${monthsAgo} month${monthsAgo !== 1 ? "s" : ""} ago${tempC !== null ? `. ${tempC}°C now` : ""}`,
+    }),
+    airplaneBrief: (aircraftType: string, brief: string) => ({
+      title: `Tomorrow's aircraft: ${aircraftType} ✈️`,
+      body: brief,
+    }),
   },
 } as const;
 

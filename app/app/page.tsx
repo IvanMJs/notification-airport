@@ -247,6 +247,10 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    void fetch("/api/auth/welcome", { method: "POST" });
+  }, []);
+
+  useEffect(() => {
     setMounted(true);
   }, []);
 

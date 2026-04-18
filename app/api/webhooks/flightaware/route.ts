@@ -1,5 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import webpush from "web-push";
+import { AIRPORTS } from "@/lib/airports";
+import { CRON_LABELS, CronLocale } from "@/lib/cronUtils";
 
 // FlightAware pushes events for alerts registered via POST /alerts.
 interface FAWebhookPayload {
@@ -60,10 +62,10 @@ async function handlePayload(payload: FAWebhookPayload) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   );
 
-  // Find matching flights in DB — also fetch stored gate to detect changes
+  // Find matching flights in DB — also fetch stored gate and destination to detect changes
   const { data: dbFlights } = await supabase
     .from("flights")
-    .select("id, flight_code, gate, trips!inner(user_id)")
+    .select("id, flight_code, gate, destination_code, trips!inner(user_id)")
     .eq("flight_code", flightIdent)
     .eq("iso_date", isoDate);
 
@@ -163,6 +165,115 @@ async function handlePayload(payload: FAWebhookPayload) {
       ).catch(() => null),
     ),
   );
+
+  // ── Déjà Vu check on arrival ──────────────────────────────────────────────
+  // After sending the landed notification, check if each user has visited this
+  // destination before. Fire asynchronously so it doesn't delay the response.
+  if (eventType === "arrival") {
+    const destCode = (dbFlights[0] as unknown as { destination_code: string }).destination_code ?? "";
+
+    void (async () => {
+      try {
+        const airport = destCode ? AIRPORTS[destCode] : undefined;
+        if (!airport) return;
+
+        const { city } = airport;
+
+        for (const userId of userIds) {
+          // Check visited_places for this destination city
+          const { data: visited } = await supabase
+            .from("visited_places")
+            .select("date_visited")
+            .eq("user_id", userId)
+            .eq("city", city)
+            .order("date_visited", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (!visited) continue; // First time visiting, no déjà vu
+
+          const monthsAgo = Math.floor(
+            (Date.now() - new Date(visited.date_visited as string).getTime()) /
+              (30 * 24 * 60 * 60 * 1000),
+          );
+          if (monthsAgo < 1) continue; // Too recent to feel like déjà vu
+
+          // Dedup check
+          const dejaVuTag = `deja_vu_${flightIdent}_${isoDate}_${userId}`;
+          const { data: logged } = await supabase
+            .from("notification_log")
+            .select("id")
+            .eq("type", dejaVuTag)
+            .eq("user_id", userId)
+            .limit(1)
+            .maybeSingle();
+          if (logged) continue;
+
+          // Get current temperature (best-effort, 4s timeout)
+          let tempC: number | null = null;
+          try {
+            const weatherUrl =
+              `https://api.open-meteo.com/v1/forecast?latitude=${airport.lat}&longitude=${airport.lng}` +
+              `&current=temperature_2m&forecast_days=1`;
+            const wr = await fetch(weatherUrl, { signal: AbortSignal.timeout(4000) });
+            if (wr.ok) {
+              const wd = (await wr.json()) as { current?: { temperature_2m?: number } };
+              const raw = wd?.current?.temperature_2m;
+              tempC = typeof raw === "number" ? Math.round(raw) : null;
+            }
+          } catch { /* ignore — temperature is optional */ }
+
+          // Resolve user locale from Supabase auth metadata
+          let locale: CronLocale = "es";
+          try {
+            const { data: userData } = await supabase.auth.admin.getUserById(userId);
+            const meta = userData?.user?.user_metadata?.locale as string | undefined;
+            locale = meta === "en" ? "en" : "es";
+          } catch { /* default to es */ }
+
+          const L = CRON_LABELS[locale].dejaVu(city, monthsAgo, tempC);
+
+          // Get this user's push subscriptions
+          const { data: userSubs } = await supabase
+            .from("push_subscriptions")
+            .select("endpoint, p256dh, auth")
+            .eq("user_id", userId);
+
+          if (!userSubs?.length) continue;
+
+          const dejaNotification = JSON.stringify({
+            title: L.title,
+            body: L.body,
+            tag: `deja-vu-${destCode}`,
+            url: "/app",
+          });
+
+          await Promise.allSettled(
+            userSubs.map((sub) =>
+              webpush
+                .sendNotification(
+                  {
+                    endpoint: sub.endpoint,
+                    keys: { p256dh: sub.p256dh, auth: sub.auth },
+                  },
+                  dejaNotification,
+                )
+                .catch(() => null),
+            ),
+          );
+
+          // Log to prevent duplicate déjà vu pushes
+          await supabase.from("notification_log").insert({
+            user_id: userId,
+            type: dejaVuTag,
+            sent_at: new Date().toISOString(),
+          });
+        }
+      } catch {
+        // Non-fatal — the main arrival push already succeeded
+      }
+    })();
+  }
 
   return Response.json({ ok: true, notified: subs.length });
 }

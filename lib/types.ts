@@ -152,6 +152,7 @@ export type FlightRow = {
   gate: string | null;
   wants_upgrade: boolean | null;
   fa_alert_id: number | null;
+  aircraft_type: string | null;
   trips: { user_id: string };
 };
 

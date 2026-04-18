@@ -1412,6 +1412,13 @@ export default function LandingPage() {
               </>
             )}
 
+            <p className="text-xs text-center text-gray-600 mt-3">
+              {lang === "en" ? "By continuing you accept our" : "Al continuar aceptás nuestra"}{" "}
+              <a href="/privacy" className="text-gray-400 hover:text-white underline transition-colors">
+                {lang === "en" ? "Privacy Policy" : "Política de Privacidad"}
+              </a>
+            </p>
+
             <p className="text-center text-xs text-gray-700 leading-relaxed">
               {lang === "en" ? "No password · Secure data · Free to start" : "Sin contraseña · Datos seguros · Gratis para empezar"}
             </p>

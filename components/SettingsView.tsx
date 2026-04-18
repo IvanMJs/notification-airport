@@ -22,6 +22,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getNotificationPrefs, DEFAULT_PREFS } from "@/lib/notificationPreferences";
+import { SocialPrivacySettings } from "@/components/SocialPrivacySettings";
 import type { ThemePreference } from "@/contexts/ThemeContext";
 import type { Locale } from "@/lib/i18n";
 
@@ -631,6 +632,9 @@ export function SettingsView({
             <span className="shrink-0 text-xs font-mono text-gray-600">v{APP_VERSION}</span>
           </SettingsRow>
         </SettingsCard>
+
+        {/* ── Section: Social Privacy ──────────────────────────────────────── */}
+        <SocialPrivacySettings locale={locale} />
 
         {/* ── Section: About ───────────────────────────────────────────────── */}
         <SectionHeader label={L.sectionAbout} />
