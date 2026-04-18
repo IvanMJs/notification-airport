@@ -444,6 +444,7 @@ export default function HomePage() {
   }
 
   function handleOnboardingSeeExample() {
+    markOnboarded();
     setShowOnboarding(false);
     setActiveTab(EXAMPLE_ID);
   }
