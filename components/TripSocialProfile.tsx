@@ -62,14 +62,10 @@ function FlagImg({ code }: { code: string }) {
   const lower = code.toLowerCase();
   if (!/^[a-z]{2}$/.test(lower)) return null;
   return (
-    <img
-      src={`https://flagcdn.com/w20/${lower}.png`}
-      srcSet={`https://flagcdn.com/w40/${lower}.png 2x`}
-      alt={code}
-      width={20}
-      height={15}
-      className="rounded-sm object-cover"
-      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+    <span
+      className={`fi fi-${lower}`}
+      title={code}
+      style={{ width: 20, height: 15, borderRadius: 3, display: "inline-block", flexShrink: 0 }}
     />
   );
 }
