@@ -13,6 +13,7 @@ import { TravelPersonality } from "@/components/TravelPersonality";
 import { TravelStreaks } from "@/components/TravelStreaks";
 import { TravelChallenges } from "@/components/TravelChallenges";
 import { ReferralCard } from "@/components/ReferralCard";
+import { FriendsTravelSection } from "@/components/FriendsTravelSection";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { countryFlag } from "@/lib/countryFlags";
 import { PlacesTab } from "@/components/PlacesTab";
@@ -850,6 +851,11 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: EASE_OUT }}
           >
+            {/* Friends Travel Section */}
+            <motion.div {...fadeUp(0)}>
+              <FriendsTravelSection locale={locale} userId={userId} />
+            </motion.div>
+
             {/* Referral Card */}
             {userId !== null && (
               <motion.div {...fadeUp(0.05)}>
