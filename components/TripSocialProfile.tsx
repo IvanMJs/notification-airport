@@ -31,6 +31,10 @@ const LABELS = {
     youVisited: "vos también",
     onlyThem: "solo ellxs",
     both: "ambxs",
+    follow: "Seguir",
+    following: "Siguiendo",
+    followers: "seguidores",
+    followingLabel: "siguiendo",
   },
   en: {
     trips: "Trips",
@@ -52,6 +56,10 @@ const LABELS = {
     youVisited: "you too",
     onlyThem: "only them",
     both: "both",
+    follow: "Follow",
+    following: "Following",
+    followers: "followers",
+    followingLabel: "following",
   },
 } as const;
 
@@ -139,6 +147,9 @@ export function TripSocialProfile({ profile, currentUserId }: Props) {
   const [addSent, setAddSent] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
+  const [viewerFollows, setViewerFollows] = useState(profile.viewerFollows ?? false);
+  const [followerCount, setFollowerCount] = useState(profile.followerCount ?? 0);
+  const [followLoading, setFollowLoading] = useState(false);
 
   async function handleAddFriend() {
     setAddLoading(true);
@@ -158,6 +169,31 @@ export function TripSocialProfile({ profile, currentUserId }: Props) {
       setAddError(L.errorGeneric);
     } finally {
       setAddLoading(false);
+    }
+  }
+
+  async function handleFollow() {
+    if (followLoading) return;
+    setFollowLoading(true);
+    const wasFollowing = viewerFollows;
+    const delta = wasFollowing ? -1 : 1;
+    setViewerFollows(!wasFollowing);
+    setFollowerCount((c) => c + delta);
+    try {
+      const res = await fetch("/api/follows", {
+        method: wasFollowing ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: profile.username }),
+      });
+      if (!res.ok) {
+        setViewerFollows(wasFollowing);
+        setFollowerCount((c) => c - delta);
+      }
+    } catch {
+      setViewerFollows(wasFollowing);
+      setFollowerCount((c) => c - delta);
+    } finally {
+      setFollowLoading(false);
     }
   }
 
@@ -240,16 +276,43 @@ export function TripSocialProfile({ profile, currentUserId }: Props) {
           </div>
         )}
 
-        {/* Add friend button */}
+        {/* Follower / following counters */}
+        {(profile.followerCount !== undefined || profile.followingCount !== undefined) && (
+          <div className="flex gap-4 text-sm">
+            <span>
+              <span className="font-bold text-white tabular-nums">{followerCount}</span>{" "}
+              <span className="text-gray-500">{L.followers}</span>
+            </span>
+            <span>
+              <span className="font-bold text-white tabular-nums">{profile.followingCount ?? 0}</span>{" "}
+              <span className="text-gray-500">{L.followingLabel}</span>
+            </span>
+          </div>
+        )}
+
+        {/* Follow + Add friend buttons */}
         {currentUserId && !isOwnProfile && (
-          <div className="flex flex-col items-center gap-1">
-            <button
-              onClick={() => void handleAddFriend()}
-              disabled={addLoading || addSent}
-              className="rounded-xl bg-violet-600 hover:bg-violet-500 active:scale-95 disabled:opacity-60 text-white text-sm font-bold px-6 py-2.5 transition-all"
-            >
-              {addSent ? L.requestSent : addLoading ? "..." : L.addFriend}
-            </button>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex gap-2">
+              <button
+                onClick={() => void handleFollow()}
+                disabled={followLoading}
+                className={`rounded-xl text-sm font-bold px-5 py-2.5 transition-all active:scale-95 disabled:opacity-60 ${
+                  viewerFollows
+                    ? "bg-white/[0.08] border border-white/[0.15] text-white/70 hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-400"
+                    : "bg-violet-600 hover:bg-violet-500 text-white"
+                }`}
+              >
+                {followLoading ? "..." : viewerFollows ? L.following : L.follow}
+              </button>
+              <button
+                onClick={() => void handleAddFriend()}
+                disabled={addLoading || addSent}
+                className="rounded-xl bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.10] text-white/70 text-sm font-bold px-5 py-2.5 transition-all active:scale-95 disabled:opacity-60"
+              >
+                {addSent ? L.requestSent : addLoading ? "..." : L.addFriend}
+              </button>
+            </div>
             {addError && (
               <p className="text-xs text-red-400 font-medium">{addError}</p>
             )}

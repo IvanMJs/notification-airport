@@ -34,6 +34,9 @@ export interface PublicProfileData {
   userId: string;
   username: string;
   displayName: string | null;
+  followerCount?: number;
+  followingCount?: number;
+  viewerFollows?: boolean;
   social_settings: {
     profileVisible: "friends" | "nobody";
     showMap?: boolean | undefined;
