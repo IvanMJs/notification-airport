@@ -131,6 +131,7 @@ export function TripSocialProfile({ profile, currentUserId }: Props) {
   const L = LABELS[locale];
 
   const isOwnProfile = currentUserId === profile.userId;
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [addSent, setAddSent] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
@@ -252,48 +253,83 @@ export function TripSocialProfile({ profile, currentUserId }: Props) {
         )}
       </motion.div>
 
-      {/* ── Trips stamp grid (friends only) ───────────────────────────────── */}
-      {showTrips && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, delay: 0.08 }}
-          className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4"
-        >
-          <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-4">
-            {L.trips}
-          </p>
-          {(() => {
-            const monthNames = locale === "es" ? MONTHS_ES : MONTHS_EN;
-            return (
-              <div className="grid grid-cols-2 gap-2">
-                {(profile.trips ?? []).map((trip) => {
-                  const parts = (trip.isoDate ?? "").split("-");
-                  const year = parseInt(parts[0] ?? "0");
-                  const monthIdx = parseInt(parts[1] ?? "1") - 1;
-                  const monthLabel = monthNames[monthIdx] ?? "";
-                  const tripReactions = reactionsByTrip.get(trip.id);
-                  return (
-                    <div key={trip.id} className="flex flex-col gap-1.5">
-                      <TripStamp
-                        destinationCode={trip.destinationCode}
-                        destinationName={trip.destinationName}
-                        monthLabel={monthLabel}
-                        year={year || "—"}
-                        reactions={tripReactions}
-                      />
-                      <TripReactionBar
-                        tripId={trip.id}
-                        disabled={currentUserId === null}
-                      />
-                    </div>
-                  );
-                })}
+      {/* ── Trips: year tabs + horizontal stamp scroll (friends only) ─────── */}
+      {showTrips && (() => {
+        const monthNames = locale === "es" ? MONTHS_ES : MONTHS_EN;
+        const byYear = new Map<number, NonNullable<typeof profile.trips>>();
+        for (const trip of profile.trips ?? []) {
+          const y = parseInt((trip.isoDate ?? "0").split("-")[0] ?? "0");
+          if (!byYear.has(y)) byYear.set(y, []);
+          byYear.get(y)!.push(trip);
+        }
+        const years = Array.from(byYear.keys()).sort((a, b) => b - a);
+        const activeYear = selectedYear ?? years[0] ?? 0;
+        const activeTrips = byYear.get(activeYear) ?? [];
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: 0.08 }}
+            className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4"
+          >
+            {/* Header + year pills */}
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+                {L.trips}
+              </p>
+              <div
+                className="flex gap-1.5 overflow-x-auto"
+                style={{ scrollbarWidth: "none" }}
+              >
+                {years.map((y) => (
+                  <button
+                    key={y}
+                    onClick={() => setSelectedYear(y)}
+                    className={`flex-none text-[11px] font-bold px-2.5 py-1 rounded-full transition-all ${
+                      y === activeYear
+                        ? "bg-violet-600 text-white"
+                        : "bg-white/[0.06] border border-white/[0.08] text-white/40 hover:text-white/70"
+                    }`}
+                  >
+                    {y}
+                  </button>
+                ))}
               </div>
-            );
-          })()}
-        </motion.div>
-      )}
+            </div>
+
+            {/* Horizontal stamp scroll */}
+            <div
+              className="flex gap-2 overflow-x-auto -mx-4 px-4 pb-1"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {activeTrips.map((trip) => {
+                const parts = (trip.isoDate ?? "").split("-");
+                const monthIdx = parseInt(parts[1] ?? "1") - 1;
+                const monthLabel = monthNames[monthIdx] ?? "";
+                const tripReactions = reactionsByTrip.get(trip.id);
+                return (
+                  <div key={trip.id} className="flex-none w-36 flex flex-col gap-1.5">
+                    <TripStamp
+                      destinationCode={trip.destinationCode}
+                      destinationName={trip.destinationName}
+                      monthLabel={monthLabel}
+                      year={activeYear || "—"}
+                      reactions={tripReactions}
+                    />
+                    <TripReactionBar
+                      tripId={trip.id}
+                      disabled={currentUserId === null}
+                    />
+                  </div>
+                );
+              })}
+              {/* Trailing spacer so last card doesn't hug the edge */}
+              <div className="flex-none w-2" />
+            </div>
+          </motion.div>
+        );
+      })()}
 
       {/* ── Visited countries (non-friends only) ────────────────────────────── */}
       {showMap && (
