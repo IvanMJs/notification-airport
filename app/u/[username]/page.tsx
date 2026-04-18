@@ -144,8 +144,10 @@ export default async function PublicProfilePage({
       .select("country")
       .eq("user_id", profile.id);
     for (const row of vpData ?? []) {
-      if ((row as { country: string }).country) {
-        countrySet.add((row as { country: string }).country);
+      const c = (row as { country: string }).country;
+      // Only accept 2-letter ISO codes — visited_places may store full names
+      if (c && /^[A-Za-z]{2}$/.test(c)) {
+        countrySet.add(c.toUpperCase());
       }
     }
   }
@@ -232,7 +234,8 @@ export default async function PublicProfilePage({
         .select("country")
         .eq("user_id", user.id);
       for (const row of (viewerVP ?? []) as { country: string }[]) {
-        if (row.country) viewerCountrySet.add(row.country);
+        const c = row.country;
+        if (c && /^[A-Za-z]{2}$/.test(c)) viewerCountrySet.add(c.toUpperCase());
       }
 
       // 4. Shared destinations (intersection of destination codes)
