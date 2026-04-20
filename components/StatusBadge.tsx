@@ -34,7 +34,7 @@ const PILL: Record<DelayStatus, string> = {
   unknown:        "bg-zinc-900/40    text-zinc-400    border-zinc-700/30",
 };
 
-const PULSE_STATUSES = new Set<DelayStatus>(["ground_stop", "delay_severe", "ground_delay"]);
+const PULSE_STATUSES = new Set<DelayStatus>(["ok", "ground_stop", "delay_severe", "ground_delay"]);
 
 export function StatusBadge({ status, className, dense = false }: StatusBadgeProps) {
   const { t } = useLanguage();

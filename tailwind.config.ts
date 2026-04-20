@@ -79,8 +79,9 @@ const config: Config = {
           "100%": { backgroundPosition: "200% 0" },
         },
         "radarPulse": {
-          "0%":   { transform: "scale(0.85)", opacity: "0.7" },
-          "100%": { transform: "scale(2.4)",  opacity: "0"   },
+          "0%":   { transform: "scale(1)",   opacity: "0.6" },
+          "80%":  { transform: "scale(3.2)", opacity: "0"   },
+          "100%": { transform: "scale(3.2)", opacity: "0"   },
         },
         "radarSweep": {
           "0%,100%": { opacity: "0.35", transform: "scale(0.95)" },
