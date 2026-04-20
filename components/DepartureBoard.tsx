@@ -555,8 +555,10 @@ export function DepartureBoard({
       {/* Normal content — shown when War Room is dismissed or no urgent flight */}
       {!showWarRoom && (
         <>
-          {/* Next Flight Hero — shown when no war room */}
-          <NextFlightHero nextFlight={globalNextFlight} locale={locale} />
+          {/* Next Flight Hero — hidden when the flights empty state is already shown to avoid stacking */}
+          {!(todayFlights.length === 0 && globalNextFlight === null) && (
+            <NextFlightHero nextFlight={globalNextFlight} locale={locale} />
+          )}
 
           {/* Header — hidden when no flights so empty state sits higher */}
           {todayFlights.length > 0 && (
