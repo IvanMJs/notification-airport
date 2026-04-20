@@ -48,7 +48,7 @@ export function usePwaInstall(): UsePwaInstallResult {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [canInstall, setCanInstall] = useState(false);
   const [showIosPrompt, setShowIosPrompt] = useState(false);
-  const [isDismissed, setIsDismissed] = useState<boolean>(() => isDismissedWithTTL());
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     if (isDismissedWithTTL()) {

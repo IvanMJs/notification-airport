@@ -84,11 +84,11 @@ export function TripClocks({ locale }: { locale: "es" | "en" }) {
                   {c.code}
                 </span>
               </div>
-              <p className="text-2xl font-black text-white tabular leading-none">
+              <p suppressHydrationWarning className="text-2xl font-black text-white tabular leading-none">
                 {time}
               </p>
               <p className="text-xs text-gray-500 mt-0.5 truncate">{city}</p>
-              <p className="text-xs text-gray-600 truncate">{dateLabel}</p>
+              <p suppressHydrationWarning className="text-xs text-gray-600 truncate">{dateLabel}</p>
               {sameAsOther && (
                 <p className="text-[11px] text-gray-700 mt-0.5">= MIA</p>
               )}

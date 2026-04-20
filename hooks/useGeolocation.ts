@@ -44,7 +44,7 @@ function writeCache(pos: GeoPosition): void {
  * Never triggers the browser prompt on its own — only fetches when `enabled` is true.
  */
 export function useGeolocation(enabled = true): GeoPosition | null {
-  const [position, setPosition] = useState<GeoPosition | null>(() => readCache());
+  const [position, setPosition] = useState<GeoPosition | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
