@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AirportSearchInput } from "@/components/AirportSearchInput";
 import { AIRPORTS as AIRPORT_DB } from "@/lib/airports";
 import type { AirportStatus } from "@/lib/types";
+import { RadarDot } from "./RadarDot";
 
 interface NewUserWelcomeViewProps {
   statusMap: Record<string, AirportStatus>;
@@ -103,54 +104,100 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId }: N
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-4"
           >
-            <p className="text-xl font-black text-white text-center">
+            {/* Eyebrow with live pulse */}
+            <div className="flex items-center justify-center gap-2">
+              <RadarDot tone="ok" size="sm" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-green-400">
+                {es ? "En vivo" : "Live"}
+              </span>
+            </div>
+
+            <p className="text-2xl font-black text-white text-center leading-tight tracking-[-0.02em]">
               {es ? "Si viajás esta semana, mirá esto antes de ir." : "Flying this week? Check this before you go."}
             </p>
-            <p className="text-sm text-gray-500 text-center mb-1">
+            <p className="text-sm text-gray-500 text-center -mt-2">
               {es ? "Estado de aeropuertos, en tiempo real" : "Airport status, in real time"}
             </p>
 
-            <div className="flex flex-col gap-2">
-              <p className="text-[10px] text-gray-600 uppercase tracking-wider px-1">
+            <div className="flex flex-col gap-2.5 mt-2">
+              <p className="text-[10px] text-gray-600 uppercase tracking-[0.14em] px-1 font-bold">
                 {es ? "Aeropuertos principales" : "Featured airports"}
               </p>
 
               {FEATURED_AIRPORTS.map((iata, index) => {
-                const isHero = index === 0;
                 const entry = statusMap[iata];
+                const tone = toneFromStatus(entry?.status);
                 const { icon, label } = getStatusInfo(entry?.status, locale);
+                const haloByToneCard: Record<Tone, string> = {
+                  ok:      "bg-[radial-gradient(circle_at_top_right,rgba(34,197,94,0.18),transparent_65%)]",
+                  warn:    "bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.20),transparent_65%)]",
+                  danger:  "bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.24),transparent_65%)]",
+                  neutral: "",
+                };
+                const borderByToneCard: Record<Tone, string> = {
+                  ok:      "border-green-500/20",
+                  warn:    "border-orange-500/25",
+                  danger:  "border-red-500/30",
+                  neutral: "border-white/[0.08]",
+                };
+                const labelByToneCard: Record<Tone, string> = {
+                  ok:      "text-green-400",
+                  warn:    "text-orange-300",
+                  danger:  "text-red-300",
+                  neutral: "text-gray-500",
+                };
                 return (
-                  <motion.div
+                  <motion.button
                     key={iata}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: staggerDelays[index], duration: 0.2 }}
-                    className={`rounded-xl border bg-white/[0.03] flex items-center justify-between ${
-                      isHero ? "border-white/[0.12] px-4 py-3.5" : "border-white/[0.08] px-4 py-3"
-                    }`}
+                    onClick={() => { setSelectedIata(iata); setView("hero"); }}
+                    className={`relative overflow-hidden rounded-xl border bg-white/[0.03] hover:bg-white/[0.06] text-left transition-colors tap-scale ${borderByToneCard[tone]}`}
                   >
-                    <span className={`text-white ${isHero ? "text-base font-black" : "text-sm font-bold"}`}>
-                      {iata}
-                    </span>
-                    {hasData ? (
-                      <div className="flex flex-col items-end gap-0.5">
-                        <span className="flex items-center gap-1.5 text-sm text-gray-400">
-                          <span>{icon}</span>
-                          <span>{label}</span>
-                        </span>
-                        <span className="text-[11px] text-gray-600">
-                          {formatLastChecked(entry?.lastChecked, locale)}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-end gap-1">
-                        <div className="h-4 w-28 rounded-md bg-white/[0.07] animate-pulse" />
-                        <div className="h-3 w-20 rounded-md bg-white/[0.04] animate-pulse" />
-                      </div>
+                    {/* Ambient halo */}
+                    {tone !== "neutral" && hasData && (
+                      <div
+                        aria-hidden
+                        className={`pointer-events-none absolute -top-10 -right-6 size-[140px] rounded-full blur-2xl ${haloByToneCard[tone]}`}
+                      />
                     )}
-                  </motion.div>
+
+                    <div className="relative flex items-center justify-between px-4 py-4">
+                      {/* Left: IATA big + city */}
+                      <div className="min-w-0 flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          {hasData && <RadarDot tone={tone} size="sm" />}
+                          <span className="text-[28px] font-black leading-none tracking-[-0.02em] text-white tabular-nums font-mono">
+                            {iata}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-gray-500 truncate">
+                          {AIRPORT_DB[iata]?.city ?? ""}
+                        </span>
+                      </div>
+
+                      {/* Right: status + last checked */}
+                      {hasData ? (
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span className={`flex items-center gap-1.5 text-xs font-semibold ${labelByToneCard[tone]}`}>
+                            <span className="text-sm leading-none">{icon}</span>
+                            <span>{label}</span>
+                          </span>
+                          <span className="text-[10px] text-gray-600 tabular-nums">
+                            {formatLastChecked(entry?.lastChecked, locale)}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-end gap-1.5">
+                          <div className="h-3.5 w-24 rounded-md bg-white/[0.07] animate-pulse" />
+                          <div className="h-2.5 w-16 rounded-md bg-white/[0.04] animate-pulse" />
+                        </div>
+                      )}
+                    </div>
+                  </motion.button>
                 );
               })}
             </div>
@@ -164,9 +211,15 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId }: N
             <div className="mt-2 flex flex-col gap-0 items-center">
               <button
                 onClick={() => setView("picker")}
-                className="rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm py-3.5 w-full transition-colors tap-scale"
+                className="relative overflow-hidden rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm py-3.5 w-full transition-colors tap-scale"
               >
-                {es ? "Ver el estado de tu aeropuerto en tiempo real →" : "See your airport's live status →"}
+                <span className="relative z-[1]">
+                  {es ? "Ver el estado de tu aeropuerto en tiempo real →" : "See your airport's live status →"}
+                </span>
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 -translate-x-full animate-[shimmerOnce_1.4s_cubic-bezier(0.22,1,0.36,1)_0.6s_forwards] bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                />
               </button>
               <p className="text-xs text-gray-600 text-center mt-2">
                 {es ? "Seleccioná tu aeropuerto para ver el estado en tiempo real" : "Select your airport to see real-time status"}
@@ -342,16 +395,7 @@ function HeroCard({ iata, entry, locale }: { iata: string; entry: AirportStatus 
       )}
 
       <div className="relative flex items-center gap-2 mb-4">
-        <span className="relative flex size-2">
-          <span
-            className={[
-              "absolute inline-flex size-full rounded-full opacity-60",
-              tone === "neutral" ? "animate-[radarPulse_3s_ease-out_infinite] opacity-40" : "animate-[radarPulse_2s_ease-out_infinite]",
-              pulseByTone[tone],
-            ].join(" ")}
-          />
-          <span className={`relative inline-flex size-2 rounded-full ${pulseByTone[tone]}`} />
-        </span>
+        <RadarDot tone={tone} size="md" />
         <span className={`text-[10px] font-bold uppercase tracking-[0.14em] ${labelByTone[tone]}`}>
           {tone === "neutral" ? (es ? "Buscando señal" : "Searching") : (es ? "En vivo" : "Live")}
         </span>

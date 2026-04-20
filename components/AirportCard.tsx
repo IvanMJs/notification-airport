@@ -11,6 +11,7 @@ import { WeatherData } from "@/hooks/useWeather";
 import { MetarData, FlightCategory } from "@/hooks/useMetar";
 import { getAirportTime, getAirportTzLabel } from "@/lib/airportTimezone";
 import { getCachedFaaExplanation, setCachedFaaExplanation } from "@/lib/faaExplainCache";
+import { RadarDot } from "./RadarDot";
 
 function formatMinutes(min: number | undefined): string {
   if (min == null) return "?";
@@ -372,18 +373,7 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
       <div className="px-4 pt-4 pb-0">
         {/* Radar pulse eyebrow */}
         <div className="relative flex items-center gap-2 mb-3">
-          <span className="relative flex size-1.5">
-            <span
-              className={cn(
-                "absolute inline-flex size-full rounded-full opacity-60",
-                tone === "neutral"
-                  ? "animate-[radarPulse_3s_ease-out_infinite] opacity-40"
-                  : "animate-[radarPulse_2s_ease-out_infinite]",
-                pulseByTone[tone],
-              )}
-            />
-            <span className={cn("relative inline-flex size-1.5 rounded-full", pulseByTone[tone])} />
-          </span>
+          <RadarDot tone={tone} size="md" />
           <span className={cn("text-[10px] font-bold uppercase tracking-[0.12em]", labelByTone[tone])}>
             {tone === "neutral"
               ? (locale === "es" ? "sin señal" : "no signal")
