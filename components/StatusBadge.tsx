@@ -34,7 +34,15 @@ const PILL: Record<DelayStatus, string> = {
   unknown:        "bg-zinc-900/40    text-zinc-400    border-zinc-700/30",
 };
 
-const PULSE_STATUSES = new Set<DelayStatus>(["ok", "ground_stop", "delay_severe", "ground_delay"]);
+const PULSE_STATUSES   = new Set<DelayStatus>(["ok", "ground_stop", "delay_severe", "ground_delay"]);
+const URGENT_STATUSES  = new Set<DelayStatus>(["ground_stop", "delay_severe", "ground_delay"]);
+
+// Fast ring for urgent states; slow breathing for ok
+function getPulseClass(status: DelayStatus): string {
+  if (URGENT_STATUSES.has(status)) return "animate-[radarPulse_1.6s_ease-out_infinite]";
+  if (status === "ok")             return "animate-[radarPulse_3.2s_ease-out_infinite] opacity-70";
+  return "";
+}
 
 export function StatusBadge({ status, className, dense = false }: StatusBadgeProps) {
   const { t } = useLanguage();
@@ -50,24 +58,44 @@ export function StatusBadge({ status, className, dense = false }: StatusBadgePro
     unknown:        t.statusUnknown,
   };
 
-  const isPulsing = PULSE_STATUSES.has(status);
-  const dotColor  = DOT_COLOR[status] ?? DOT_COLOR.unknown;
+  const isPulsing  = PULSE_STATUSES.has(status);
+  const dotColor   = DOT_COLOR[status] ?? DOT_COLOR.unknown;
+  const dotDim     = dense ? "h-1.5 w-1.5" : "h-2 w-2";
+  const pulseClass = getPulseClass(status);
 
   return (
     <motion.span
       layout
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border font-semibold tracking-wide",
-        dense ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-xs",
+        "inline-flex items-center gap-1.5 rounded-full border font-semibold tracking-wide leading-none",
+        dense ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs",
         PILL[status] ?? PILL.unknown,
         className
       )}
     >
-      <span className="relative flex h-1.5 w-1.5 shrink-0">
+      <span className={cn("relative flex shrink-0", dotDim)} aria-hidden>
         {isPulsing && (
-          <span className={cn("animate-ping absolute inline-flex h-full w-full rounded-full opacity-75", dotColor)} />
+          <>
+            <span
+              className={cn(
+                "absolute inset-0 rounded-full motion-reduce:animate-none",
+                dotColor,
+                pulseClass,
+              )}
+            />
+            {/* Second ring with phase offset — continuous breathing for ok */}
+            {status === "ok" && (
+              <span
+                className={cn(
+                  "absolute inset-0 rounded-full opacity-50 motion-reduce:animate-none",
+                  dotColor,
+                  "animate-[radarPulse_3.2s_ease-out_infinite] [animation-delay:1.6s]",
+                )}
+              />
+            )}
+          </>
         )}
-        <span className={cn("relative inline-flex rounded-full h-1.5 w-1.5", dotColor)} />
+        <span className={cn("relative inline-flex rounded-full", dotDim, dotColor)} />
       </span>
       {label[status]}
     </motion.span>
