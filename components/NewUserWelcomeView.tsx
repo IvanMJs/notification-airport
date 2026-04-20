@@ -285,7 +285,13 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loa
               {es ? "← Ver otros aeropuertos" : "← See other airports"}
             </button>
 
-            <HeroCard iata={selectedIata} entry={statusMap[selectedIata]} locale={locale} />
+            <HeroCard
+              iata={selectedIata}
+              entry={statusMap[selectedIata] ?? (loaded && selectedIata && AIRPORT_DB[selectedIata]
+                ? { iata: selectedIata, name: AIRPORT_DB[selectedIata].name, city: AIRPORT_DB[selectedIata].city, state: AIRPORT_DB[selectedIata].state, status: "ok" as const, lastChecked: new Date() }
+                : undefined)}
+              locale={locale}
+            />
 
             <div className="flex flex-col gap-2">
               {alertsActivated ? (
