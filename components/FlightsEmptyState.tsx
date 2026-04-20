@@ -129,12 +129,12 @@ export function FlightsEmptyState({ locale, onCreateTrip }: FlightsEmptyStatePro
             <div className="h-6 w-16 bg-violet-500/20 rounded-lg" />
           </div>
         </div>
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-[#080810]/20 via-[#080810]/50 to-[#080810]/85 flex flex-col items-center justify-center gap-2">
-          <div className="flex items-center gap-2 bg-[#0f0f17]/90 border border-white/[0.1] rounded-full px-3 py-1.5 backdrop-blur-sm">
-            <Ticket size={13} className="text-violet-400" />
+        <div className="absolute inset-0 rounded-2xl bg-[#080810]/75 flex flex-col items-center justify-center gap-2">
+          <div className="flex items-center gap-2 bg-violet-500/20 border border-violet-500/30 rounded-full px-3 py-1.5 backdrop-blur-sm">
+            <Ticket size={13} className="text-violet-300" />
             <span className="text-[11px] font-black text-white">{L.ghostLabel}</span>
           </div>
-          <p className="text-[10px] text-gray-500 text-center px-8 leading-relaxed">{L.ghostSub}</p>
+          <p className="text-[10px] text-gray-400 text-center px-8 leading-relaxed">{L.ghostSub}</p>
         </div>
       </div>
 
