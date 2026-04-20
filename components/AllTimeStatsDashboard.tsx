@@ -10,7 +10,6 @@ import { computeAllTimeStats } from "@/lib/allTimeStats";
 const LABELS = {
   es: {
     title: "Estadísticas Globales",
-    totalCountries: "Países",
     totalKm: "Kilómetros",
     totalFlights: "Vuelos",
     avgTripDuration: "Días / viaje",
@@ -22,7 +21,6 @@ const LABELS = {
   },
   en: {
     title: "All-Time Stats",
-    totalCountries: "Countries",
     totalKm: "Kilometres",
     totalFlights: "Flights",
     avgTripDuration: "Days / trip",
@@ -162,13 +160,6 @@ export function AllTimeStatsDashboard({
 
       <div className="grid grid-cols-2 gap-3">
         <StatTile
-          emoji="🌍"
-          label={L.totalCountries}
-          numericTarget={stats.totalCountries}
-          color="bg-blue-500/15"
-          delay={0}
-        />
-        <StatTile
           emoji="✈️"
           label={L.totalKm}
           numericTarget={stats.totalKm}
@@ -202,6 +193,7 @@ export function AllTimeStatsDashboard({
           color="bg-pink-500/15"
           delay={0.24}
         />
+        <div className="col-span-2">
         <StatTile
           emoji="🏆"
           label={L.topAirport}
@@ -210,6 +202,7 @@ export function AllTimeStatsDashboard({
           color="bg-cyan-500/15"
           delay={0.30}
         />
+        </div>
       </div>
     </section>
   );
