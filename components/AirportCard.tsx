@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { AirportStatus } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
-import { X, TrendingUp, TrendingDown, Minus, Wind, Sparkles, Loader2, ChevronDown, Clock } from "lucide-react";
+import { X, TrendingUp, TrendingDown, Minus, Wind, Sparkles, Loader2, ChevronDown, Clock, AlertCircle } from "lucide-react";
 import { AIRPORTS } from "@/lib/airports";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { WeatherData } from "@/hooks/useWeather";
@@ -25,7 +25,6 @@ function AirportClock({ iata }: { iata: string }) {
 
   useEffect(() => {
     setTime(getAirportTime(iata));
-    // Sync to next minute boundary
     const msToNext = 60000 - (Date.now() % 60000);
     const t = setTimeout(() => {
       setTime(getAirportTime(iata));
@@ -103,59 +102,25 @@ function MetarRow({ metar }: { metar: MetarData }) {
   );
 }
 
-// ── 2025 design pattern: subtle full border + colored left-accent (4px) ────────
-// Research source: Carbon Design System / Stripe / Linear inline alert pattern.
-// Critical cards use ambient glow (box-shadow) for added visual weight.
-const CARD_STYLE: Record<string, { border: string; bg: string; leftBar: string; glow: string }> = {
-  ok: {
-    border:  "border-emerald-500/20",
-    bg:      "bg-[rgba(16,185,129,0.04)]",
-    leftBar: "bg-emerald-500/60",
-    glow:    "",
-  },
-  delay_minor: {
-    border:  "border-yellow-500/25",
-    bg:      "bg-[rgba(234,179,8,0.05)]",
-    leftBar: "bg-yellow-400/70",
-    glow:    "",
-  },
-  delay_moderate: {
-    border:  "border-orange-500/30",
-    bg:      "bg-[rgba(249,115,22,0.07)]",
-    leftBar: "bg-orange-400/80",
-    glow:    "shadow-[0_0_0_1px_rgba(249,115,22,0.15),0_0_20px_rgba(249,115,22,0.06)]",
-  },
-  delay_severe: {
-    border:  "border-red-500/35",
-    bg:      "bg-[rgba(239,68,68,0.09)]",
-    leftBar: "bg-red-400",
-    glow:    "shadow-[0_0_0_1px_rgba(239,68,68,0.2),0_0_24px_rgba(239,68,68,0.08)]",
-  },
-  ground_delay: {
-    border:  "border-red-500/40",
-    bg:      "bg-[rgba(239,68,68,0.12)]",
-    leftBar: "bg-red-500 animate-pulse",
-    glow:    "shadow-[0_0_0_1px_rgba(239,68,68,0.25),0_0_28px_rgba(239,68,68,0.1)]",
-  },
-  ground_stop: {
-    border:  "border-red-600/50",
-    bg:      "bg-[rgba(239,68,68,0.16)]",
-    leftBar: "bg-red-500 animate-pulse",
-    glow:    "shadow-[0_0_0_1px_rgba(239,68,68,0.3),0_0_32px_rgba(239,68,68,0.12)]",
-  },
-  closure: {
-    border:  "border-zinc-600/40",
-    bg:      "bg-zinc-900/40",
-    leftBar: "bg-zinc-500",
-    glow:    "",
-  },
-  unknown: {
-    border:  "border-zinc-700/30",
-    bg:      "bg-zinc-900/20",
-    leftBar: "bg-zinc-700",
-    glow:    "",
-  },
-};
+// ── Tone system ───────────────────────────────────────────────────────────────
+
+type Tone = "ok" | "warn" | "danger" | "neutral";
+
+function toneFromStatus(raw: string | undefined): Tone {
+  if (raw === "ok") return "ok";
+  if (raw === "ground_stop" || raw === "closure" || raw === "delay_severe") return "danger";
+  if (raw === "delay_moderate" || raw === "delay_minor" || raw === "ground_delay") return "warn";
+  return "neutral";
+}
+
+function severeReason(entry: AirportStatus | undefined): string | null {
+  if (!entry) return null;
+  if (entry.status === "ground_stop") return entry.groundStop?.reason ?? null;
+  if (entry.status === "closure") return entry.closure?.reason ?? null;
+  if (entry.status === "delay_severe" && entry.delays?.reason) return entry.delays.reason;
+  if (entry.status === "ground_delay" && entry.groundDelay?.reason) return entry.groundDelay.reason;
+  return null;
+}
 
 // All translations of "increasing/worsening" and "decreasing/improving" trends
 const TREND_UP   = new Set(["Increasing", "Aumentando", "Worsening", "Empeorando"]);
@@ -214,7 +179,6 @@ function FaaExplainButton({
       return;
     }
 
-    // Check cache first
     const cached = getCachedFaaExplanation(iata, status.status);
     if (cached) {
       setExplanation(cached);
@@ -290,14 +254,42 @@ function FaaExplainButton({
   );
 }
 
+// ── Tone-driven card styling ──────────────────────────────────────────────────
+
+const haloByTone: Record<Tone, string> = {
+  ok:      "bg-[radial-gradient(circle,rgba(34,197,94,0.18),transparent_70%)]",
+  warn:    "bg-[radial-gradient(circle,rgba(251,146,60,0.20),transparent_70%)]",
+  danger:  "bg-[radial-gradient(circle,rgba(239,68,68,0.24),transparent_70%)]",
+  neutral: "",
+};
+const pulseByTone: Record<Tone, string> = {
+  ok: "bg-green-400", warn: "bg-orange-400", danger: "bg-red-500", neutral: "bg-gray-500",
+};
+const borderByTone: Record<Tone, string> = {
+  ok:      "border-green-500/20",
+  warn:    "border-orange-500/25",
+  danger:  "border-red-500/30",
+  neutral: "border-white/[0.08]",
+};
+const shadowByTone: Record<Tone, string> = {
+  ok:      "shadow-glow-green",
+  warn:    "shadow-glow-orange",
+  danger:  "shadow-glow-red",
+  neutral: "",
+};
+const labelByTone: Record<Tone, string> = {
+  ok: "text-green-400", warn: "text-orange-300", danger: "text-red-300", neutral: "text-gray-500",
+};
+
 export function AirportCard({ iata, status, onRemove, weather, metar, highlight, onRefresh }: AirportCardProps) {
   const { t, locale } = useLanguage();
   const s = status?.status ?? "ok";
+  const tone = toneFromStatus(s);
+  const reason = severeReason(status);
 
-  // Technical details toggle
   const [showTechnical, setShowTechnical] = useState(false);
 
-  // Pull-to-refresh state
+  // Pull-to-refresh
   const [pullOffset, setPullOffset] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const touchStartY = useRef<number>(0);
@@ -311,9 +303,7 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
   function handlePullTouchMove(e: React.TouchEvent) {
     if (!isPulling.current || isRefreshing) return;
     const delta = e.touches[0].clientY - touchStartY.current;
-    if (delta > 0) {
-      setPullOffset(Math.min(delta, 80));
-    }
+    if (delta > 0) setPullOffset(Math.min(delta, 80));
   }
 
   async function handlePullTouchEnd() {
@@ -321,50 +311,44 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
     if (pullOffset >= 60 && onRefresh) {
       setIsRefreshing(true);
       setPullOffset(0);
-      try {
-        await onRefresh();
-      } finally {
-        setIsRefreshing(false);
-      }
+      try { await onRefresh(); } finally { setIsRefreshing(false); }
     } else {
       setPullOffset(0);
     }
   }
-  const info = AIRPORTS[iata];
+
+  const info  = AIRPORTS[iata];
   const name  = status?.name  || info?.name  || iata;
   const city  = status?.city  || info?.city  || "";
   const state = status?.state || info?.state || "";
 
-  const cs = CARD_STYLE[s] ?? CARD_STYLE.unknown;
-
   const cardTranslateY = Math.min(pullOffset * 0.5, 40);
-
-  // P7: gradient top border based on status severity
-  const borderTopClass =
-    s === "ok"             ? "border-top-success" :
-    s === "delay_minor"    ? "border-top-warning" :
-    s === "delay_moderate" ? "border-top-warning" :
-    s === "delay_severe"   ? "border-top-danger"  :
-    s === "ground_delay"   ? "border-top-danger"  :
-    s === "ground_stop"    ? "border-top-danger"  :
-    "";
 
   return (
     <div
       className={cn(
-        // Outer wrapper: border + bg + glow + hover lift
-        // C4: breathing animation since data updates live
-        "animate-breathing relative rounded-xl border overflow-hidden transition-all duration-200 stagger-item",
+        "relative overflow-hidden rounded-xl border bg-white/[0.04] transition-all duration-200 stagger-item",
         "hover:-translate-y-1 hover:shadow-card-hover",
-        cs.border, cs.bg, cs.glow,
-        borderTopClass,
-        highlight && "animate-highlight-flash"
+        borderByTone[tone],
+        shadowByTone[tone],
+        highlight && "animate-highlight-flash",
       )}
       style={{ transform: `translateY(${cardTranslateY}px)`, transition: isPulling.current ? "none" : "transform 0.2s ease" }}
       onTouchStart={handlePullTouchStart}
       onTouchMove={handlePullTouchMove}
       onTouchEnd={handlePullTouchEnd}
     >
+      {/* Ambient halo */}
+      {tone !== "neutral" && (
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute -top-16 -right-12 size-[220px] rounded-full blur-2xl animate-[radarSweep_4.5s_ease-in-out_infinite]",
+            haloByTone[tone],
+          )}
+        />
+      )}
+
       {/* Pull-to-refresh indicator */}
       {(pullOffset > 10 || isRefreshing) && (
         <div className="absolute top-0 inset-x-0 flex justify-center pt-1 z-20 pointer-events-none">
@@ -374,8 +358,6 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
           />
         </div>
       )}
-      {/* Left-accent bar — 2025 Carbon/Stripe inline alert pattern */}
-      <div className={cn("absolute left-0 inset-y-0 w-[3px] rounded-l-xl", cs.leftBar)} />
 
       {onRemove && (
         <button
@@ -387,9 +369,34 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
         </button>
       )}
 
-      <div className="pl-5 pr-4 pt-4 pb-0">
+      <div className="px-4 pt-4 pb-0">
+        {/* Radar pulse eyebrow */}
+        <div className="relative flex items-center gap-2 mb-3">
+          <span className="relative flex size-1.5">
+            <span
+              className={cn(
+                "absolute inline-flex size-full rounded-full opacity-60",
+                tone === "neutral"
+                  ? "animate-[radarPulse_3s_ease-out_infinite] opacity-40"
+                  : "animate-[radarPulse_2s_ease-out_infinite]",
+                pulseByTone[tone],
+              )}
+            />
+            <span className={cn("relative inline-flex size-1.5 rounded-full", pulseByTone[tone])} />
+          </span>
+          <span className={cn("text-[10px] font-bold uppercase tracking-[0.12em]", labelByTone[tone])}>
+            {tone === "neutral"
+              ? (locale === "es" ? "sin señal" : "no signal")
+              : (locale === "es" ? "en vivo" : "live")}
+          </span>
+          <div className="ml-auto">
+            <AirportClock iata={iata} />
+          </div>
+        </div>
+
+        {/* IATA + airport name */}
         <div className="mb-3 pr-6">
-          <span className="block text-4xl font-black tracking-tight text-white tabular font-mono">{iata}</span>
+          <span className="block text-[40px] font-black tracking-[-0.03em] text-white tabular font-mono leading-none">{iata}</span>
           <span className="text-xs text-gray-500 leading-tight">
             {name}
             {city && state ? ` · ${city}, ${state}` : city ? ` · ${city}` : ""}
@@ -398,34 +405,41 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
 
         <StatusBadge status={s} className="mb-3" />
 
-      {s === "ok" && (
-        <p className="text-xs text-green-400/80">{t.noDelaysReported}</p>
-      )}
+        {/* Urgency strip */}
+        {reason && (
+          <div className="mb-3 flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/25 px-3 py-2">
+            <AlertCircle className="h-3.5 w-3.5 text-red-400 shrink-0 mt-px" />
+            <span className="text-[11px] font-semibold text-red-200 leading-snug">
+              FAA · {locale === "es" ? "motivo" : "reason"}: {reason}
+            </span>
+          </div>
+        )}
 
-      <div className="mt-2 flex items-center gap-3 flex-wrap">
+        {s === "ok" && (
+          <p className="text-xs text-green-400/80 mb-2">{t.noDelaysReported}</p>
+        )}
+
         {weather && (
-          <div className="flex items-center gap-2 text-xs text-gray-300">
+          <div className="mt-2 flex items-center gap-2 text-xs text-gray-300">
             <span className="text-base leading-none">{weather.icon}</span>
             <span className="font-medium">{weather.temperature}°C</span>
             <span className="text-gray-500">{weather.description}</span>
           </div>
         )}
-        <AirportClock iata={iata} />
-      </div>
 
-      {metar && showTechnical && <MetarRow metar={metar} />}
+        {metar && showTechnical && <MetarRow metar={metar} />}
 
-      {status?.delays && (
-        <div className="mt-2 space-y-1 text-sm text-gray-300">
-          <p>
-            <span className="text-gray-500">{t.delay}:</span>{" "}
-            <span className="font-medium">
-              {formatMinutes(status.delays.minMinutes)}–{formatMinutes(status.delays.maxMinutes)}
-            </span>{" "}
-            <TrendIcon trend={status.delays.trend} />
-          </p>
-          <p><span className="text-gray-500">{t.cause}:</span> {status.delays.reason}</p>
-          <p>
+        {status?.delays && (
+          <div className="mt-2 space-y-1 text-sm text-gray-300">
+            <p>
+              <span className="text-gray-500">{t.delay}:</span>{" "}
+              <span className="font-medium">
+                {formatMinutes(status.delays.minMinutes)}–{formatMinutes(status.delays.maxMinutes)}
+              </span>{" "}
+              <TrendIcon trend={status.delays.trend} />
+            </p>
+            <p><span className="text-gray-500">{t.cause}:</span> {status.delays.reason}</p>
+            <p>
               <span className="text-gray-500">{t.affects}:</span>{" "}
               {status.delays.type === "departure"
                 ? t.departures
@@ -433,76 +447,74 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
                 ? t.arrivals
                 : (locale === "es" ? "salidas y llegadas" : "departing and arriving flights")}
             </p>
-          {status.delays.trend && (
-            <p><span className="text-gray-500">{t.trend}:</span> {status.delays.trend}</p>
-          )}
-        </div>
-      )}
-
-      {status?.groundStop && (
-        <div className="mt-2 space-y-1 text-sm text-red-300">
-          <p>
-            <span className="font-bold">🛑 {t.groundStop}</span>{" "}
-            {t.until} {status.groundStop.endTime ?? t.indefinite}
-          </p>
-          <p><span className="text-red-400/70">{t.cause}:</span> {status.groundStop.reason}</p>
-        </div>
-      )}
-
-      {status?.groundDelay && (
-        <div className="mt-2 space-y-1 text-sm text-red-300">
-          <p className="font-bold">{t.groundDelayProgram}</p>
-          <p>
-            {t.average}: <span className="font-medium">{formatMinutes(status.groundDelay.avgMinutes)}</span>
-            {" · "}{t.max}: {status.groundDelay.maxTime}
-          </p>
-          <p><span className="text-red-400/70">{t.cause}:</span> {status.groundDelay.reason}</p>
-        </div>
-      )}
-
-      {status?.closure && (
-        <div className="mt-2 space-y-1 text-sm text-gray-300">
-          <p className="font-bold text-gray-200">⛔ {t.airportClosed}</p>
-          <p><span className="text-gray-500">{t.cause}:</span> {status.closure.reason}</p>
-        </div>
-      )}
-
-      {/* FAA explain — only shown when there's an active incident */}
-      {status && s !== "ok" && s !== "unknown" && (
-        <FaaExplainButton iata={iata} status={status} locale={locale} />
-      )}
-
-      {metar && (
-        <button
-          onClick={() => setShowTechnical((v) => !v)}
-          className="mt-2 text-xs text-gray-500 underline underline-offset-2 hover:text-gray-300 transition-colors"
-        >
-          {showTechnical
-            ? (locale === "es" ? "Ocultar detalles ↑" : "Hide details ↑")
-            : (locale === "es" ? "Ver detalles técnicos ↓" : "Show technical details ↓")}
-        </button>
-      )}
-
-      {status?.lastChecked && (() => {
-        const minutesAgo = Math.floor((Date.now() - new Date(status.lastChecked).getTime()) / 60000);
-        return (
-          <>
-            <p className="mt-3 text-xs text-gray-500 tabular">
-              {t.updated}:{" "}
-              {new Date(status.lastChecked).toLocaleTimeString(locale === "en" ? "en-US" : "es-AR", { hour: "2-digit", minute: "2-digit" })}
-            </p>
-            {minutesAgo > 10 && (
-              <span className="mt-1 text-xs text-amber-400 flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {locale === "es" ? `hace ${minutesAgo} min` : `${minutesAgo} min ago`}
-              </span>
+            {status.delays.trend && (
+              <p><span className="text-gray-500">{t.trend}:</span> {status.delays.trend}</p>
             )}
-          </>
-        );
-      })()}
+          </div>
+        )}
+
+        {status?.groundStop && (
+          <div className="mt-2 space-y-1 text-sm text-red-300">
+            <p>
+              <span className="font-bold">🛑 {t.groundStop}</span>{" "}
+              {t.until} {status.groundStop.endTime ?? t.indefinite}
+            </p>
+            <p><span className="text-red-400/70">{t.cause}:</span> {status.groundStop.reason}</p>
+          </div>
+        )}
+
+        {status?.groundDelay && (
+          <div className="mt-2 space-y-1 text-sm text-red-300">
+            <p className="font-bold">{t.groundDelayProgram}</p>
+            <p>
+              {t.average}: <span className="font-medium">{formatMinutes(status.groundDelay.avgMinutes)}</span>
+              {" · "}{t.max}: {status.groundDelay.maxTime}
+            </p>
+            <p><span className="text-red-400/70">{t.cause}:</span> {status.groundDelay.reason}</p>
+          </div>
+        )}
+
+        {status?.closure && (
+          <div className="mt-2 space-y-1 text-sm text-gray-300">
+            <p className="font-bold text-gray-200">⛔ {t.airportClosed}</p>
+            <p><span className="text-gray-500">{t.cause}:</span> {status.closure.reason}</p>
+          </div>
+        )}
+
+        {status && s !== "ok" && s !== "unknown" && (
+          <FaaExplainButton iata={iata} status={status} locale={locale} />
+        )}
+
+        {metar && (
+          <button
+            onClick={() => setShowTechnical((v) => !v)}
+            className="mt-2 text-xs text-gray-500 underline underline-offset-2 hover:text-gray-300 transition-colors"
+          >
+            {showTechnical
+              ? (locale === "es" ? "Ocultar detalles ↑" : "Hide details ↑")
+              : (locale === "es" ? "Ver detalles técnicos ↓" : "Show technical details ↓")}
+          </button>
+        )}
+
+        {status?.lastChecked && (() => {
+          const minutesAgo = Math.floor((Date.now() - new Date(status.lastChecked).getTime()) / 60000);
+          return (
+            <>
+              <p className="mt-3 text-xs text-gray-500 tabular">
+                {t.updated}:{" "}
+                {new Date(status.lastChecked).toLocaleTimeString(locale === "en" ? "en-US" : "es-AR", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+              {minutesAgo > 10 && (
+                <span className="mt-1 text-xs text-amber-400 flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {locale === "es" ? `hace ${minutesAgo} min` : `${minutesAgo} min ago`}
+                </span>
+              )}
+            </>
+          );
+        })()}
       </div>
 
-      {/* Bottom padding spacer */}
       <div className="pb-4" />
     </div>
   );
