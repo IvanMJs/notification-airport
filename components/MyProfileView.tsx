@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, type Easing } from "framer-motion";
-import { TrendingUp, Globe, Plane, MapPin, Zap, Award, X, BarChart3, Trophy, Gift, Users, Share2 } from "lucide-react";
+import { TrendingUp, Globe, Plane, MapPin, Zap, Award, X, BarChart3, Trophy, Gift, Users, Share2, Share, Camera, Settings } from "lucide-react";
 import { WorldMapView } from "@/components/WorldMapView";
 import { TripTab } from "@/lib/types";
 import { computeTripStats } from "@/lib/tripStats";
@@ -17,6 +17,9 @@ import { FriendsTravelSection } from "@/components/FriendsTravelSection";
 import { AchievementBadges } from "@/components/AchievementBadges";
 import { countryFlag } from "@/lib/countryFlags";
 import { PlacesTab } from "@/components/PlacesTab";
+import { useVisitedCountries } from "@/lib/visited-countries";
+import { WorldMap } from "@/components/WorldMap";
+import { MapFullscreenModal } from "@/components/MapFullscreenModal";
 
 interface MyProfileViewProps {
   trips: TripTab[];
@@ -332,6 +335,8 @@ function ShareAppCard({ locale }: { locale: "es" | "en" }) {
 export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDiscover }: MyProfileViewProps) {
   const L = LABELS[locale];
   const [selectedIata, setSelectedIata] = useState<string | null>(null);
+  const [mapModalOpen, setMapModalOpen] = useState(false);
+  const visitedCountries = useVisitedCountries(trips);
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTabId>("stats");
 
   const stats = useMemo(() => {
@@ -489,32 +494,82 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
   return (
     <div className="min-h-screen pb-24 bg-surface-overlay">
 
-      {/* ── User header — always visible ───────────────────────────────────── */}
-      <motion.div {...fadeUp(0)} className="px-4 pt-6 pb-4">
-        <div className="flex items-center gap-3 mb-1">
-          <span className="text-4xl" aria-hidden>✈️</span>
-          <div>
-            <h1 className="text-xl font-black text-white leading-tight">{L.title}</h1>
-            <p className="text-sm text-gray-500 mt-0.5">{L.subtitle(trips.length)}</p>
+      {/* ── Status bar ────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inset-0 rounded-full bg-green-400 animate-ping opacity-75" />
+            <span className="relative rounded-full bg-green-400 h-2 w-2" />
+          </span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-green-400">
+            {locale === "es" ? "Activo" : "Active"}
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <button className="h-9 w-9 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center" aria-label={locale === "es" ? "Ajustes" : "Settings"}>
+            <Settings size={14} className="text-gray-400" />
+          </button>
+        </div>
+      </div>
+
+      {/* ── Hero premium ──────────────────────────────────────────────────── */}
+      <motion.div {...fadeUp(0)} className="relative overflow-hidden mx-4 mt-2 mb-5 rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#0f0f17] via-[#0e0e1a] to-[#0a0a14] p-5">
+        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.25),transparent_70%)] blur-2xl pointer-events-none" />
+
+        <div className="relative flex items-start gap-4">
+          {/* Avatar with orbital ring */}
+          <div className="relative shrink-0">
+            <motion.div
+              className="absolute inset-[-4px] rounded-full"
+              style={{ background: "conic-gradient(from 0deg, #7c3aed, #3b82f6, #7c3aed)" }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            />
+            <div className="relative h-20 w-20 rounded-full bg-[#080810] border-4 border-[#080810] overflow-hidden flex items-center justify-center">
+              <div className="h-full w-full rounded-full bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center text-4xl">
+                🧑‍✈️
+              </div>
+            </div>
+            <button className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-violet-600 hover:bg-violet-500 border-[3px] border-[#0f0f17] flex items-center justify-center shadow-[0_4px_12px_rgba(124,58,237,0.5)]" aria-label={locale === "es" ? "Cambiar foto" : "Change photo"}>
+              <Camera size={12} className="text-white" />
+            </button>
+          </div>
+
+          <div className="flex-1 min-w-0 pt-1">
+            <h1 className="text-[20px] font-black text-white leading-tight">
+              {locale === "es" ? "Mi Perfil" : "My Profile"}
+            </h1>
+            <p className="text-xs text-gray-500 mt-0.5 font-medium">
+              {userId ? `@${userId.slice(0, 8)}` : "@viajero"}
+            </p>
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-950/40 px-2.5 py-1">
+              <span className="text-xs">🔥</span>
+              <span className="text-[11px] font-bold text-amber-300 tabular-nums">
+                {trips.length} {locale === "es" ? (trips.length !== 1 ? "viajes" : "viaje") : (trips.length !== 1 ? "trips" : "trip")}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Plan badge */}
-        <div className="mt-3">
-          {(userPlan === "explorer" || userPlan === "pilot") ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-600/40 bg-amber-950/30 px-3 py-1 text-xs font-semibold text-amber-400">
-              {userPlan === "pilot"
-                ? (locale === "es" ? "Plan Pilot ✈️" : "Pilot Plan ✈️")
-                : (locale === "es" ? "Plan Explorer ⭐" : "Explorer Plan ⭐")}
-            </span>
-          ) : (
+        <div className="relative mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">
+              {locale === "es" ? "Plan actual" : "Current plan"}
+            </p>
+            <p className="text-sm font-bold text-white truncate">
+              {(userPlan === "explorer" || userPlan === "pilot")
+                ? (userPlan === "pilot" ? (locale === "es" ? "Plan Pilot ✈️" : "Pilot Plan ✈️") : (locale === "es" ? "Plan Explorer ⭐" : "Explorer Plan ⭐"))
+                : `${locale === "es" ? "Gratuito" : "Free"} · ${trips.length}/${PLANS.free.maxTrips} ${locale === "es" ? "viajes" : "trips"}`}
+            </p>
+          </div>
+          {userPlan === "free" || userPlan === null ? (
             <button
               onClick={onUpgrade}
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.07] bg-white/[0.03] px-3 py-1 text-xs font-semibold text-gray-400 hover:text-gray-200 transition-colors"
+              className="relative overflow-hidden rounded-full bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white text-[11px] font-black px-4 py-2 shadow-[0_4px_12px_rgba(124,58,237,0.4)] shrink-0"
             >
-              {L.freePlan} · {L.upgradeBtn}
+              Upgrade ⭐
             </button>
-          )}
+          ) : null}
         </div>
       </motion.div>
 
@@ -648,57 +703,71 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
               </motion.div>
             )}
 
-            {/* World Map with country stamp collection */}
-            {stats.totalFlights >= 1 && (
-              <motion.div {...fadeUp(0.12)} className="px-4 pb-4">
-                {/* Countries counter */}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4 text-blue-400" />
-                    <span className="text-sm font-bold text-gray-300">
-                      {L.stamp.countriesVisited}
-                    </span>
+            {/* Pasaporte — mapa real */}
+            <motion.div {...fadeUp(0.12)} className="px-4 pb-4">
+              <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-950/20 via-[#0a0a14] to-[#080810]">
+                <div className="absolute -top-8 -right-8 h-40 w-40 rounded-full blur-2xl pointer-events-none" style={{ background: "radial-gradient(circle, rgba(251,191,36,0.15), transparent 65%)" }} />
+
+                <div className="relative p-4 pb-0 flex items-start justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-amber-300/70">
+                      {locale === "es" ? "Tu pasaporte" : "Your passport"}
+                    </p>
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <span className="text-[42px] font-black text-white tabular-nums leading-none tracking-[-0.03em]">
+                        {visitedCountries.length}
+                      </span>
+                      <span className="text-sm font-bold text-gray-500 tabular-nums">/ 195</span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-1">
+                      {locale === "es" ? "países del mundo" : "countries in the world"}
+                    </p>
                   </div>
-                  <span className="text-sm font-black text-white tabular-nums">
-                    {stats.countriesVisited.length}
-                    <span className="text-gray-500 font-normal text-xs ml-1">
-                      {L.stamp.of} 195
-                    </span>
-                  </span>
+                  <button
+                    onClick={() => setMapModalOpen(true)}
+                    className="rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] text-white text-[10px] font-bold px-3 py-2 flex items-center gap-1.5 shrink-0"
+                  >
+                    <Share size={12} />
+                    {locale === "es" ? "Compartir" : "Share"}
+                  </button>
                 </div>
 
-                <WorldMapView
-                  trips={trips}
-                  locale={locale}
-                  onAirportClick={(iata) => setSelectedIata((prev) => prev === iata ? null : iata)}
-                />
+                <div className="relative px-4 mt-3">
+                  <WorldMap
+                    countries={visitedCountries}
+                    onExpand={() => setMapModalOpen(true)}
+                    pinTone="amber"
+                  />
+                </div>
 
-                {/* Stamp modal — rendered as fixed overlay via portal-like pattern */}
-                <AnimatePresence>
-                  {selectedIata && stampDataMap[selectedIata] && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.18 }}
-                      className="fixed inset-0 z-50 flex items-center justify-center px-6"
-                      onClick={() => setSelectedIata(null)}
-                    >
-                      {/* Backdrop */}
-                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-                      {/* Card — stop propagation so clicking card doesn't close */}
-                      <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-xs">
-                        <StampCard
-                          data={stampDataMap[selectedIata]}
-                          locale={locale}
-                          onClose={() => setSelectedIata(null)}
-                        />
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            )}
+                <div className="relative grid grid-cols-3 divide-x divide-white/[0.06] border-t border-white/[0.06] mt-3">
+                  <div className="p-3 text-center">
+                    <p className="text-lg font-black text-white tabular-nums leading-none">
+                      {new Set(visitedCountries.flatMap(c => c.airports)).size}
+                    </p>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mt-1.5">
+                      {locale === "es" ? "Aeropuertos" : "Airports"}
+                    </p>
+                  </div>
+                  <div className="p-3 text-center">
+                    <p className="text-lg font-black text-white tabular-nums leading-none">
+                      {visitedCountries.reduce((acc, c) => acc + c.places.length, 0)}
+                    </p>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-gray-500 mt-1.5">
+                      {locale === "es" ? "Ciudades" : "Cities"}
+                    </p>
+                  </div>
+                  <div className="p-3 text-center">
+                    <p className="text-lg font-black text-amber-300 tabular-nums leading-none">
+                      {visitedCountries.length > 0 ? `${Math.round((visitedCountries.length / 195) * 100)}%` : "0%"}
+                    </p>
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-amber-400/60 mt-1.5">
+                      {locale === "es" ? "Del mundo" : "Of world"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
 
             {/* Top route */}
             {stats.mostFrequentRoute != null && (
@@ -956,6 +1025,13 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
         )}
 
       </AnimatePresence>
+
+      <MapFullscreenModal
+        countries={visitedCountries}
+        open={mapModalOpen}
+        onClose={() => setMapModalOpen(false)}
+        locale={locale}
+      />
     </div>
   );
 }
