@@ -10,6 +10,7 @@ import { WeatherData } from "@/hooks/useWeather";
 import { TafData, getTafAtTime } from "@/hooks/useTaf";
 import { SigmetFeature } from "@/hooks/useSigmet";
 import { ConnectionAnalysis } from "@/lib/connectionRisk";
+import { TsaAirportData } from "@/hooks/useTsaWait";
 import { TRIP_PANEL_LABELS } from "@/components/TripPanelLabels";
 import { formatRelativeDate } from "@/lib/formatDate";
 import { getTzAbbr, getDaysUntil } from "./helpers";
@@ -33,6 +34,7 @@ export interface FlightCardProps {
   nextDate?: string;
   tafData?: TafData;
   activeSigmets?: SigmetFeature[];
+  tsaData?: TsaAirportData;
   accommodation?: Accommodation | null;
   onAddAccommodation?: (data: { name: string; checkInTime?: string; checkOutTime?: string; confirmationCode?: string; address?: string }) => void;
   onRemoveAccommodation?: () => void;
@@ -56,6 +58,7 @@ export function FlightCard({
   nextDate,
   tafData,
   activeSigmets,
+  tsaData,
   accommodation,
   onAddAccommodation,
   onRemoveAccommodation,
@@ -348,6 +351,7 @@ export function FlightCard({
           weatherMap={weatherMap}
           tafData={tafData}
           activeSigmets={activeSigmets}
+          tsaData={tsaData}
           connectionToNext={connectionToNext}
           hoursUntilDep={hoursUntilDep}
           wantsUpgrade={flight.wantsUpgrade}

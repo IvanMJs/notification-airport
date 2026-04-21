@@ -630,8 +630,14 @@ html.light .skeleton {
   to   { stroke-dashoffset: 0; }
 }
 @keyframes arcDrawNorm {
-  from { stroke-dashoffset: 1; }
-  to   { stroke-dashoffset: 0; }
+  0%   { stroke-dashoffset: 1; }
+  85%  { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: 0; }
+}
+
+@keyframes planeBlink {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 0.8; }
 }
 
 /* ── Confetti animation ────────────────────────────────────────────────────── */
