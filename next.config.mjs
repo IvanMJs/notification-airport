@@ -30,7 +30,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
       "style-src 'self' 'unsafe-inline'",
       "font-src 'self'",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https:",
       // Supabase REST + Realtime websocket, FAA, AeroDataBox
       [
         "connect-src 'self'",
@@ -40,9 +40,11 @@ const securityHeaders = [
         "https://aerodatabox.p.rapidapi.com",
         "https://api.open-meteo.com",
         "https://vercel.live",
+        "https://api.frankfurter.app",
       ].join(" "),
       // Sentry Session Replay uses a blob: Web Worker
       "worker-src blob: 'self'",
+      "frame-src 'self' https://vercel.live",
       "frame-ancestors 'none'",
       "form-action 'self'",
       "base-uri 'self'",
