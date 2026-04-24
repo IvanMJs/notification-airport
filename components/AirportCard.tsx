@@ -398,16 +398,36 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
           </div>
         </div>
 
-        {/* IATA + airport name */}
-        <div className="mb-3 pr-6">
-          <span className="block text-[40px] font-black tracking-[-0.03em] text-white tabular font-mono leading-none">{iata}</span>
-          <span className="text-xs text-gray-500 leading-tight">
-            {name}
-            {city && state ? ` · ${city}, ${state}` : city ? ` · ${city}` : ""}
-          </span>
+        {/* IATA + name (left) / status + time + weather (right) */}
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <span className="block text-[40px] font-black tracking-[-0.03em] text-white tabular font-mono leading-none">{iata}</span>
+            <span className="text-xs text-gray-500 leading-tight">
+              {name}
+              {city && state ? ` · ${city}, ${state}` : city ? ` · ${city}` : ""}
+            </span>
+          </div>
+          <div className="flex flex-col items-end gap-1 pt-2 shrink-0 text-right">
+            <StatusBadge status={s} dense />
+            {status?.lastChecked && (() => {
+              const minutesAgo = Math.floor((Date.now() - new Date(status.lastChecked).getTime()) / 60000);
+              return (
+                <span className={cn("text-[11px] tabular", minutesAgo > 10 ? "text-amber-400" : "text-gray-500")}>
+                  {minutesAgo < 1
+                    ? (locale === "es" ? "ahora" : "just now")
+                    : locale === "es"
+                    ? `hace ${minutesAgo} min`
+                    : `${minutesAgo}m ago`}
+                </span>
+              );
+            })()}
+            {weather && (
+              <span className="text-[11px] text-gray-300">
+                {weather.icon} {weather.temperature}°C
+              </span>
+            )}
+          </div>
         </div>
-
-        <StatusBadge status={s} dense className="mb-3" />
 
         {/* Urgency strip */}
         {reason && (
@@ -416,18 +436,6 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
             <span className="text-[11px] font-semibold text-red-200 leading-snug">
               FAA · {locale === "es" ? "motivo" : "reason"}: {reason}
             </span>
-          </div>
-        )}
-
-        {s === "ok" && (
-          <p className="text-xs text-green-400/80 mb-2">{t.noDelaysReported}</p>
-        )}
-
-        {weather && (
-          <div className="mt-2 flex items-center gap-2 text-xs text-gray-300">
-            <span className="text-base leading-none">{weather.icon}</span>
-            <span className="font-medium">{weather.temperature}°C</span>
-            <span className="text-gray-500">{weather.description}</span>
           </div>
         )}
 
@@ -500,23 +508,6 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
           </button>
         )}
 
-        {status?.lastChecked && (() => {
-          const minutesAgo = Math.floor((Date.now() - new Date(status.lastChecked).getTime()) / 60000);
-          return (
-            <>
-              <p className="mt-3 text-xs text-gray-500 tabular">
-                {t.updated}:{" "}
-                {new Date(status.lastChecked).toLocaleTimeString(locale === "en" ? "en-US" : "es-AR", { hour: "2-digit", minute: "2-digit" })}
-              </p>
-              {minutesAgo > 10 && (
-                <span className="mt-1 text-xs text-amber-400 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {locale === "es" ? `hace ${minutesAgo} min` : `${minutesAgo} min ago`}
-                </span>
-              )}
-            </>
-          );
-        })()}
       </div>
 
       <div className="pb-4" />
