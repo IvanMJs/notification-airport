@@ -43,9 +43,21 @@ export function LandscapeBoard({ flights }: LandscapeBoardProps) {
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: 14, fontWeight: 700, color: A, letterSpacing: "0.18em" }}>
-          ✈ TRIPCOPILOT — SALIDAS
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <a
+            href="/app"
+            style={{
+              fontFamily: MONO, fontSize: 9, fontWeight: 700,
+              letterSpacing: "0.12em", color: "rgba(232,232,240,.25)",
+              textDecoration: "none",
+            }}
+          >
+            ← DASHBOARD
+          </a>
+          <span style={{ fontSize: 14, fontWeight: 700, color: A, letterSpacing: "0.18em" }}>
+            ✈ TRIPCOPILOT — SALIDAS
+          </span>
+        </div>
         <span style={{ fontSize: 10, color: A60, letterSpacing: "0.07em" }}>{date}</span>
       </div>
 

@@ -36,7 +36,25 @@ export function BoardScreen({ flights, litId, onShare }: BoardScreenProps) {
       }}
     >
       {/* Header */}
-      <div style={{ padding: "18px 20px 0", flexShrink: 0 }}>
+      <div style={{ padding: "14px 20px 0", flexShrink: 0 }}>
+        {/* Back button */}
+        <a
+          href="/app"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            fontFamily: MONO,
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: "0.12em",
+            color: "rgba(232,232,240,.25)",
+            textDecoration: "none",
+            marginBottom: 12,
+          }}
+        >
+          ← DASHBOARD
+        </a>
         <div
           style={{
             display: "flex",
