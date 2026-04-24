@@ -13,12 +13,15 @@ interface RadarDotProps {
   tone: Tone;
   size?: "sm" | "md";
   ringColor?: string;
+  animationDuration?: number; // Optional prop for customizing the pulse effect
 }
 
-export function RadarDot({ tone, size = "md", ringColor = "#080810" }: RadarDotProps) {
+export function RadarDot({ tone, size = "md", ringColor = "#080810", animationDuration = 2.2 }: RadarDotProps) {
   const dim = size === "sm" ? "h-2 w-2" : "h-2.5 w-2.5";
+  const pulseAnimation = `radarPulse_${animationDuration}s_ease-out_infinite`;
+  
   return (
-    <span className={cn("relative flex shrink-0", dim)}>
+    <span className={cn("relative flex shrink-0", dim)} aria-label={`Radar dot with ${tone} tone`}>
       {/* Outer expanding ring */}
       <span
         aria-hidden

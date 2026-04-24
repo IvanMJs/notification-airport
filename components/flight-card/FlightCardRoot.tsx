@@ -394,7 +394,7 @@ export function FlightCard({
           </span>
           <button
             onClick={handleUndoDelete}
-            className="text-sm font-bold text-blue-400 hover:text-blue-300 transition-colors shrink-0"
+            className="text-sm font-bold text-[#FFB800] hover:text-[#FFC933] transition-colors shrink-0"
           >
             {locale === "es" ? "Deshacer" : "Undo"}
           </button>
