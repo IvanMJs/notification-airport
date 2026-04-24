@@ -175,6 +175,21 @@ export function parseXML(xml: string, locale: "es" | "en" = "es"): AirportStatus
     console.error("XML parse error:", e);
   }
 
+  // Airports absent from FAA XML have no active issues — mark them "ok"
+  for (const [iata, info] of Object.entries(AIRPORTS)) {
+    if (info.isFAA === false) continue;
+    if (!result[iata]) {
+      result[iata] = {
+        iata,
+        name: info.name,
+        city: info.city,
+        state: info.state,
+        status: "ok",
+        lastChecked: new Date(),
+      };
+    }
+  }
+
   return result;
 }
 
