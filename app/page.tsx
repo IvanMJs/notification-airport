@@ -698,7 +698,7 @@ export default function LandingPage() {
               <div className="relative">
                 {/* Outer glow */}
                 <div className="absolute inset-0 -m-8 rounded-full blur-3xl opacity-20 pointer-events-none"
-                  style={{ background: "radial-gradient(circle, #7c3aed 0%, transparent 70%)" }} />
+                  style={{ background: "radial-gradient(circle, rgba(255,184,0,0.6) 0%, transparent 70%)" }} />
 
                 {/* Phone frame */}
                 <div className="relative rounded-[2.8rem] border-2 border-white/[0.12] shadow-2xl overflow-hidden"

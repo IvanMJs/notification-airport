@@ -489,8 +489,8 @@ export function TripPanel({
 
       {/* Draft banner */}
       {isDraft && (
-        <div className="sticky top-0 z-10 relative flex items-center justify-between gap-3 px-4 py-3 bg-[rgba(255,184,0,0.06)] border border-[rgba(255,184,0,0.25)] rounded-xl backdrop-blur-sm mx-0 mb-4 shadow-[0_0_0_1px_rgba(124,58,237,0.25),0_0_24px_rgba(124,58,237,0.15)]">
-          <span aria-hidden className="absolute inset-0 rounded-xl bg-[radial-gradient(ellipse_at_top_left,rgba(124,58,237,0.18),transparent_60%)] pointer-events-none" />
+        <div className="sticky top-0 z-10 relative flex items-center justify-between gap-3 px-4 py-3 bg-[rgba(255,184,0,0.06)] border border-[rgba(255,184,0,0.25)] rounded-xl backdrop-blur-sm mx-0 mb-4 shadow-[0_0_0_1px_rgba(255,184,0,0.20),0_0_24px_rgba(255,184,0,0.10)]">
+          <span aria-hidden className="absolute inset-0 rounded-xl bg-[radial-gradient(ellipse_at_top_left,rgba(255,184,0,0.10),transparent_60%)] pointer-events-none" />
           <div className="relative flex items-center gap-2">
             <span className="text-[#FFB800]">✏️</span>
             <div>

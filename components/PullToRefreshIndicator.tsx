@@ -54,7 +54,7 @@ export function PullToRefreshIndicator({
           cy={SIZE / 2}
           r={RADIUS}
           fill="none"
-          stroke={pullProgress >= 1 || isRefreshing ? "#3b82f6" : "#6b7280"}
+          stroke={pullProgress >= 1 || isRefreshing ? "#FFB800" : "#6b7280"}
           strokeWidth={STROKE}
           strokeLinecap="round"
           strokeDasharray={CIRCUMFERENCE}
@@ -70,7 +70,7 @@ export function PullToRefreshIndicator({
         height={14}
         viewBox="0 0 24 24"
         fill="none"
-        stroke={pullProgress >= 1 || isRefreshing ? "#3b82f6" : "#6b7280"}
+        stroke={pullProgress >= 1 || isRefreshing ? "#FFB800" : "#6b7280"}
         strokeWidth={2.5}
         strokeLinecap="round"
         strokeLinejoin="round"

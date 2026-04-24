@@ -138,7 +138,7 @@ export function NotifCarousel({ screenshots }: Props) {
             <span style={{
               display: "block", borderRadius: 999,
               height: 6, width: i === index ? 20 : 6,
-              background: i === index ? "#3b82f6" : "rgba(255,255,255,0.18)",
+              background: i === index ? "#FFB800" : "rgba(255,255,255,0.18)",
               transition: "all 0.35s ease", flexShrink: 0,
             }} />
           </button>

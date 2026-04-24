@@ -42,7 +42,7 @@ const EXPLORE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const CARD_STYLE = {
   background: "linear-gradient(135deg,#fdf8f0 0%,#f5ede0 50%,#faf4ec 100%)",
-  border: "2px dashed #7c3aed",
+  border: "2px dashed rgba(255,184,0,0.50)",
   boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
 } as const;
 
@@ -281,7 +281,7 @@ export function DestinationSpotlight({ position, locale, onClose }: DestinationS
           className="relative w-full rounded-2xl overflow-hidden"
           style={{
             ...CARD_STYLE,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(124,58,237,0.12)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,184,0,0.12)",
             filter: "sepia(0.06)",
           }}
         >
