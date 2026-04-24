@@ -1,18 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AirportSearchInput } from "@/components/AirportSearchInput";
 import { AIRPORTS as AIRPORT_DB } from "@/lib/airports";
 import type { AirportStatus } from "@/lib/types";
 import { RadarDot } from "./RadarDot";
+import { getAirportTime, getAirportTzLabel } from "@/lib/airportTimezone";
+import type { WeatherData } from "@/hooks/useWeather";
 
 interface NewUserWelcomeViewProps {
   statusMap: Record<string, AirportStatus>;
+  weatherMap?: Record<string, WeatherData>;
   locale: "es" | "en";
   onAddFlight: () => void;
   userId?: string | null;
   loading?: boolean;
+}
+
+function MiniClock({ iata }: { iata: string }) {
+  const [time, setTime] = useState<string | null>(null);
+  useEffect(() => {
+    setTime(getAirportTime(iata));
+    const id = setInterval(() => setTime(getAirportTime(iata)), 60_000);
+    return () => clearInterval(id);
+  }, [iata]);
+  if (!time) return null;
+  const tz = getAirportTzLabel(iata);
+  return (
+    <span className="text-[10px] text-gray-500 tabular-nums">
+      🕐 {time}{tz ? ` ${tz}` : ""}
+    </span>
+  );
 }
 
 const FEATURED_AIRPORTS = ["EZE", "JFK", "MIA", "GCM"] as const;
@@ -67,7 +86,7 @@ function severeReason(entry: AirportStatus | undefined): string | null {
   return null;
 }
 
-export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loading = false }: NewUserWelcomeViewProps) {
+export function NewUserWelcomeView({ statusMap, weatherMap = {}, locale, onAddFlight, userId, loading = false }: NewUserWelcomeViewProps) {
   const [view, setView] = useState<FtueView>("list");
   const [selectedIata, setSelectedIata] = useState("");
   const [alertsActivated, setAlertsActivated] = useState(false);
@@ -184,16 +203,19 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loa
                         </span>
                       </div>
 
-                      {/* Right: status + last checked */}
+                      {/* Right: status + time + weather */}
                       {loaded ? (
                         <div className="flex flex-col items-end gap-1 shrink-0">
                           <span className={`flex items-center gap-1.5 text-xs font-semibold ${labelByToneCard[tone]}`}>
                             <span className="text-sm leading-none">{icon}</span>
                             <span>{label}</span>
                           </span>
-                          <span className="text-[10px] text-gray-600 tabular-nums">
-                            {formatLastChecked(entry?.lastChecked, locale)}
-                          </span>
+                          <MiniClock iata={iata} />
+                          {weatherMap[iata] && (
+                            <span className="text-[10px] text-gray-400">
+                              {weatherMap[iata].icon} {weatherMap[iata].temperature}°C
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <div className="flex flex-col items-end gap-1.5">

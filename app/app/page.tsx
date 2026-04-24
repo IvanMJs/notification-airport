@@ -1123,6 +1123,7 @@ export default function HomePage() {
                 {mounted && !tripsLoading && userTrips.length === 0 && !(userId ? localStorage.getItem(`tc-onboarded-${userId}`) : localStorage.getItem("tc-onboarded")) ? (
                   <NewUserWelcomeView
                     statusMap={statusMap}
+                    weatherMap={weatherMap}
                     loading={loading}
                     locale={locale}
                     userId={userId}
