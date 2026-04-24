@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart2, Map, MapPin, CalendarDays, Compass, Plus, Pencil, X, Trash2, ChevronDown } from "lucide-react";
+import { BarChart2, Map, MapPin, CalendarDays, Compass, Plus, Pencil, X, Trash2, ChevronDown, Monitor } from "lucide-react";
 import { TripTab } from "@/lib/types";
 
 interface Props {
@@ -243,6 +243,15 @@ export function DesktopSidebar({
           <CalendarDays className="w-5 h-5 shrink-0" strokeWidth={activeTab === "today" ? 2.5 : 1.5} />
           <span>{locale === "es" ? "Hoy" : "Today"}</span>
         </button>
+
+        {/* Tablero */}
+        <a
+          href="/board"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-text-muted hover:text-white hover:bg-white/[0.04]"
+        >
+          <Monitor className="w-5 h-5 shrink-0" strokeWidth={1.5} />
+          <span>{locale === "es" ? "Tablero" : "Board"}</span>
+        </a>
 
         {/* Explorar */}
         <button
