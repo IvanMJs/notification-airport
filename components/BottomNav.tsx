@@ -304,21 +304,21 @@ export function BottomNav({
 
           <div className="flex h-[60px]">
 
-            {/* Vuelos (today) */}
+            {/* Vuelos (airports home) */}
             <button
-              onClick={() => { haptics.impact(); onNavigate("today"); }}
+              onClick={() => { haptics.impact(); onNavigate("airports"); }}
               aria-label={locale === "es" ? "Vuelos" : "Flights"}
-              aria-current={activeTab === "today" ? "page" : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "today" ? "text-[#FFB800]" : "text-gray-500"}`}
+              aria-current={activeTab === "airports" || activeTab === "today" ? "page" : undefined}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "airports" || activeTab === "today" ? "text-[#FFB800]" : "text-gray-500"}`}
             >
               <div className="relative">
                 <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center w-10 h-8 rounded-xl">
-                  {activeTab === "today" && (
+                  {(activeTab === "airports" || activeTab === "today") && (
                     <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-[rgba(255,184,0,0.12)]" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
                   )}
-                  <CalendarDays className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "today" ? "text-[#FFB800]" : "text-gray-500"}`} strokeWidth={activeTab === "today" ? 2.5 : 1.5} />
+                  <CalendarDays className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "airports" || activeTab === "today" ? "text-[#FFB800]" : "text-gray-500"}`} strokeWidth={activeTab === "airports" || activeTab === "today" ? 2.5 : 1.5} />
                 </motion.div>
-                {hasUpcomingFlight && activeTab !== "today" && (
+                {hasUpcomingFlight && activeTab !== "airports" && activeTab !== "today" && (
                   <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[#FFB800] ring-2 ring-[#0a0a14]" aria-label={locale === "es" ? "Vuelo próximo" : "Upcoming flight"} />
                 )}
               </div>

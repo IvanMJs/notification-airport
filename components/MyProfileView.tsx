@@ -25,6 +25,7 @@ interface MyProfileViewProps {
   locale: "es" | "en";
   userPlan: "free" | "explorer" | "pilot" | null;
   userId: string | null;
+  userName?: string | null;
   onUpgrade: () => void;
   onDiscover?: () => void;
 }
@@ -331,7 +332,7 @@ function ShareAppCard({ locale }: { locale: "es" | "en" }) {
   );
 }
 
-export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDiscover }: MyProfileViewProps) {
+export function MyProfileView({ trips, locale, userPlan, userId, userName, onUpgrade, onDiscover }: MyProfileViewProps) {
   const L = LABELS[locale];
   const [selectedIata, setSelectedIata] = useState<string | null>(null);
   const [mapModalOpen, setMapModalOpen] = useState(false);
@@ -513,14 +514,14 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
 
       {/* ── Hero premium ──────────────────────────────────────────────────── */}
       <motion.div {...fadeUp(0)} className="relative overflow-hidden mx-4 mt-2 mb-5 rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#0f0f17] via-[#0e0e1a] to-[#0a0a14] p-5">
-        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.25),transparent_70%)] blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(255,184,0,0.12),transparent_70%)] blur-2xl pointer-events-none" />
 
         <div className="relative flex items-start gap-4">
           {/* Avatar with orbital ring */}
           <div className="relative shrink-0">
             <motion.div
               className="absolute inset-[-4px] rounded-full"
-              style={{ background: "conic-gradient(from 0deg, #7c3aed, #3b82f6, #7c3aed)" }}
+              style={{ background: "conic-gradient(from 0deg, #FFB800, #FFC933, #E6A500, #FFB800)" }}
               animate={{ rotate: 360 }}
               transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
             />
@@ -529,14 +530,14 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
                 🧑‍✈️
               </div>
             </div>
-            <button className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-[#FFB800] hover:bg-[#FFC933] border-[3px] border-[#0f0f17] flex items-center justify-center shadow-[0_4px_12px_rgba(124,58,237,0.5)]" aria-label={locale === "es" ? "Cambiar foto" : "Change photo"}>
-              <Camera size={12} className="text-white" />
+            <button className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-[#FFB800] hover:bg-[#FFC933] border-[3px] border-[#0f0f17] flex items-center justify-center shadow-[0_4px_12px_rgba(255,184,0,0.40)]" aria-label={locale === "es" ? "Cambiar foto" : "Change photo"}>
+              <Camera size={12} className="text-[#07070d]" />
             </button>
           </div>
 
           <div className="flex-1 min-w-0 pt-1">
             <h1 className="text-[20px] font-black text-white leading-tight">
-              {locale === "es" ? "Mi Perfil" : "My Profile"}
+              {userName || (locale === "es" ? "Mi Perfil" : "My Profile")}
             </h1>
             <p className="text-xs text-gray-500 mt-0.5 font-medium">
               {userId ? `@${userId.slice(0, 8)}` : "@viajero"}
@@ -564,7 +565,7 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
           {userPlan === "free" || userPlan === null ? (
             <button
               onClick={onUpgrade}
-              className="relative overflow-hidden rounded-full bg-gradient-to-r from-[#FFB800] to-[#E6A500] hover:from-[#FFB800] hover:to-[#E6A500] text-white text-[11px] font-black px-4 py-2 shadow-[0_4px_12px_rgba(124,58,237,0.4)] shrink-0"
+              className="relative overflow-hidden rounded-full bg-gradient-to-r from-[#FFB800] to-[#E6A500] hover:from-[#FFC933] hover:to-[#FFB800] text-[#07070d] text-[11px] font-black px-4 py-2 shadow-[0_4px_12px_rgba(255,184,0,0.30)] shrink-0"
             >
               Upgrade ⭐
             </button>

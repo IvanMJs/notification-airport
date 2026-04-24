@@ -109,6 +109,7 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [userPlan, setUserPlan] = useState<"free" | "explorer" | "pilot" | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
   // DB-backed state
   const { airports: watchedAirports, add: addAirportDB, remove: removeAirportDB } = useWatchedAirports();
@@ -213,6 +214,8 @@ export default function HomePage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       setUserId(user.id);
+      const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || null;
+      setUserName(name);
       supabase.from("user_profiles").select("plan").eq("id", user.id).single()
         .then(({ data }) => {
           const plan = (data as { plan?: string } | null)?.plan;
@@ -1062,6 +1065,7 @@ export default function HomePage() {
                   locale={locale}
                   userPlan={userPlan}
                   userId={userId}
+                  userName={userName}
                   onUpgrade={() => setShowUpgradeModal(true)}
                 />
               </Suspense>
