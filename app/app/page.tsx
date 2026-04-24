@@ -68,6 +68,7 @@ import { exportAllTripsJSON } from "@/lib/dataExport";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { NotificationsHubPanel } from "@/components/NotificationsHubPanel";
 import { TripHistoryView } from "@/components/TripHistoryView";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import { getUnreadCount } from "@/lib/notificationsHub";
 import { NewUserWelcomeView } from "@/components/NewUserWelcomeView";
 
@@ -97,6 +98,7 @@ export default function HomePage() {
   const [showNotifSheet, setShowNotifSheet] = useState(false);
   const [showNotifSettings, setShowNotifSettings] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [showOnboardingTour, setShowOnboardingTour] = useState(false);
 
   // Initialize with a fixed default to avoid hydration mismatch.
   // On mount, both setMounted and the first-time tab redirect fire in the same
@@ -262,6 +264,16 @@ export default function HomePage() {
     if (userTrips.length === 0 && !localStorage.getItem(userKey) && !localStorage.getItem("tc-onboarded")) {
       setActiveTabRaw("trips");
       prevTabRef.current = "trips";
+    }
+  }, [mounted, userId, tripsLoading, userTrips.length]);
+
+  // Show onboarding tour once — after the user has their first trip loaded
+  useEffect(() => {
+    if (!mounted || tripsLoading || !userId) return;
+    if (userTrips.length === 0) return;
+    const tourKey = `tc-tour-${userId}`;
+    if (!localStorage.getItem(tourKey)) {
+      setShowOnboardingTour(true);
     }
   }, [mounted, userId, tripsLoading, userTrips.length]);
 
@@ -741,6 +753,17 @@ export default function HomePage() {
         locale={locale}
         onClose={() => { setShowNotificationsHub(false); setUnreadCount(getUnreadCount()); }}
       />
+
+      {/* Onboarding tour — shown once after first trip is loaded */}
+      {showOnboardingTour && (
+        <OnboardingTour
+          locale={locale}
+          onDone={() => {
+            setShowOnboardingTour(false);
+            if (userId) localStorage.setItem(`tc-tour-${userId}`, "true");
+          }}
+        />
+      )}
 
       {/* Trip history view — full-screen overlay */}
       {showTripHistory && (
