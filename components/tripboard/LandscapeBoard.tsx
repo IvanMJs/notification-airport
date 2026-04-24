@@ -93,16 +93,16 @@ export function LandscapeBoard({ flights }: LandscapeBoardProps) {
                 animation: `tb-row-in .35s ease-out ${i * 60}ms both`,
               }}
             >
-              <SplitFlapTime time={f.time} sz={24} />
+              <SplitFlapTime time={f.time} sz={28} />
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", lineHeight: 1 }}>{f.dest}</div>
-                <div style={{ fontSize: 9, color: "rgba(232,232,240,.70)", marginTop: 2, letterSpacing: "0.05em" }}>{f.city}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1 }}>{f.dest}</div>
+                <div style={{ fontSize: 9, color: "rgba(232,232,240,.55)", marginTop: 3, letterSpacing: "0.06em" }}>{f.city}</div>
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(232,232,240,.70)" }}>{f.orig}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,184,0,.75)" }}>{f.orig}</span>
               <span style={{ fontSize: 13, color: "rgba(255,184,0,.85)", letterSpacing: "0.04em" }}>
                 {f.airline} {f.num}
               </span>
-              <span style={{ fontSize: 22, fontWeight: 700, color: "#fff" }}>{f.gate}</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: "rgba(232,232,240,.80)" }}>{f.gate}</span>
               <StatusPill status={f.status} delay={f.delay} />
             </div>
             {i < flights.length - 1 && (

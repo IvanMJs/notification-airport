@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useState, useEffect } from "react";
 import { FlightRow } from "./FlightRow";
 import type { BoardFlight } from "@/hooks/useBoardFlights";
 
@@ -10,20 +10,30 @@ interface BoardScreenProps {
   onShare: () => void;
 }
 
-const A = "#FFB800";
-const A35 = "rgba(255,184,0,.35)";
-const A18 = "rgba(255,184,0,.18)";
-const A08 = "rgba(255,184,0,.08)";
-const A60 = "rgba(255,184,0,.6)";
+const A    = "#FFB800";
+const A35  = "rgba(255,184,0,.35)";
+const A18  = "rgba(255,184,0,.18)";
+const A08  = "rgba(255,184,0,.08)";
+const A70  = "rgba(255,184,0,.70)";
 const MONO = "'JetBrains Mono','Courier New',monospace";
 
+function useLiveClock() {
+  const [time, setTime] = useState(() =>
+    new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false })
+  );
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTime(new Date().toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false }));
+    }, 10_000);
+    return () => clearInterval(id);
+  }, []);
+  return time;
+}
+
 export function BoardScreen({ flights, litId, onShare }: BoardScreenProps) {
+  const clock = useLiveClock();
   const date = new Date()
-    .toLocaleDateString("es-AR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
+    .toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" })
     .toUpperCase();
 
   return (
@@ -36,8 +46,8 @@ export function BoardScreen({ flights, litId, onShare }: BoardScreenProps) {
       }}
     >
       {/* Header */}
-      <div style={{ padding: "14px 20px 0", flexShrink: 0 }}>
-        {/* Back button */}
+      <div style={{ padding: "16px 20px 0", flexShrink: 0 }}>
+        {/* Back */}
         <a
           href="/app"
           style={{
@@ -48,46 +58,62 @@ export function BoardScreen({ flights, litId, onShare }: BoardScreenProps) {
             fontSize: 9,
             fontWeight: 700,
             letterSpacing: "0.12em",
-            color: "rgba(232,232,240,.65)",
+            color: "rgba(232,232,240,.50)",
             textDecoration: "none",
-            marginBottom: 12,
+            marginBottom: 14,
           }}
         >
           ← DASHBOARD
         </a>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <span
+
+        {/* Title row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div>
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 10,
+                fontWeight: 700,
+                color: A70,
+                letterSpacing: "0.18em",
+                marginBottom: 3,
+              }}
+            >
+              ✈ MIS VUELOS · SALIDAS
+            </div>
+            <div
+              style={{
+                fontFamily: MONO,
+                fontSize: 9,
+                color: "rgba(232,232,240,.35)",
+                letterSpacing: "0.08em",
+              }}
+            >
+              {date}
+            </div>
+          </div>
+
+          {/* Live clock */}
+          <div
             style={{
               fontFamily: MONO,
-              fontSize: 12,
+              fontSize: 32,
               fontWeight: 700,
               color: A,
-              letterSpacing: "0.15em",
+              letterSpacing: "0.04em",
+              lineHeight: 1,
             }}
           >
-            ✈ MIS VUELOS
-          </span>
-          <span
-            style={{
-              fontFamily: MONO,
-              fontSize: 10,
-              color: A60,
-              letterSpacing: "0.07em",
-            }}
-          >
-            {date}
-          </span>
+            {clock}
+          </div>
         </div>
+
+        {/* Divider */}
         <div
           style={{
-            height: 1,
-            marginTop: 11,
+            height: 2,
+            marginTop: 12,
+            borderRadius: 1,
             background: `linear-gradient(to right, ${A}, ${A35}, transparent)`,
           }}
         />
@@ -98,14 +124,15 @@ export function BoardScreen({ flights, litId, onShare }: BoardScreenProps) {
         {flights.length === 0 && (
           <div
             style={{
-              padding: "40px 20px",
+              padding: "60px 20px",
               textAlign: "center",
               fontFamily: MONO,
               fontSize: 11,
-              color: "rgba(232,232,240,.60)",
+              color: "rgba(232,232,240,.40)",
+              letterSpacing: "0.08em",
             }}
           >
-            Sin vuelos próximos
+            — SIN VUELOS PRÓXIMOS —
           </div>
         )}
         {flights.map((f, i) => (
@@ -124,33 +151,29 @@ export function BoardScreen({ flights, litId, onShare }: BoardScreenProps) {
       </div>
 
       {/* Share CTA */}
-      <div style={{ padding: "10px 20px 16px", flexShrink: 0 }}>
+      <div style={{ padding: "10px 20px 20px", flexShrink: 0 }}>
         <button
           onClick={onShare}
           style={{
             width: "100%",
-            padding: "13px",
+            padding: "14px",
             cursor: "pointer",
-            background: "transparent",
-            border: `1px solid ${A}`,
-            color: A,
+            background: A,
+            border: "none",
+            color: "#07070d",
             fontFamily: MONO,
             fontSize: 12,
             fontWeight: 700,
-            letterSpacing: "0.1em",
+            letterSpacing: "0.12em",
             borderRadius: 8,
-            transition: "background .15s",
+            transition: "opacity .15s",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
           }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.background = A08)
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.background = "transparent")
-          }
+          onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.88")}
+          onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
         >
           ⬡ COMPARTIR MIS VUELOS
         </button>
