@@ -48,7 +48,7 @@ export function BoardScreen({ flights, litId, onShare }: BoardScreenProps) {
             fontSize: 9,
             fontWeight: 700,
             letterSpacing: "0.12em",
-            color: "rgba(232,232,240,.25)",
+            color: "rgba(232,232,240,.65)",
             textDecoration: "none",
             marginBottom: 12,
           }}

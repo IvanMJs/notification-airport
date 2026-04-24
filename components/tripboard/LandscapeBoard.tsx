@@ -48,7 +48,7 @@ export function LandscapeBoard({ flights }: LandscapeBoardProps) {
             href="/app"
             style={{
               fontFamily: MONO, fontSize: 9, fontWeight: 700,
-              letterSpacing: "0.12em", color: "rgba(232,232,240,.25)",
+              letterSpacing: "0.12em", color: "rgba(232,232,240,.65)",
               textDecoration: "none",
             }}
           >
