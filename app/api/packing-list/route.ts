@@ -94,7 +94,9 @@ Add ONLY specific items missing for this destination/climate/activities not alre
       });
     }
 
-    const apiRaw = (await response.json()) as {
+    const responseText = await response.text();
+    if (!responseText) throw new Error(`Empty response from API (status ${response.status})`);
+    const apiRaw = JSON.parse(responseText) as {
       content: { type: string; text: string }[];
     };
     const text =

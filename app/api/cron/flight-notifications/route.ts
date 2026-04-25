@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     await retryFailedPushes(supabase);
   } catch (err) {
     Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { step: "retry-failed-pushes" } });
-    cronErrors.push(`retryFailedPushes: ${String(err)}`);
+    cronErrors.push(`retryFailedPushes: ${err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)}`);
   }
 
   // ── Cron timing constants (cron-job.org fires every 30 min) ─────────────
@@ -216,7 +216,7 @@ export async function GET(request: Request) {
         for (const result of results) {
           if (result.status === "rejected") {
             Sentry.captureException(result.reason instanceof Error ? result.reason : new Error(String(result.reason)), { extra: { step: "aerodatabox-allsettled" } });
-            cronErrors.push(`AeroDataBox fetch error: ${String(result.reason)}`);
+            cronErrors.push(`AeroDataBox fetch error: ${result.reason instanceof Error ? result.reason.message : typeof result.reason === 'string' ? result.reason : JSON.stringify(result.reason)}`);
             continue;
           }
           const { iata, res } = result.value;
@@ -237,7 +237,7 @@ export async function GET(request: Request) {
             }
           } catch (e) {
             Sentry.captureException(e instanceof Error ? e : new Error(String(e)), { extra: { step: "aerodatabox-parse" } });
-            cronErrors.push(`AeroDataBox ${iata}: ${String(e)}`);
+            cronErrors.push(`AeroDataBox ${iata}: ${e instanceof Error ? e.message : typeof e === 'string' ? e : JSON.stringify(e)}`);
           }
         }
       }
@@ -621,7 +621,7 @@ export async function GET(request: Request) {
     }
     } catch (err) {
       Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { step: "process-flight-row" } });
-      cronErrors.push(`processFlightRow ${flight.flight_code} (${flight.iso_date}): ${String(err)}`);
+      cronErrors.push(`processFlightRow ${flight.flight_code} (${flight.iso_date}): ${err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)}`);
     }
   }
 
@@ -678,7 +678,7 @@ export async function GET(request: Request) {
     }
     } catch (err) {
       Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { step: "process-weather-alert" } });
-      cronErrors.push(`processWeatherAlert ${flight.flight_code} (${flight.iso_date}): ${String(err)}`);
+      cronErrors.push(`processWeatherAlert ${flight.flight_code} (${flight.iso_date}): ${err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)}`);
     }
   }
 
@@ -736,7 +736,7 @@ export async function GET(request: Request) {
     notificationsFailed += failed;
     } catch (err) {
       Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { step: "process-countdown" } });
-      cronErrors.push(`processCountdown: ${String(err)}`);
+      cronErrors.push(`processCountdown: ${err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)}`);
     }
   }
 
@@ -810,7 +810,7 @@ export async function GET(request: Request) {
     }
     } catch (err) {
       Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { step: "process-accommodation" } });
-      cronErrors.push(`processAccommodation ${acc.name} (${acc.check_in_date}): ${String(err)}`);
+      cronErrors.push(`processAccommodation ${acc.name} (${acc.check_in_date}): ${err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)}`);
     }
   }
 
@@ -1306,7 +1306,7 @@ export async function GET(request: Request) {
           });
         } catch (err) {
           Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { step: "process-anniversary" } });
-          cronErrors.push(`processAnniversary ${row.id}: ${String(err)}`);
+          cronErrors.push(`processAnniversary ${row.id}: ${err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)}`);
         }
       }
 
@@ -1415,7 +1415,7 @@ export async function GET(request: Request) {
           });
         } catch (err) {
           Sentry.captureException(err instanceof Error ? err : new Error(String(err)), { extra: { step: "weekly-stats" } });
-          cronErrors.push(`weeklyStats ${statsUserId}: ${String(err)}`);
+          cronErrors.push(`weeklyStats ${statsUserId}: ${err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err)}`);
         }
       }
     }

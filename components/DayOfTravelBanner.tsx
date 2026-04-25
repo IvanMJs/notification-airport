@@ -39,8 +39,9 @@ function parseDepartureMs(isoDate: string, timeHHMM: string): number {
 }
 
 function useCountdown(targetMs: number) {
-  const [diff, setDiff] = useState(targetMs - Date.now());
+  const [diff, setDiff] = useState<number | null>(null);
   useEffect(() => {
+    setDiff(targetMs - Date.now());
     const id = setInterval(() => setDiff(targetMs - Date.now()), 1000);
     return () => clearInterval(id);
   }, [targetMs]);
@@ -74,9 +75,11 @@ export function DayOfTravelBanner({
   locale,
 }: DayOfTravelBannerProps) {
   const departureMs = parseDepartureMs(todayIso(), departureTime);
-  // Board ~40 min before departure
   const boardingMs = departureMs - 40 * 60 * 1000;
   const countdownMs = useCountdown(departureMs);
+
+  if (countdownMs === null) return null;
+
   const departed = countdownMs <= 0;
 
   const phone = AIRLINE_PHONES[airlineCode];

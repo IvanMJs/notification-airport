@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 interface CountryCelebrationProps {
@@ -37,7 +37,11 @@ export function CountryCelebration({
   locale,
   onDone,
 }: CountryCelebrationProps) {
-  const particlesRef = useRef<Particle[]>(buildParticles());
+  const [particles, setParticles] = useState<Particle[]>([]);
+
+  useEffect(() => {
+    setParticles(buildParticles());
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(onDone, 2500);
@@ -52,7 +56,7 @@ export function CountryCelebration({
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center pointer-events-none">
       {/* Confetti particles */}
-      {particlesRef.current.map((p, i) => {
+      {particles.map((p, i) => {
         const x = Math.cos(p.angle) * p.distance;
         const y = Math.sin(p.angle) * p.distance;
         const size = p.shape === "circle" ? 8 : 6;

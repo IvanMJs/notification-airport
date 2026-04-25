@@ -139,7 +139,9 @@ ${SCHEMA_HINT}`;
     return NextResponse.json({ error: friendly }, { status: 500 });
   }
 
-  const apiRaw = await response.json() as { content: { type: string; text: string }[] };
+  const responseText = await response.text();
+  if (!responseText) return NextResponse.json({ error: "Empty response from upstream API" }, { status: 502 });
+  const apiRaw = JSON.parse(responseText) as { content: { type: string; text: string }[] };
   const text = apiRaw.content?.find((c: { type: string; text: string }) => c.type === "text")?.text ?? "";
 
   // Extract JSON robustly — find first { to last }

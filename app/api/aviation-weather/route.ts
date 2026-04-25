@@ -42,7 +42,7 @@ export async function GET(req: Request) {
   } catch (err) {
     clearTimeout(timeout);
     return Response.json(
-      { error: "AWC unavailable", detail: String(err) },
+      { error: "AWC unavailable", detail: err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err) },
       { status: 502 },
     );
   }

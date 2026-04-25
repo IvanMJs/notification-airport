@@ -9,7 +9,9 @@ export async function GET() {
       next: { revalidate: 3600 }, // cache for 1 hour
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json() as { rates?: Record<string, number> };
+    const raw = await res.text();
+    if (!raw) throw new Error(`Empty response from API (status ${res.status})`);
+    const data = JSON.parse(raw) as { rates?: Record<string, number> };
     const arsPerUsd = data.rates?.ARS;
     if (!arsPerUsd) throw new Error("No ARS rate in response");
     const usd = Math.round((ARS_AMOUNT / arsPerUsd) * 10) / 10;

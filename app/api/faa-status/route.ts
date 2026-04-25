@@ -27,7 +27,7 @@ export async function GET() {
   } catch (error) {
     clearTimeout(timeout);
     return Response.json(
-      { error: "FAA API unavailable", detail: String(error) },
+      { error: "FAA API unavailable", detail: error instanceof Error ? error.message : typeof error === 'string' ? error : JSON.stringify(error) },
       { status: 500 }
     );
   }

@@ -26,7 +26,7 @@ export async function GET() {
   } catch (err) {
     clearTimeout(timeout);
     return Response.json(
-      { error: "AWC SIGMET unavailable", detail: String(err) },
+      { error: "AWC SIGMET unavailable", detail: err instanceof Error ? err.message : typeof err === 'string' ? err : JSON.stringify(err) },
       { status: 502, headers: { "Cache-Control": "no-store" } },
     );
   }
