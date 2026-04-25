@@ -18,14 +18,14 @@ interface PendingIncoming {
 
 interface FollowUser {
   userId: string;
-  username: string;
+  username: string | null;
   displayName: string | null;
 }
 
 interface FeedItem {
   tripId: string;
   userId: string;
-  username: string;
+  username: string | null;
   displayName: string | null;
   destinationCode: string;
   destinationName: string | null;
@@ -365,15 +365,15 @@ export function TripSocialView({ locale, userId }: Props) {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-white truncate">
-                        {result.displayName ?? result.username}
+                        {result.displayName ?? result.username ?? "Usuario"}
                       </p>
-                      <p className="text-xs text-[#FFB800]">@{result.username}</p>
+                      <p className="text-xs text-[#FFB800]">@{result.username ?? "—"}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => {
                       setSearchOpen(false);
-                      router.push(`/u/${result.username}`);
+                      if (result.username) router.push(`/u/${result.username}`);
                     }}
                     className="shrink-0 text-xs font-semibold text-[#FFB800] hover:text-[#FFB800] transition-colors ml-3"
                   >
@@ -514,15 +514,15 @@ export function TripSocialView({ locale, userId }: Props) {
             following.map((f) => (
               <a
                 key={f.userId}
-                href={`/u/${f.username}`}
+                href={f.username ? `/u/${f.username}` : "#"}
                 className="flex items-center gap-3 hover:bg-white/[0.04] rounded-xl p-2 -mx-2 transition-colors"
               >
                 <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#FFB800] to-blue-600 flex items-center justify-center shrink-0">
                   <span className="text-sm font-black text-white">{(f.displayName ?? f.username ?? "?")[0]?.toUpperCase()}</span>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{f.displayName ?? f.username}</p>
-                  <p className="text-xs text-white/40 truncate">@{f.username}</p>
+                  <p className="text-sm font-semibold text-white truncate">{f.displayName ?? f.username ?? "Usuario"}</p>
+                  <p className="text-xs text-white/40 truncate">@{f.username ?? "—"}</p>
                 </div>
               </a>
             ))
@@ -545,15 +545,15 @@ export function TripSocialView({ locale, userId }: Props) {
             followers.map((f) => (
               <a
                 key={f.userId}
-                href={`/u/${f.username}`}
+                href={f.username ? `/u/${f.username}` : "#"}
                 className="flex items-center gap-3 hover:bg-white/[0.04] rounded-xl p-2 -mx-2 transition-colors"
               >
                 <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#FFB800] to-blue-600 flex items-center justify-center shrink-0">
                   <span className="text-sm font-black text-white">{(f.displayName ?? f.username ?? "?")[0]?.toUpperCase()}</span>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{f.displayName ?? f.username}</p>
-                  <p className="text-xs text-white/40 truncate">@{f.username}</p>
+                  <p className="text-sm font-semibold text-white truncate">{f.displayName ?? f.username ?? "Usuario"}</p>
+                  <p className="text-xs text-white/40 truncate">@{f.username ?? "—"}</p>
                 </div>
               </a>
             ))
@@ -581,7 +581,7 @@ export function TripSocialView({ locale, userId }: Props) {
               return (
                 <a
                   key={item.tripId}
-                  href={`/u/${item.username}`}
+                  href={item.username ? `/u/${item.username}` : "#"}
                   className="flex items-center gap-3 hover:bg-white/[0.04] rounded-xl p-2 -mx-2 transition-colors"
                 >
                   <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#FFB800] to-blue-600 flex items-center justify-center shrink-0">
@@ -591,7 +591,7 @@ export function TripSocialView({ locale, userId }: Props) {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-white/80 leading-snug truncate">
-                      <span className="font-semibold text-white">{item.displayName ?? `@${item.username}`}</span>
+                      <span className="font-semibold text-white">{item.displayName ?? (item.username ? `@${item.username}` : "Usuario")}</span>
                       {" "}
                       <span className="text-white/50">{isUpcoming ? L.feedUpcoming : L.feedAdded}</span>
                       {" "}

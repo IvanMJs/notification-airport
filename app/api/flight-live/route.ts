@@ -197,6 +197,44 @@ async function fetchFromOpenSky(
   }
 }
 
+// Cache TTL: 3 hours for active flights, 6 hours for landed/cancelled
+const CACHE_TTL_ACTIVE_MS  = 3 * 60 * 60 * 1000;
+const CACHE_TTL_SETTLED_MS = 6 * 60 * 60 * 1000;
+
+const SETTLED_STATUSES: LiveFlightData["status"][] = ["landed", "cancelled"];
+
+async function getCached(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  flightKey: string,
+  isoDate: string,
+): Promise<LiveFlightData | null> {
+  const { data } = await supabase
+    .from("flight_live_cache")
+    .select("data, fetched_at")
+    .eq("flight_key", flightKey)
+    .eq("iso_date", isoDate)
+    .single();
+
+  if (!data) return null;
+
+  const ageMs = Date.now() - new Date(data.fetched_at as string).getTime();
+  const cached = data.data as LiveFlightData;
+  const ttl = SETTLED_STATUSES.includes(cached.status) ? CACHE_TTL_SETTLED_MS : CACHE_TTL_ACTIVE_MS;
+
+  return ageMs < ttl ? cached : null;
+}
+
+async function setCached(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  flightKey: string,
+  isoDate: string,
+  liveData: LiveFlightData,
+): Promise<void> {
+  await supabase
+    .from("flight_live_cache")
+    .upsert({ flight_key: flightKey, iso_date: isoDate, data: liveData, fetched_at: new Date().toISOString() });
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
@@ -216,6 +254,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   if (!flight || !date) {
     return NextResponse.json({ error: "Missing flight or date" }, { status: 400 });
+  }
+
+  // ── Shared cache (Supabase) — checked before any external API call ────
+  const cached = await getCached(supabase, flight, date);
+  if (cached) {
+    return NextResponse.json<LiveFlightData>(cached);
   }
 
   // ── Try AeroDataBox first ─────────────────────────────────────────────
@@ -242,7 +286,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           const status: LiveFlightData["status"] =
             rawStatus === "scheduled" && delayMinutes > 0 ? "delayed" : rawStatus;
 
-          return NextResponse.json<LiveFlightData>({
+          const result: LiveFlightData = {
             flightNumber: flight,
             status,
             departureGate: flightData.departure?.gate ?? null,
@@ -253,7 +297,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             actualArrival: toIso(flightData.arrival?.actualTimeUtc ?? flightData.arrival?.estimatedTimeUtc),
             delayMinutes,
             terminal: flightData.departure?.terminal?.name ?? null,
-          });
+          };
+
+          await setCached(supabase, flight, date, result);
+          return NextResponse.json<LiveFlightData>(result);
         }
       }
     } catch {
@@ -264,6 +311,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // ── Fallback: AviationStack ───────────────────────────────────────────
   const avsData = await fetchFromAviationStack(flight, date);
   if (avsData) {
+    await setCached(supabase, flight, date, avsData);
     return NextResponse.json<LiveFlightData>(avsData);
   }
 
@@ -274,7 +322,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const schedDep = searchParams.get("scheduledDep");
     if (icao) {
       const openSkyData = await fetchFromOpenSky(flight, date, icao, schedDep);
-      if (openSkyData) return NextResponse.json<LiveFlightData>(openSkyData);
+      if (openSkyData) {
+        await setCached(supabase, flight, date, openSkyData);
+        return NextResponse.json<LiveFlightData>(openSkyData);
+      }
     }
   }
 
