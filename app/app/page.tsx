@@ -211,6 +211,12 @@ export default function HomePage() {
   }
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_TEST_MODE === "true") {
+      setUserId("test-user-00000000-0000-0000-0000-000000000000");
+      setUserName("Test User");
+      setUserPlan("pilot");
+      return;
+    }
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
