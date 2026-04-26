@@ -274,15 +274,14 @@ export default function HomePage() {
     }
   }, [mounted, userId, tripsLoading, userTrips.length]);
 
-  // Show onboarding tour once — after the user has their first trip loaded
+  // Show onboarding tour once — shown to new users before they add their first trip
   useEffect(() => {
     if (!mounted || tripsLoading || !userId) return;
-    if (userTrips.length === 0) return;
     const tourKey = `tc-tour-${userId}`;
     if (!localStorage.getItem(tourKey)) {
       setShowOnboardingTour(true);
     }
-  }, [mounted, userId, tripsLoading, userTrips.length]);
+  }, [mounted, userId, tripsLoading]);
 
   // Check-in push notifications
   useEffect(() => {
@@ -761,7 +760,7 @@ export default function HomePage() {
         onClose={() => { setShowNotificationsHub(false); setUnreadCount(getUnreadCount()); }}
       />
 
-      {/* Onboarding tour — shown once after first trip is loaded */}
+      {/* Onboarding tour — shown once to new users, last step opens AI import */}
       {showOnboardingTour && (
         <OnboardingTour
           locale={locale}
@@ -769,6 +768,7 @@ export default function HomePage() {
             setShowOnboardingTour(false);
             if (userId) localStorage.setItem(`tc-tour-${userId}`, "true");
           }}
+          onStartImport={() => setShowGlobalImport(true)}
         />
       )}
 

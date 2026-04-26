@@ -219,7 +219,7 @@ export function TripListView({
 
       {/* Empty state — only when no active trips and no past trips */}
       {activeTrips.length === 0 && pastTrips.length === 0 && !exampleTrip && (
-        <FlightsEmptyState locale={locale} onCreateTrip={onCreateTrip} />
+        <FlightsEmptyState locale={locale} onCreateTrip={onCreateTrip} onImport={onAIImport} />
       )}
 
       {/* N4: FAB for new trip — only when no trips exist */}
