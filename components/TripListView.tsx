@@ -122,6 +122,7 @@ export function TripListView({
   onSelectExample,
   onDismissExample,
   onSelectTemplate,
+  onAIImport,
   onCreateSimilar,
   onViewArchivedTrip,
 }: TripListViewProps) {
