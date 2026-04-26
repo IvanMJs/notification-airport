@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BarChart2, Map, MapPin, CalendarDays, Compass, Plus, Pencil, X, Trash2, ChevronDown } from "lucide-react";
+import { BarChart2, Map, MapPin, CalendarDays, Compass, Plus, Pencil, X, Trash2, ChevronDown, Monitor } from "lucide-react";
 import { TripTab } from "@/lib/types";
 
 interface Props {
@@ -48,7 +48,7 @@ export function DesktopSidebar({
   function navItemClass(isActive: boolean) {
     return `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
       isActive
-        ? "bg-violet-500/15 text-violet-400"
+        ? "bg-[rgba(255,184,0,0.10)] text-[#FFB800]"
         : "text-text-muted hover:text-white hover:bg-white/[0.04]"
     }`;
   }
@@ -97,7 +97,7 @@ export function DesktopSidebar({
               />
             )}
             {totalTrips > 1 && (
-              <span className="h-5 min-w-[20px] bg-violet-600 text-white text-[11px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+              <span className="h-5 min-w-[20px] bg-[#FFB800] text-[#07070d] text-[11px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
                 {totalTrips}
               </span>
             )}
@@ -122,14 +122,14 @@ export function DesktopSidebar({
                         if (e.key === "Escape") setRenameId(null);
                       }}
                       maxLength={40}
-                      className="flex-1 min-w-0 bg-white/[0.06] border border-violet-500/50 rounded-lg px-2 py-1 text-xs text-white outline-none"
+                      className="flex-1 min-w-0 bg-white/[0.06] border border-[rgba(255,184,0,0.5)] rounded-lg px-2 py-1 text-xs text-white outline-none"
                     />
                   ) : (
                     <button
                       onClick={() => onNavigate(draftId)}
                       className="flex-1 min-w-0 text-left"
                     >
-                      <p className={`text-xs font-semibold truncate ${activeTab === draftId ? "text-violet-400" : "text-gray-300"}`}>
+                      <p className={`text-xs font-semibold truncate ${activeTab === draftId ? "text-[#FFB800]" : "text-gray-300"}`}>
                         {draftTrip.name}
                         <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider text-yellow-500 border border-yellow-700/50 rounded px-1">
                           {locale === "es" ? "Draft" : "Draft"}
@@ -183,14 +183,14 @@ export function DesktopSidebar({
                         if (e.key === "Escape") setRenameId(null);
                       }}
                       maxLength={40}
-                      className="flex-1 min-w-0 bg-white/[0.06] border border-violet-500/50 rounded-lg px-2 py-1 text-xs text-white outline-none"
+                      className="flex-1 min-w-0 bg-white/[0.06] border border-[rgba(255,184,0,0.5)] rounded-lg px-2 py-1 text-xs text-white outline-none"
                     />
                   ) : (
                     <button
                       onClick={() => onNavigate(trip.id)}
                       className="flex-1 min-w-0 text-left"
                     >
-                      <p className={`text-xs font-semibold truncate ${activeTab === trip.id ? "text-violet-400" : "text-gray-300"}`}>
+                      <p className={`text-xs font-semibold truncate ${activeTab === trip.id ? "text-[#FFB800]" : "text-gray-300"}`}>
                         {trip.name}
                       </p>
                       <p className="text-[11px] text-gray-500 mt-0.5">
@@ -244,6 +244,15 @@ export function DesktopSidebar({
           <span>{locale === "es" ? "Hoy" : "Today"}</span>
         </button>
 
+        {/* Tablero */}
+        <a
+          href="/board"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-text-muted hover:text-white hover:bg-white/[0.04]"
+        >
+          <Monitor className="w-5 h-5 shrink-0" strokeWidth={1.5} />
+          <span>{locale === "es" ? "Tablero" : "Board"}</span>
+        </a>
+
         {/* Explorar */}
         <button
           onClick={() => onNavigate("discover")}
@@ -259,7 +268,7 @@ export function DesktopSidebar({
       <div className="mt-4 pt-4 border-t border-white/[0.06]">
         <button
           onClick={onNewTrip}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#FFB800] hover:bg-[#FFC933] text-[#07070d] text-sm font-semibold transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span>{locale === "es" ? "Nuevo viaje" : "New trip"}</span>

@@ -43,9 +43,21 @@ export function LandscapeBoard({ flights }: LandscapeBoardProps) {
           flexShrink: 0,
         }}
       >
-        <span style={{ fontSize: 14, fontWeight: 700, color: A, letterSpacing: "0.18em" }}>
-          ✈ TRIPCOPILOT — SALIDAS
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <a
+            href="/app"
+            style={{
+              fontFamily: MONO, fontSize: 9, fontWeight: 700,
+              letterSpacing: "0.12em", color: "rgba(232,232,240,.65)",
+              textDecoration: "none",
+            }}
+          >
+            ← DASHBOARD
+          </a>
+          <span style={{ fontSize: 14, fontWeight: 700, color: A, letterSpacing: "0.18em" }}>
+            ✈ TRIPCOPILOT — SALIDAS
+          </span>
+        </div>
         <span style={{ fontSize: 10, color: A60, letterSpacing: "0.07em" }}>{date}</span>
       </div>
 
@@ -61,7 +73,7 @@ export function LandscapeBoard({ flights }: LandscapeBoardProps) {
         }}
       >
         {["HORA", "DESTINO", "ORIG", "VUELO", "PUERTA", "ESTADO"].map((h) => (
-          <span key={h} style={{ fontSize: 8, color: T18, letterSpacing: "0.14em" }}>
+          <span key={h} style={{ fontSize: 8, color: "rgba(232,232,240,.50)", letterSpacing: "0.14em" }}>
             {h}
           </span>
         ))}
@@ -81,16 +93,16 @@ export function LandscapeBoard({ flights }: LandscapeBoardProps) {
                 animation: `tb-row-in .35s ease-out ${i * 60}ms both`,
               }}
             >
-              <SplitFlapTime time={f.time} sz={24} />
+              <SplitFlapTime time={f.time} sz={28} />
               <div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", lineHeight: 1 }}>{f.dest}</div>
-                <div style={{ fontSize: 9, color: T35, marginTop: 2, letterSpacing: "0.05em" }}>{f.city}</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: "#fff", lineHeight: 1 }}>{f.dest}</div>
+                <div style={{ fontSize: 9, color: "rgba(232,232,240,.55)", marginTop: 3, letterSpacing: "0.06em" }}>{f.city}</div>
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: T35 }}>{f.orig}</span>
-              <span style={{ fontSize: 13, color: A60, letterSpacing: "0.04em" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,184,0,.75)" }}>{f.orig}</span>
+              <span style={{ fontSize: 13, color: "rgba(255,184,0,.85)", letterSpacing: "0.04em" }}>
                 {f.airline} {f.num}
               </span>
-              <span style={{ fontSize: 22, fontWeight: 700, color: "#fff" }}>{f.gate}</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: "rgba(232,232,240,.80)" }}>{f.gate}</span>
               <StatusPill status={f.status} delay={f.delay} />
             </div>
             {i < flights.length - 1 && (

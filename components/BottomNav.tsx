@@ -102,9 +102,9 @@ export function BottomNav({
             whileTap={{ scale: 0.9 }}
             onClick={() => { haptics.impact(); setShowTripPicker(false); onNewTrip(); }}
              aria-label={locale === "es" ? "Agregar vuelo" : "Add flight"}
-            className="h-14 w-14 rounded-full bg-gradient-to-br from-violet-600 to-violet-800 shadow-lg shadow-violet-500/30 ring-4 ring-[#0a0a14] flex items-center justify-center"
+            className="h-14 w-14 rounded-full bg-[#FFB800] shadow-lg shadow-[rgba(255,184,0,0.3)] ring-4 ring-[#0a0a14] flex items-center justify-center"
           >
-            <Plus className="h-7 w-7 text-white" strokeWidth={2} />
+            <Plus className="h-7 w-7 text-[#07070d]" strokeWidth={2} />
           </motion.button>
         </div>
       )}
@@ -187,14 +187,14 @@ export function BottomNav({
                       if (e.key === "Escape") setRenameInPickerId(null);
                     }}
                     maxLength={40}
-                    className="flex-1 min-w-0 bg-white/[0.06] border border-violet-500/50 rounded-lg px-3 py-1.5 text-sm text-white outline-none"
+                    className="flex-1 min-w-0 bg-white/[0.06] border border-[rgba(255,184,0,0.5)] rounded-lg px-3 py-1.5 text-sm text-white outline-none"
                   />
                 ) : (
                   <button
                     onClick={() => { onNavigate(draftId); setShowTripPicker(false); setRenameInPickerId(null); }}
                     className="flex-1 min-w-0 text-left"
                   >
-                    <p className={`text-sm font-semibold truncate ${activeTab === draftId ? "text-violet-400" : "text-white"}`}>
+                    <p className={`text-sm font-semibold truncate ${activeTab === draftId ? "text-[#FFB800]" : "text-white"}`}>
                       {draftTrip.name}
                       <span className="ml-2 text-[11px] font-bold uppercase tracking-wider text-yellow-500 border border-yellow-700/50 rounded px-1 py-0.5">
                         {locale === "es" ? "Borrador" : "Draft"}
@@ -254,17 +254,17 @@ export function BottomNav({
                       if (e.key === "Escape") setRenameInPickerId(null);
                     }}
                     maxLength={40}
-                    className="flex-1 min-w-0 bg-white/[0.06] border border-violet-500/50 rounded-lg px-3 py-1.5 text-sm text-white outline-none"
+                    className="flex-1 min-w-0 bg-white/[0.06] border border-[rgba(255,184,0,0.5)] rounded-lg px-3 py-1.5 text-sm text-white outline-none"
                   />
                 ) : (
                   <button
                     onClick={() => { onNavigate(trip.id); setShowTripPicker(false); setRenameInPickerId(null); }}
                     className="flex-1 min-w-0 text-left"
                   >
-                    <p className={`text-sm font-semibold truncate flex items-center gap-1.5 ${activeTab === trip.id ? "text-violet-400" : "text-white"}`}>
+                    <p className={`text-sm font-semibold truncate flex items-center gap-1.5 ${activeTab === trip.id ? "text-[#FFB800]" : "text-white"}`}>
                       <span className="truncate">{trip.name}</span>
                       {trip.isShared && (
-                        <Users className="h-3 w-3 shrink-0 text-violet-400" aria-label={locale === "es" ? "Compartido" : "Shared"} />
+                        <Users className="h-3 w-3 shrink-0 text-[#FFB800]" aria-label={locale === "es" ? "Compartido" : "Shared"} />
                       )}
                     </p>
                     <p className="text-xs text-gray-500 mt-0.5">
@@ -304,22 +304,22 @@ export function BottomNav({
 
           <div className="flex h-[60px]">
 
-            {/* Vuelos (today) */}
+            {/* Vuelos (airports home) */}
             <button
-              onClick={() => { haptics.impact(); onNavigate("today"); }}
+              onClick={() => { haptics.impact(); onNavigate("airports"); }}
               aria-label={locale === "es" ? "Vuelos" : "Flights"}
-              aria-current={activeTab === "today" ? "page" : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "today" ? "text-violet-400" : "text-gray-500"}`}
+              aria-current={activeTab === "airports" || activeTab === "today" ? "page" : undefined}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "airports" || activeTab === "today" ? "text-[#FFB800]" : "text-gray-500"}`}
             >
               <div className="relative">
                 <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center w-10 h-8 rounded-xl">
-                  {activeTab === "today" && (
-                    <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-violet-500/20" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+                  {(activeTab === "airports" || activeTab === "today") && (
+                    <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-[rgba(255,184,0,0.12)]" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
                   )}
-                  <CalendarDays className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "today" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "today" ? 2.5 : 1.5} />
+                  <CalendarDays className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "airports" || activeTab === "today" ? "text-[#FFB800]" : "text-gray-500"}`} strokeWidth={activeTab === "airports" || activeTab === "today" ? 2.5 : 1.5} />
                 </motion.div>
-                {hasUpcomingFlight && activeTab !== "today" && (
-                  <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-violet-500 ring-2 ring-[#0a0a14]" aria-label={locale === "es" ? "Vuelo próximo" : "Upcoming flight"} />
+                {hasUpcomingFlight && activeTab !== "airports" && activeTab !== "today" && (
+                  <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[#FFB800] ring-2 ring-[#0a0a14]" aria-label={locale === "es" ? "Vuelo próximo" : "Upcoming flight"} />
                 )}
               </div>
               <span className="text-[10px] font-semibold leading-none">{locale === "es" ? "Vuelos" : "Flights"}</span>
@@ -330,17 +330,17 @@ export function BottomNav({
               onClick={handleTripNavTap}
               aria-label={tripsLabel}
               aria-current={tripsActive ? "page" : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${tripsActive ? "text-violet-400" : "text-gray-500"}`}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${tripsActive ? "text-[#FFB800]" : "text-gray-500"}`}
             >
               <div className="relative">
                 <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center w-10 h-8 rounded-xl">
                   {tripsActive && (
-                    <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-violet-500/20" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+                    <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-[rgba(255,184,0,0.12)]" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
                   )}
-                  <Map className={`relative w-[22px] h-[22px] transition-colors ${tripsActive ? "text-violet-400" : "text-gray-500"}`} strokeWidth={tripsActive ? 2.5 : 1.5} />
+                  <Map className={`relative w-[22px] h-[22px] transition-colors ${tripsActive ? "text-[#FFB800]" : "text-gray-500"}`} strokeWidth={tripsActive ? 2.5 : 1.5} />
                 </motion.div>
                 {totalTrips > 1 && (
-                  <span className="absolute -top-1.5 -right-2.5 h-4 min-w-[16px] bg-violet-600 text-white text-[11px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                  <span className="absolute -top-1.5 -right-2.5 h-4 min-w-[16px] bg-[#FFB800] text-[#07070d] text-[11px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
                     {totalTrips}
                   </span>
                 )}
@@ -360,13 +360,13 @@ export function BottomNav({
               onClick={() => { haptics.impact(); onNavigate("discover"); }}
               aria-label={locale === "es" ? "Descubrir" : "Discover"}
               aria-current={activeTab === "discover" ? "page" : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "discover" ? "text-violet-400" : "text-gray-500"}`}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "discover" ? "text-[#FFB800]" : "text-gray-500"}`}
             >
               <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center w-10 h-8 rounded-xl">
                 {activeTab === "discover" && (
-                  <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-violet-500/20" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+                  <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-[rgba(255,184,0,0.12)]" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
                 )}
-                <Compass className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "discover" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "discover" ? 2.5 : 1.5} />
+                <Compass className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "discover" ? "text-[#FFB800]" : "text-gray-500"}`} strokeWidth={activeTab === "discover" ? 2.5 : 1.5} />
               </motion.div>
               <span className="text-[10px] font-semibold leading-none">{locale === "es" ? "Descubrir" : "Discover"}</span>
             </button>
@@ -376,13 +376,13 @@ export function BottomNav({
               onClick={() => { haptics.impact(); onNavigate("profile"); }}
               aria-label={tabLabels.profile}
               aria-current={activeTab === "profile" ? "page" : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "profile" ? "text-violet-400" : "text-gray-500"}`}
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 relative tap-scale transition-colors ${activeTab === "profile" ? "text-[#FFB800]" : "text-gray-500"}`}
             >
               <motion.div whileTap={{ scale: 0.82 }} className="relative flex items-center justify-center w-10 h-8 rounded-xl">
                 {activeTab === "profile" && (
-                  <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-violet-500/20" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+                  <motion.div layoutId="nav-indicator" className="absolute inset-0 rounded-xl bg-[rgba(255,184,0,0.12)]" transition={{ type: "spring", stiffness: 400, damping: 30 }} />
                 )}
-                <User className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "profile" ? "text-violet-400" : "text-gray-500"}`} strokeWidth={activeTab === "profile" ? 2.5 : 1.5} />
+                <User className={`relative w-[22px] h-[22px] transition-colors ${activeTab === "profile" ? "text-[#FFB800]" : "text-gray-500"}`} strokeWidth={activeTab === "profile" ? 2.5 : 1.5} />
               </motion.div>
               <span className="text-[10px] font-semibold leading-none">{locale === "es" ? "Perfil" : "Profile"}</span>
             </button>

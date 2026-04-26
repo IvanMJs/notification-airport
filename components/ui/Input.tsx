@@ -30,7 +30,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             disabled={disabled}
             className={cn(
-              'w-full rounded-lg border border-white/[0.08] focus:border-violet-500/60',
+              'w-full rounded-lg border border-white/[0.08] focus:border-[rgba(255,184,0,0.5)]',
               'bg-white/[0.04] px-3 py-2 text-sm text-white',
               'placeholder:text-white/30 outline-none transition-colors',
               'disabled:opacity-50 disabled:cursor-not-allowed',

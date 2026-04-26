@@ -68,6 +68,7 @@ import { exportAllTripsJSON } from "@/lib/dataExport";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import { NotificationsHubPanel } from "@/components/NotificationsHubPanel";
 import { TripHistoryView } from "@/components/TripHistoryView";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import { getUnreadCount } from "@/lib/notificationsHub";
 import { NewUserWelcomeView } from "@/components/NewUserWelcomeView";
 
@@ -97,6 +98,7 @@ export default function HomePage() {
   const [showNotifSheet, setShowNotifSheet] = useState(false);
   const [showNotifSettings, setShowNotifSettings] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [showOnboardingTour, setShowOnboardingTour] = useState(false);
 
   // Initialize with a fixed default to avoid hydration mismatch.
   // On mount, both setMounted and the first-time tab redirect fire in the same
@@ -107,6 +109,8 @@ export default function HomePage() {
   const [mounted, setMounted] = useState(false);
   const [userPlan, setUserPlan] = useState<"free" | "explorer" | "pilot" | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   // DB-backed state
   const { airports: watchedAirports, add: addAirportDB, remove: removeAirportDB } = useWatchedAirports();
@@ -211,10 +215,15 @@ export default function HomePage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) return;
       setUserId(user.id);
-      supabase.from("user_profiles").select("plan").eq("id", user.id).single()
+      const metaName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || null;
+      supabase.from("user_profiles").select("plan, display_name, avatar_url").eq("id", user.id).single()
         .then(({ data }) => {
           const plan = (data as { plan?: string } | null)?.plan;
           setUserPlan(plan === "pilot" ? "pilot" : plan === "explorer" ? "explorer" : "free");
+          const dbName = (data as { display_name?: string | null } | null)?.display_name;
+          setUserName(dbName || metaName);
+          const dbAvatar = (data as { avatar_url?: string | null } | null)?.avatar_url;
+          setUserAvatar(dbAvatar || null);
         });
       // Update last_seen_at (throttle: only if >30min since last update)
       supabase.from("user_profiles").select("last_seen_at").eq("id", user.id).single()
@@ -262,6 +271,16 @@ export default function HomePage() {
     if (userTrips.length === 0 && !localStorage.getItem(userKey) && !localStorage.getItem("tc-onboarded")) {
       setActiveTabRaw("trips");
       prevTabRef.current = "trips";
+    }
+  }, [mounted, userId, tripsLoading, userTrips.length]);
+
+  // Show onboarding tour once — after the user has their first trip loaded
+  useEffect(() => {
+    if (!mounted || tripsLoading || !userId) return;
+    if (userTrips.length === 0) return;
+    const tourKey = `tc-tour-${userId}`;
+    if (!localStorage.getItem(tourKey)) {
+      setShowOnboardingTour(true);
     }
   }, [mounted, userId, tripsLoading, userTrips.length]);
 
@@ -742,6 +761,17 @@ export default function HomePage() {
         onClose={() => { setShowNotificationsHub(false); setUnreadCount(getUnreadCount()); }}
       />
 
+      {/* Onboarding tour — shown once after first trip is loaded */}
+      {showOnboardingTour && (
+        <OnboardingTour
+          locale={locale}
+          onDone={() => {
+            setShowOnboardingTour(false);
+            if (userId) localStorage.setItem(`tc-tour-${userId}`, "true");
+          }}
+        />
+      )}
+
       {/* Trip history view — full-screen overlay */}
       {showTripHistory && (
         <div className="fixed inset-0 z-50 bg-surface-darker overflow-y-auto">
@@ -797,7 +827,7 @@ export default function HomePage() {
                   aria-label={locale === "es" ? "Ajustes" : "Settings"}
                   className={`flex items-center justify-center rounded-md border p-1.5 transition-colors ${
                     activeTab === "settings"
-                      ? "border-violet-700/60 bg-violet-900/20 text-violet-400"
+                      ? "border-[rgba(255,184,0,0.35)] bg-[rgba(255,184,0,0.08)] text-[#FFB800]"
                       : "border-gray-700 bg-gray-900 text-gray-500 hover:text-gray-300 hover:border-gray-600"
                   }`}
                 >
@@ -904,7 +934,7 @@ export default function HomePage() {
               <span>⚠️ {t.errorFAA} {error}</span>
               <button
                 onClick={() => refresh()}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors shrink-0"
+                className="px-4 py-2 rounded-xl bg-[#FFB800] hover:bg-[#FFC933] text-[#07070d] text-sm font-semibold transition-colors shrink-0"
               >
                 {locale === "es" ? "Reintentar" : "Retry"}
               </button>
@@ -949,13 +979,24 @@ export default function HomePage() {
             >
             {activeTab === "airports" && (
               <div>
-                <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
+                <div className="mb-4 flex items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
                   {t.legendTitle && (
                     <span className="text-gray-500 font-medium mr-1">{t.legendTitle}</span>
                   )}
                   {t.legend.map((item) => (
                     <span key={item}>{item}</span>
                   ))}
+                  </div>
+                  <a
+                    href="/board"
+                    className="flex items-center gap-1.5 rounded-lg border border-[#FFB800]/30 bg-[#FFB800]/10 px-3 py-1.5 text-xs font-semibold text-[#FFB800] hover:bg-[#FFB800]/20 transition-colors shrink-0"
+                  >
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+                    </svg>
+                    {locale === "es" ? "Tablero" : "Board"}
+                  </a>
                 </div>
                 {loading && Object.keys(statusMap).length === 0 ? (
                   <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -994,13 +1035,37 @@ export default function HomePage() {
                     </p>
                     <button
                       onClick={openCreateTripModal}
-                      className="rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-95 text-white text-sm font-semibold px-5 py-2.5 transition-all"
+                      className="rounded-xl bg-[#FFB800] hover:bg-[#FFC933] active:scale-95 text-[#07070d] text-sm font-semibold px-5 py-2.5 transition-all"
                     >
                       {locale === "es" ? "Crear viaje" : "Create trip"}
                     </button>
                   </div>
                 )}
                 <DepartureBoard trips={userTrips} statusMap={statusMap} locale={locale} geoPosition={userPosition} userPlan={userPlan ?? undefined} onUpgrade={() => setShowUpgradeModal(true)} onCreateTrip={openCreateTripModal} />
+
+                {userTrips.length > 0 && (
+                  <a
+                    href="/board"
+                    className="flex items-center justify-between gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] px-5 py-4 transition-colors hover:bg-amber-500/[0.08] active:scale-[0.99]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">✈</span>
+                      <div>
+                        <p className="text-sm font-semibold text-amber-400 leading-tight">
+                          {locale === "es" ? "Ver tablero de vuelos" : "Open flight board"}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {locale === "es"
+                            ? "Cartel estilo aeropuerto · compartí con tu familia"
+                            : "Airport-style board · share with your family"}
+                        </p>
+                      </div>
+                    </div>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 text-amber-500/50">
+                      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </a>
+                )}
               </div>
             )}
 
@@ -1015,6 +1080,10 @@ export default function HomePage() {
                   locale={locale}
                   userPlan={userPlan}
                   userId={userId}
+                  userName={userName}
+                  userAvatar={userAvatar}
+                  onNameChange={(n) => setUserName(n)}
+                  onAvatarChange={(url) => setUserAvatar(url)}
                   onUpgrade={() => setShowUpgradeModal(true)}
                 />
               </Suspense>
@@ -1054,6 +1123,7 @@ export default function HomePage() {
                 {mounted && !tripsLoading && userTrips.length === 0 && !(userId ? localStorage.getItem(`tc-onboarded-${userId}`) : localStorage.getItem("tc-onboarded")) ? (
                   <NewUserWelcomeView
                     statusMap={statusMap}
+                    weatherMap={weatherMap}
                     loading={loading}
                     locale={locale}
                     userId={userId}
@@ -1078,9 +1148,9 @@ export default function HomePage() {
                   />
                 )}
                 {!tripsLoading && userTrips.length >= PLANS.free.maxTrips && (
-                  <div className="mx-4 mb-4 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="mx-4 mb-4 rounded-xl border border-[rgba(255,184,0,0.30)] bg-[rgba(255,184,0,0.08)] px-4 py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-violet-300">
+                      <p className="text-sm font-semibold text-[#FFB800]">
                         {locale === "es" ? "Plan gratuito completo" : "Free plan limit reached"}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">
@@ -1091,7 +1161,7 @@ export default function HomePage() {
                     </div>
                     <button
                       onClick={() => setShowUpgradeModal(true)}
-                      className="shrink-0 rounded-lg bg-violet-600 hover:bg-violet-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors"
+                      className="shrink-0 rounded-lg bg-[#FFB800] hover:bg-[#FFC933] px-3 py-1.5 text-xs font-semibold text-[#07070d] transition-colors"
                     >
                       Premium ✦
                     </button>

@@ -234,7 +234,7 @@ function FaaExplainButton({
     <div className="mt-2">
       <button
         onClick={handleExplain}
-        className="flex items-center gap-1.5 text-xs bg-violet-900/60 hover:bg-violet-800/80 text-violet-300 hover:text-violet-100 border border-violet-700/50 px-2.5 py-1 rounded-full transition-all"
+        className="flex items-center gap-1.5 text-xs bg-[rgba(255,184,0,0.08)] hover:bg-[rgba(255,184,0,0.10)] text-[#FFB800] hover:text-[#FFD566] border border-[rgba(255,184,0,0.25)] px-2.5 py-1 rounded-full transition-all"
       >
         {explainState === "loading" ? (
           <>
@@ -255,7 +255,7 @@ function FaaExplainButton({
       </button>
 
       {open && explainState === "done" && explanation && (
-        <p className="mt-1.5 text-sm text-gray-300 leading-relaxed bg-violet-950/20 border border-violet-800/20 rounded-lg p-3">
+        <p className="mt-1.5 text-sm text-gray-300 leading-relaxed bg-[rgba(255,184,0,0.06)] border border-[rgba(255,184,0,0.25)] rounded-lg p-3">
           {explanation}
         </p>
       )}
@@ -272,28 +272,28 @@ function FaaExplainButton({
 // ── Tone-driven card styling ──────────────────────────────────────────────────
 
 const haloByTone: Record<Tone, string> = {
-  ok:      "bg-[radial-gradient(circle,rgba(34,197,94,0.18),transparent_70%)]",
+  ok:      "bg-[radial-gradient(circle,rgba(255,184,0,0.12),transparent_70%)]",
   warn:    "bg-[radial-gradient(circle,rgba(251,146,60,0.20),transparent_70%)]",
   danger:  "bg-[radial-gradient(circle,rgba(239,68,68,0.24),transparent_70%)]",
   neutral: "",
 };
 const pulseByTone: Record<Tone, string> = {
-  ok: "bg-green-400", warn: "bg-orange-400", danger: "bg-red-500", neutral: "bg-gray-500",
+  ok: "bg-[#FFB800]", warn: "bg-orange-400", danger: "bg-red-500", neutral: "bg-gray-500",
 };
 const borderByTone: Record<Tone, string> = {
-  ok:      "border-green-500/20",
+  ok:      "border-[#FFB800]/20",
   warn:    "border-orange-500/25",
   danger:  "border-red-500/30",
   neutral: "border-white/[0.08]",
 };
 const shadowByTone: Record<Tone, string> = {
-  ok:      "shadow-glow-green",
+  ok:      "",
   warn:    "shadow-glow-orange",
   danger:  "shadow-glow-red",
   neutral: "",
 };
 const labelByTone: Record<Tone, string> = {
-  ok: "text-green-400", warn: "text-orange-300", danger: "text-red-300", neutral: "text-gray-500",
+  ok: "text-[#FFB800]", warn: "text-orange-300", danger: "text-red-300", neutral: "text-gray-500",
 };
 
 export function AirportCard({ iata, status, onRemove, weather, metar, highlight, onRefresh }: AirportCardProps) {
@@ -374,16 +374,6 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
         </div>
       )}
 
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          className="absolute right-2 top-2 rounded-full p-1 text-gray-600 hover:bg-white/8 hover:text-gray-300 transition-colors z-10"
-          aria-label={locale === "es" ? "Eliminar" : "Delete"}
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      )}
-
       <div className="px-4 pt-4 pb-0">
         {/* Radar pulse eyebrow */}
         <div className="relative flex items-center gap-2 mb-3">
@@ -393,8 +383,17 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
               ? (locale === "es" ? "sin señal" : "no signal")
               : (locale === "es" ? "en vivo" : "live")}
           </span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1.5">
             <AirportClock iata={iata} />
+            {onRemove && (
+              <button
+                onClick={onRemove}
+                className="rounded-full p-1 text-gray-600 hover:bg-white/[0.08] hover:text-gray-300 transition-colors"
+                aria-label={locale === "es" ? "Eliminar" : "Delete"}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
         </div>
 

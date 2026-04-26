@@ -103,7 +103,7 @@ export function AppScreenshotCarousel() {
               style={{
                 display: "block", borderRadius: 999,
                 height: 6, width: i === selectedIndex ? 20 : 6,
-                background: i === selectedIndex ? "#3b82f6" : "rgba(255,255,255,0.18)",
+                background: i === selectedIndex ? "#FFB800" : "rgba(255,255,255,0.18)",
                 transition: "all 0.35s ease", flexShrink: 0,
               }}
             />

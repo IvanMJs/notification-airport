@@ -290,7 +290,7 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
                     onClick={() => setTab(t_)}
                     className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                       tab === t_
-                        ? "bg-violet-600 text-white shadow"
+                        ? "bg-[#FFB800] text-[#07070d] shadow"
                         : "text-gray-500 hover:text-gray-300"
                     }`}
                   >
@@ -307,7 +307,7 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
                   onChange={(e) => setText(e.target.value)}
                   placeholder={t.textPlaceholder}
                   rows={9}
-                  className="w-full rounded-xl border border-white/[0.07] bg-surface-darker px-4 py-3 text-sm text-gray-200 placeholder-gray-700 focus:outline-none focus:ring-1 focus:ring-violet-500/60 resize-none font-mono leading-relaxed"
+                  className="w-full rounded-xl border border-white/[0.07] bg-surface-darker px-4 py-3 text-sm text-gray-200 placeholder-gray-700 focus:outline-none focus:ring-1 focus:ring-[rgba(255,184,0,0.4)] resize-none font-mono leading-relaxed"
                 />
               )}
 
@@ -317,7 +317,7 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
                   role="button"
                   tabIndex={0}
                   aria-label={locale === "es" ? "Zona para soltar imagen" : "Image drop zone"}
-                  className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-white/10 bg-surface-darker p-6 cursor-pointer hover:border-violet-500/40 transition-colors"
+                  className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-white/10 bg-surface-darker p-6 cursor-pointer hover:border-[rgba(255,184,0,0.35)] transition-colors"
                   onClick={() => fileRef.current?.click()}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -378,7 +378,7 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <div className="relative h-16 w-16">
                 {/* Glow ring */}
-                <div className="absolute inset-0 rounded-full border-2 border-violet-500/30 animate-ping" />
+                <div className="absolute inset-0 rounded-full border-2 border-[rgba(255,184,0,0.3)] animate-ping" />
                 {/* Spinning avatar — outer div rotates, inner div clips (iOS Safari fix:
                     overflow-hidden + border-radius must NOT be on the transform element) */}
                 <div
@@ -470,7 +470,7 @@ export function ImportFlightsModal({ onImport, onClose, locale }: ImportFlightsM
             <button
               onClick={handleParse}
               disabled={!canParse}
-              className="flex items-center gap-2 rounded-lg bg-violet-600 hover:bg-violet-500 disabled:opacity-40 px-5 py-2 text-sm font-semibold text-white transition-colors"
+              className="flex items-center gap-2 rounded-lg bg-[#FFB800] hover:bg-[#FFC933] disabled:opacity-40 px-5 py-2 text-sm font-semibold text-[#07070d] transition-colors"
             >
               <Image
                 src="/tripcopliot-avatar.svg"
@@ -517,13 +517,13 @@ function FlightEditCard({
     `w-full rounded-lg border px-2.5 py-1.5 text-xs text-gray-200 bg-surface-darker focus:outline-none focus:ring-1 transition-colors ${
       isMissing(field)
         ? "border-orange-600/60 focus:ring-orange-500/50 placeholder-orange-800"
-        : "border-white/[0.07] focus:ring-violet-500/40 placeholder-gray-700"
+        : "border-white/[0.07] focus:ring-[rgba(255,184,0,0.35)] placeholder-gray-700"
     }`;
 
   return (
     <div className={`rounded-xl border transition-all ${
       flight.selected
-        ? "border-violet-600/30 bg-violet-950/10"
+        ? "border-[rgba(255,184,0,0.25)] bg-[rgba(255,184,0,0.04)]"
         : "border-white/[0.07] bg-surface-darker opacity-50"
     }`}>
       {/* Card header with checkbox + route summary */}
@@ -532,7 +532,7 @@ function FlightEditCard({
         onClick={onToggle}
       >
         <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-          flight.selected ? "border-violet-500 bg-violet-500" : "border-gray-600"
+          flight.selected ? "border-[#FFB800] bg-[#FFB800]" : "border-gray-600"
         }`}>
           {flight.selected && (
             <svg viewBox="0 0 10 8" fill="none" className="h-2.5 w-2.5">

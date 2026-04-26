@@ -1,18 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AirportSearchInput } from "@/components/AirportSearchInput";
 import { AIRPORTS as AIRPORT_DB } from "@/lib/airports";
 import type { AirportStatus } from "@/lib/types";
 import { RadarDot } from "./RadarDot";
+import { getAirportTime, getAirportTzLabel } from "@/lib/airportTimezone";
+import type { WeatherData } from "@/hooks/useWeather";
 
 interface NewUserWelcomeViewProps {
   statusMap: Record<string, AirportStatus>;
+  weatherMap?: Record<string, WeatherData>;
   locale: "es" | "en";
   onAddFlight: () => void;
   userId?: string | null;
   loading?: boolean;
+}
+
+function MiniClock({ iata }: { iata: string }) {
+  const [time, setTime] = useState<string | null>(null);
+  useEffect(() => {
+    setTime(getAirportTime(iata));
+    const id = setInterval(() => setTime(getAirportTime(iata)), 60_000);
+    return () => clearInterval(id);
+  }, [iata]);
+  if (!time) return null;
+  const tz = getAirportTzLabel(iata);
+  return (
+    <span className="text-[10px] text-gray-500 tabular-nums">
+      🕐 {time}{tz ? ` ${tz}` : ""}
+    </span>
+  );
 }
 
 const FEATURED_AIRPORTS = ["EZE", "JFK", "MIA", "GCM"] as const;
@@ -67,7 +86,7 @@ function severeReason(entry: AirportStatus | undefined): string | null {
   return null;
 }
 
-export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loading = false }: NewUserWelcomeViewProps) {
+export function NewUserWelcomeView({ statusMap, weatherMap = {}, locale, onAddFlight, userId, loading = false }: NewUserWelcomeViewProps) {
   const [view, setView] = useState<FtueView>("list");
   const [selectedIata, setSelectedIata] = useState("");
   const [alertsActivated, setAlertsActivated] = useState(false);
@@ -112,7 +131,7 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loa
             {/* Eyebrow with live pulse */}
             <div className="flex items-center justify-center gap-2">
               <RadarDot tone="ok" size="sm" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-green-400">
+              <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#FFB800]">
                 {es ? "En vivo" : "Live"}
               </span>
             </div>
@@ -136,19 +155,19 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loa
                 const tone = toneFromStatus(effectiveStatus);
                 const { icon, label } = getStatusInfo(effectiveStatus, locale);
                 const haloByToneCard: Record<Tone, string> = {
-                  ok:      "bg-[radial-gradient(circle_at_top_right,rgba(34,197,94,0.18),transparent_65%)]",
+                  ok:      "bg-[radial-gradient(circle_at_top_right,rgba(255,184,0,0.10),transparent_65%)]",
                   warn:    "bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.20),transparent_65%)]",
                   danger:  "bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.24),transparent_65%)]",
                   neutral: "",
                 };
                 const borderByToneCard: Record<Tone, string> = {
-                  ok:      "border-green-500/20",
+                  ok:      "border-[#FFB800]/20",
                   warn:    "border-orange-500/25",
                   danger:  "border-red-500/30",
                   neutral: "border-white/[0.08]",
                 };
                 const labelByToneCard: Record<Tone, string> = {
-                  ok:      "text-green-400",
+                  ok:      "text-[#FFB800]",
                   warn:    "text-orange-300",
                   danger:  "text-red-300",
                   neutral: "text-gray-500",
@@ -184,16 +203,19 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loa
                         </span>
                       </div>
 
-                      {/* Right: status + last checked */}
+                      {/* Right: status + time + weather */}
                       {loaded ? (
                         <div className="flex flex-col items-end gap-1 shrink-0">
                           <span className={`flex items-center gap-1.5 text-xs font-semibold ${labelByToneCard[tone]}`}>
                             <span className="text-sm leading-none">{icon}</span>
                             <span>{label}</span>
                           </span>
-                          <span className="text-[10px] text-gray-600 tabular-nums">
-                            {formatLastChecked(entry?.lastChecked, locale)}
-                          </span>
+                          <MiniClock iata={iata} />
+                          {weatherMap[iata] && (
+                            <span className="text-[10px] text-gray-400">
+                              {weatherMap[iata].icon} {weatherMap[iata].temperature}°C
+                            </span>
+                          )}
                         </div>
                       ) : (
                         <div className="flex flex-col items-end gap-1.5">
@@ -216,7 +238,7 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loa
             <div className="mt-2 flex flex-col gap-0 items-center">
               <button
                 onClick={() => setView("picker")}
-                className="relative overflow-hidden rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm py-3.5 w-full transition-colors tap-scale"
+                className="relative overflow-hidden rounded-xl bg-[#FFB800] hover:bg-[#FFC933] text-[#07070d] font-bold text-sm py-3.5 w-full transition-colors tap-scale"
               >
                 <span className="relative z-[1]">
                   {es ? "Ver el estado de tu aeropuerto en tiempo real →" : "See your airport's live status →"}
@@ -264,7 +286,7 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loa
             <button
               onClick={() => { if (selectedIata) setView("hero"); }}
               disabled={!selectedIata}
-              className="rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm py-3.5 w-full transition-colors tap-scale"
+              className="rounded-xl bg-[#FFB800] hover:bg-[#FFC933] disabled:opacity-40 disabled:cursor-not-allowed text-[#07070d] font-bold text-sm py-3.5 w-full transition-colors tap-scale"
             >
               {es ? "Ver estado →" : "Check status →"}
             </button>
@@ -303,7 +325,7 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loa
               ) : (
                 <button
                   onClick={handleActivateAlerts}
-                  className="relative overflow-hidden rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm py-3.5 w-full transition-colors tap-scale"
+                  className="relative overflow-hidden rounded-xl bg-[#FFB800] hover:bg-[#FFC933] text-[#07070d] font-bold text-sm py-3.5 w-full transition-colors tap-scale"
                 >
                   <span className="relative z-[1]">
                     {es ? "Activar alertas para este aeropuerto ✈️" : "Activate alerts for this airport ✈️"}
@@ -326,7 +348,7 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loa
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
                   transition={{ duration: 0.18 }}
-                  className="rounded-xl border border-violet-500/30 bg-violet-500/[0.08] px-4 py-4 flex flex-col gap-3"
+                  className="rounded-xl border border-[rgba(255,184,0,0.25)] bg-[rgba(255,184,0,0.12)][0.08] px-4 py-4 flex flex-col gap-3"
                 >
                   <div>
                     <p className="text-sm font-semibold text-white mb-0.5">
@@ -338,7 +360,7 @@ export function NewUserWelcomeView({ statusMap, locale, onAddFlight, userId, loa
                   </div>
                   <button
                     onClick={onAddFlight}
-                    className="rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm py-3 w-full transition-colors tap-scale"
+                    className="rounded-xl bg-[#FFB800] hover:bg-[#FFC933] text-[#07070d] font-bold text-sm py-3 w-full transition-colors tap-scale"
                   >
                     {es ? "Crear cuenta →" : "Create account →"}
                   </button>
@@ -371,25 +393,25 @@ function HeroCard({ iata, entry, locale }: { iata: string; entry: AirportStatus 
   const reason = severeReason(entry);
 
   const shadowByTone: Record<Tone, string> = {
-    ok: "shadow-glow-green", warn: "shadow-glow-orange", danger: "shadow-glow-red", neutral: "",
+    ok: "", warn: "shadow-glow-orange", danger: "shadow-glow-red", neutral: "",
   };
   const haloByTone: Record<Tone, string> = {
-    ok:      "bg-[radial-gradient(circle,rgba(34,197,94,0.24),transparent_60%)]",
+    ok:      "bg-[radial-gradient(circle,rgba(255,184,0,0.14),transparent_60%)]",
     warn:    "bg-[radial-gradient(circle,rgba(251,146,60,0.26),transparent_60%)]",
     danger:  "bg-[radial-gradient(circle,rgba(239,68,68,0.30),transparent_60%)]",
     neutral: "",
   };
   const pulseByTone: Record<Tone, string> = {
-    ok: "bg-green-400", warn: "bg-orange-400", danger: "bg-red-500", neutral: "bg-gray-500",
+    ok: "bg-[#FFB800]", warn: "bg-orange-400", danger: "bg-red-500", neutral: "bg-gray-500",
   };
   const tileByTone: Record<Tone, string> = {
-    ok:      "bg-green-500/10 border-green-500/25",
+    ok:      "bg-[rgba(255,184,0,0.08)] border-[rgba(255,184,0,0.25)]",
     warn:    "bg-orange-500/10 border-orange-500/25",
     danger:  "bg-red-500/10 border-red-500/30",
     neutral: "bg-white/[0.04] border-white/10",
   };
   const labelByTone: Record<Tone, string> = {
-    ok: "text-green-400", warn: "text-orange-300", danger: "text-red-300", neutral: "text-gray-500",
+    ok: "text-[#FFB800]", warn: "text-orange-300", danger: "text-red-300", neutral: "text-gray-500",
   };
 
   const firstBoundary = implication.indexOf(". ");

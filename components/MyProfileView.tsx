@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence, type Easing } from "framer-motion";
-import { TrendingUp, Globe, Plane, MapPin, Zap, Award, X, BarChart3, Trophy, Gift, Users, Share2, Share, Camera, Settings } from "lucide-react";
+import { TrendingUp, Globe, Plane, MapPin, Zap, Award, X, BarChart3, Trophy, Gift, Users, Share2, Share, Camera, Settings, Pencil } from "lucide-react";
 import { TripTab } from "@/lib/types";
 import { computeTripStats } from "@/lib/tripStats";
 import { PLANS } from "@/lib/mercadopago";
@@ -25,6 +25,10 @@ interface MyProfileViewProps {
   locale: "es" | "en";
   userPlan: "free" | "explorer" | "pilot" | null;
   userId: string | null;
+  userName?: string | null;
+  userAvatar?: string | null;
+  onNameChange?: (name: string) => void;
+  onAvatarChange?: (url: string) => void;
   onUpgrade: () => void;
   onDiscover?: () => void;
 }
@@ -235,7 +239,7 @@ function StampCard({ data, locale, onClose }: StampCardProps) {
           </div>
 
           {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-violet-400/40 to-transparent mb-3" />
+          <div className="h-px bg-gradient-to-r from-transparent via-[#FFC933]/40 to-transparent mb-3" />
 
           {/* Stats */}
           <div className="flex justify-around text-center">
@@ -249,7 +253,7 @@ function StampCard({ data, locale, onClose }: StampCardProps) {
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-0.5">
                 {L.stamp.visited}
               </p>
-              <p className="text-2xl font-black text-violet-700 leading-none">
+              <p className="text-2xl font-black text-[#FFB800] leading-none">
                 {data.visitCount}
                 <span className="text-xs font-normal text-gray-500 ml-1">×</span>
               </p>
@@ -259,7 +263,7 @@ function StampCard({ data, locale, onClose }: StampCardProps) {
           {/* STAMP text watermark */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.07]">
             <p
-              className="text-7xl font-black text-violet-700 uppercase tracking-widest"
+              className="text-7xl font-black text-[#FFB800] uppercase tracking-widest"
               style={{ transform: "rotate(-20deg)" }}
             >
               STAMP
@@ -331,12 +335,56 @@ function ShareAppCard({ locale }: { locale: "es" | "en" }) {
   );
 }
 
-export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDiscover }: MyProfileViewProps) {
+export function MyProfileView({ trips, locale, userPlan, userId, userName, userAvatar, onNameChange, onAvatarChange, onUpgrade, onDiscover }: MyProfileViewProps) {
   const L = LABELS[locale];
   const [selectedIata, setSelectedIata] = useState<string | null>(null);
   const [mapModalOpen, setMapModalOpen] = useState(false);
   const visitedCountries = useVisitedCountries(trips);
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTabId>("stats");
+
+  // Editable profile state
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(userName ?? "");
+  const [savingName, setSavingName] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [localAvatar, setLocalAvatar] = useState<string | null>(userAvatar ?? null);
+
+  async function handleSaveName() {
+    const trimmed = nameInput.trim();
+    if (!trimmed || trimmed === userName) { setEditingName(false); return; }
+    setSavingName(true);
+    try {
+      await fetch("/api/profile/display-name", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayName: trimmed }),
+      });
+      onNameChange?.(trimmed);
+    } finally {
+      setSavingName(false);
+      setEditingName(false);
+    }
+  }
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    const preview = URL.createObjectURL(file);
+    setLocalAvatar(preview);
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const res = await fetch("/api/profile/avatar", { method: "POST", body: fd });
+      const json = await res.json();
+      if (json.avatarUrl) {
+        setLocalAvatar(json.avatarUrl);
+        onAvatarChange?.(json.avatarUrl);
+      }
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
 
   const stats = useMemo(() => {
     const allFlights = trips.flatMap((t) => t.flights);
@@ -486,7 +534,7 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
 
   const badgePillColors = [
     "bg-emerald-950/50 border-emerald-700/40 text-emerald-300",
-    "bg-violet-950/50 border-violet-700/40 text-violet-300",
+    "bg-[rgba(255,184,0,0.06)] border-[rgba(255,184,0,0.25)] text-[#FFB800]",
     "bg-blue-950/50 border-blue-700/40 text-blue-300",
   ] as const;
 
@@ -513,31 +561,64 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
 
       {/* ── Hero premium ──────────────────────────────────────────────────── */}
       <motion.div {...fadeUp(0)} className="relative overflow-hidden mx-4 mt-2 mb-5 rounded-3xl border border-white/[0.08] bg-gradient-to-br from-[#0f0f17] via-[#0e0e1a] to-[#0a0a14] p-5">
-        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,0.25),transparent_70%)] blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[radial-gradient(circle,rgba(255,184,0,0.12),transparent_70%)] blur-2xl pointer-events-none" />
 
         <div className="relative flex items-start gap-4">
-          {/* Avatar with orbital ring */}
+          {/* Avatar with orbital ring + upload */}
           <div className="relative shrink-0">
             <motion.div
               className="absolute inset-[-4px] rounded-full"
-              style={{ background: "conic-gradient(from 0deg, #7c3aed, #3b82f6, #7c3aed)" }}
+              style={{ background: "conic-gradient(from 0deg, #FFB800, #FFC933, #E6A500, #FFB800)" }}
               animate={{ rotate: 360 }}
               transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
             />
             <div className="relative h-20 w-20 rounded-full bg-[#080810] border-4 border-[#080810] overflow-hidden flex items-center justify-center">
-              <div className="h-full w-full rounded-full bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center text-4xl">
-                🧑‍✈️
-              </div>
+              {localAvatar ? (
+                <img src={localAvatar} alt="Avatar" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full rounded-full bg-gradient-to-br from-[#FFB800] to-[#E6A500] flex items-center justify-center text-4xl">
+                  🧑‍✈️
+                </div>
+              )}
+              {uploadingAvatar && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full">
+                  <div className="h-4 w-4 rounded-full border-2 border-[#FFB800] border-t-transparent animate-spin" />
+                </div>
+              )}
             </div>
-            <button className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-violet-600 hover:bg-violet-500 border-[3px] border-[#0f0f17] flex items-center justify-center shadow-[0_4px_12px_rgba(124,58,237,0.5)]" aria-label={locale === "es" ? "Cambiar foto" : "Change photo"}>
-              <Camera size={12} className="text-white" />
-            </button>
+            <label className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-[#FFB800] hover:bg-[#FFC933] border-[3px] border-[#0f0f17] flex items-center justify-center shadow-[0_4px_12px_rgba(255,184,0,0.40)] cursor-pointer" aria-label={locale === "es" ? "Cambiar foto" : "Change photo"}>
+              <Camera size={12} className="text-[#07070d]" />
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarChange} />
+            </label>
           </div>
 
           <div className="flex-1 min-w-0 pt-1">
-            <h1 className="text-[20px] font-black text-white leading-tight">
-              {locale === "es" ? "Mi Perfil" : "My Profile"}
-            </h1>
+            {editingName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  autoFocus
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleSaveName(); if (e.key === "Escape") setEditingName(false); }}
+                  maxLength={40}
+                  className="flex-1 min-w-0 bg-white/[0.06] border border-[rgba(255,184,0,0.5)] rounded-lg px-2 py-1 text-[16px] font-black text-white outline-none"
+                />
+                <button onClick={handleSaveName} disabled={savingName} className="text-[#FFB800] text-xs font-bold shrink-0">
+                  {savingName ? "…" : (locale === "es" ? "OK" : "OK")}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setNameInput(userName ?? ""); setEditingName(true); }}
+                className="group flex items-center gap-1.5 text-left"
+                aria-label={locale === "es" ? "Editar nombre" : "Edit name"}
+              >
+                <h1 className="text-[20px] font-black text-white leading-tight">
+                  {userName || (locale === "es" ? "Mi Perfil" : "My Profile")}
+                </h1>
+                <Pencil size={13} className="text-gray-600 group-hover:text-[#FFB800] transition-colors shrink-0 mt-0.5" />
+              </button>
+            )}
             <p className="text-xs text-gray-500 mt-0.5 font-medium">
               {userId ? `@${userId.slice(0, 8)}` : "@viajero"}
             </p>
@@ -564,7 +645,7 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
           {userPlan === "free" || userPlan === null ? (
             <button
               onClick={onUpgrade}
-              className="relative overflow-hidden rounded-full bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white text-[11px] font-black px-4 py-2 shadow-[0_4px_12px_rgba(124,58,237,0.4)] shrink-0"
+              className="relative overflow-hidden rounded-full bg-gradient-to-r from-[#FFB800] to-[#E6A500] hover:from-[#FFC933] hover:to-[#FFB800] text-[#07070d] text-[11px] font-black px-4 py-2 shadow-[0_4px_12px_rgba(255,184,0,0.30)] shrink-0"
             >
               Upgrade ⭐
             </button>
@@ -633,8 +714,8 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
                 {/* Total flights */}
                 <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 flex flex-col gap-2">
                   <div className="flex items-center gap-2">
-                    <div className="rounded-lg bg-violet-500/15 p-1.5">
-                      <Plane className="h-4 w-4 text-violet-400" />
+                    <div className="rounded-lg bg-[rgba(255,184,0,0.12)] p-1.5">
+                      <Plane className="h-4 w-4 text-[#FFB800]" />
                     </div>
                   </div>
                   <p className="text-3xl font-black text-white leading-none tabular-nums">{animFlights}</p>
@@ -681,11 +762,11 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
             {/* Around the Earth highlight */}
             {stats.timesAroundEarth >= 0.1 && (
               <motion.div {...fadeUp(0.1)} className="px-4 pb-4">
-                <div className="rounded-2xl bg-gradient-to-r from-violet-900/60 to-blue-900/60 border border-violet-700/30 p-4">
+                <div className="rounded-2xl bg-gradient-to-r from-[#FFB800]/60 to-blue-900/60 border border-[rgba(255,184,0,0.25)] p-4">
                   <div className="flex items-center gap-3">
                     <span className="text-3xl" aria-hidden>🌏</span>
                     <div>
-                      <p className="text-xs text-violet-300/70 font-semibold uppercase tracking-widest mb-0.5">
+                      <p className="text-xs text-[#FFB800]/70 font-semibold uppercase tracking-widest mb-0.5">
                         {locale === "es" ? "Vuelta al planeta" : "Around the planet"}
                       </p>
                       <p className="text-white font-black text-lg leading-tight">
@@ -808,7 +889,7 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
                   <p className="text-sm text-gray-500 mb-4">{L.freeLimits}</p>
                   <button
                     onClick={onUpgrade}
-                    className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 active:scale-95 text-white text-sm font-bold py-3 transition-all"
+                    className="w-full rounded-xl bg-gradient-to-r from-[#FFB800] to-blue-600 hover:from-[#FFB800] hover:to-blue-500 active:scale-95 text-white text-sm font-bold py-3 transition-all"
                   >
                     {L.upgradeBtn}
                   </button>
@@ -819,8 +900,8 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
                   onClick={onDiscover}
                   className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] active:scale-95 px-4 py-4 flex items-center gap-3 transition-all"
                 >
-                  <div className="h-10 w-10 rounded-xl bg-violet-600/20 border border-violet-600/30 flex items-center justify-center shrink-0">
-                    <Globe className="h-5 w-5 text-violet-400" />
+                  <div className="h-10 w-10 rounded-xl bg-[#FFB800]/20 border border-[rgba(255,184,0,0.25)] flex items-center justify-center shrink-0">
+                    <Globe className="h-5 w-5 text-[#FFB800]" />
                   </div>
                   <div className="text-left min-w-0">
                     <p className="text-sm font-bold text-white">
@@ -880,7 +961,7 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
                           <div className="w-full">
                             <div className="h-1 w-full rounded-full bg-white/[0.06] mt-1">
                               <div
-                                className="h-full rounded-full bg-violet-500"
+                                className="h-full rounded-full bg-[#FFB800]"
                                 style={{ width: `${progressPct}%` }}
                               />
                             </div>
@@ -989,7 +1070,7 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
             {/* Plan upgrade CTA for social sharing */}
             {userPlan === "free" && (
               <motion.div {...fadeUp(0.1)} className="px-4 pb-6">
-                <div className="rounded-2xl border border-violet-700/30 bg-gradient-to-br from-violet-950/40 to-surface-overlay p-4 text-center">
+                <div className="rounded-2xl border border-[rgba(255,184,0,0.25)] bg-gradient-to-br from-[#FFB800]/40 to-surface-overlay p-4 text-center">
                   <p className="text-sm font-semibold text-white/80 mb-1">
                     {locale === "es" ? "Compartí más con Premium" : "Share more with Premium"}
                   </p>
@@ -1000,7 +1081,7 @@ export function MyProfileView({ trips, locale, userPlan, userId, onUpgrade, onDi
                   </p>
                   <button
                     onClick={onUpgrade}
-                    className="rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 active:scale-95 text-white text-sm font-bold px-6 py-2.5 transition-all"
+                    className="rounded-xl bg-gradient-to-r from-[#FFB800] to-blue-600 hover:from-[#FFB800] hover:to-blue-500 active:scale-95 text-white text-sm font-bold px-6 py-2.5 transition-all"
                   >
                     {L.upgradeBtn}
                   </button>
