@@ -18,17 +18,21 @@ export function useTrackedFlights() {
     const supabase = createClient();
 
     async function load() {
-      const { data, error } = await supabase
-        .from("tracked_flights")
-        .select("id, airline_code, flight_number, airport_code")
-        .order("created_at", { ascending: true });
+      try {
+        const { data, error } = await supabase
+          .from("tracked_flights")
+          .select("id, airline_code, flight_number, airport_code")
+          .order("created_at", { ascending: true });
 
-      if (!error && data) {
-        const mapped = data.flatMap((r) => {
-          const parsed = parseFlightCode(`${r.airline_code}${r.flight_number}`);
-          return parsed ? [{ id: r.id, parsed, airportCode: r.airport_code ?? "" }] : [];
-        });
-        setFlights(mapped);
+        if (!error && data) {
+          const mapped = data.flatMap((r) => {
+            const parsed = parseFlightCode(`${r.airline_code}${r.flight_number}`);
+            return parsed ? [{ id: r.id, parsed, airportCode: r.airport_code ?? "" }] : [];
+          });
+          setFlights(mapped);
+        }
+      } catch (err) {
+        console.error("Error loading tracked flights:", err);
       }
 
       setLoading(false);
@@ -38,27 +42,35 @@ export function useTrackedFlights() {
   }, []);
 
   const add = useCallback(async (parsed: ParsedFlight, airportCode: string) => {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("tracked_flights")
-      .insert({
-        airline_code:  parsed.airlineCode,
-        flight_number: parsed.flightNumber,
-        airport_code:  airportCode || null,
-      })
-      .select("id")
-      .single();
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("tracked_flights")
+        .insert({
+          airline_code: parsed.airlineCode,
+          flight_number: parsed.flightNumber,
+          airport_code: airportCode || null,
+        })
+        .select("id")
+        .single();
 
-    if (!error && data) {
-      setFlights((prev) => [...prev, { id: data.id, parsed, airportCode }]);
+      if (!error && data) {
+        setFlights((prev) => [...prev, { id: data.id, parsed, airportCode }]);
+      }
+    } catch (err) {
+      console.error("Error adding tracked flight:", err);
     }
   }, []);
 
   const remove = useCallback(async (id: string) => {
-    setFlights((prev) => prev.filter((f) => f.id !== id));
+    try {
+      setFlights((prev) => prev.filter((f) => f.id !== id));
 
-    const supabase = createClient();
-    await supabase.from("tracked_flights").delete().eq("id", id);
+      const supabase = createClient();
+      await supabase.from("tracked_flights").delete().eq("id", id);
+    } catch (err) {
+      console.error("Error removing tracked flight:", err);
+    }
   }, []);
 
   return { flights, loading, add, remove };
