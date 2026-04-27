@@ -11,6 +11,7 @@ export type UserAdminRow = {
   admin_notes: string | null;
   created_at: string;
   last_seen_at: string | null;
+  last_sign_in_at: string | null;
   username: string | null;
   display_name: string | null;
 };
@@ -164,7 +165,7 @@ export function AdminUsersSection() {
               <th className="px-4 py-3 text-xs font-semibold text-gray-500">Nombre · Username</th>
               <th className="px-4 py-3 text-xs font-semibold text-gray-500">Plan</th>
               <th className="px-4 py-3 text-xs font-semibold text-gray-500 text-center" title="Activo → MercadoPago no puede cambiar el plan">Override</th>
-              <th className="px-4 py-3 text-xs font-semibold text-gray-500">Último seen</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500">Último login</th>
               <th className="px-4 py-3 text-xs font-semibold text-gray-500">Notas</th>
               <th className="px-4 py-3 text-xs font-semibold text-gray-500">Cambiar plan</th>
             </tr>
@@ -286,9 +287,21 @@ export function AdminUsersSection() {
                       )}
                     </td>
 
-                    {/* Last seen */}
-                    <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
-                      {timeAgo(u.last_seen_at)}
+                    {/* Last login */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap">
+                      {u.last_sign_in_at ? (
+                        <span
+                          className="text-gray-400"
+                          title={new Date(u.last_sign_in_at).toLocaleString("es-AR", {
+                            day: "2-digit", month: "2-digit", year: "numeric",
+                            hour: "2-digit", minute: "2-digit",
+                          })}
+                        >
+                          {timeAgo(u.last_sign_in_at)}
+                        </span>
+                      ) : (
+                        <span className="text-gray-700">—</span>
+                      )}
                     </td>
 
                     {/* Admin notes (editable) */}

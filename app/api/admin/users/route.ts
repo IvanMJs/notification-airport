@@ -59,6 +59,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         auth_name: (u.user_metadata?.full_name as string | undefined)
           || (u.user_metadata?.name as string | undefined)
           || null,
+        last_sign_in_at: u.last_sign_in_at ?? null,
       },
     ]),
   );
@@ -67,6 +68,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     ...p,
     email: authMap[p.user_id ?? ""]?.email ?? null,
     auth_name: authMap[p.user_id ?? ""]?.auth_name ?? null,
+    last_sign_in_at: authMap[p.user_id ?? ""]?.last_sign_in_at ?? null,
   }));
 
   if (search) {
