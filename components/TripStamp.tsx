@@ -23,21 +23,36 @@ export function TripStamp({
       aria-label="Trip Stamp Information"
     >
       {/* Stamp seal rings */}
-      <div className="absolute -right-6 -top-6 w-20 h-20 rounded-full border-2 border-white/[0.05] pointer-events-none" />
-      <div className="absolute -right-3 -top-3 w-11 h-11 rounded-full border border-white/[0.04] pointer-events-none" />
+      <div
+        className="absolute -right-6 -top-6 w-20 h-20 rounded-full border-2 border-white/[0.05] pointer-events-none"
+        aria-label="Seal Ring"
+      />
+      <div
+        className="absolute -right-3 -top-3 w-11 h-11 rounded-full border border-white/[0.04] pointer-events-none"
+        aria-label="Seal Ring"
+      />
 
       {/* IATA code */}
-      <p className="text-[9px] font-mono font-bold text-white/20 tracking-[0.25em] uppercase">
+      <p
+        className="text-[9px] font-mono font-bold text-white/20 tracking-[0.25em] uppercase"
+        title={`IATA Code: ${destinationCode || "---"}`}
+      >
         {destinationCode || "---"}
       </p>
 
       {/* City */}
-      <p className="text-[15px] font-black text-white leading-tight line-clamp-2 flex-1">
+      <p
+        className="text-[15px] font-black text-white leading-tight line-clamp-2 flex-1"
+        aria-label="Destination Name or IATA Code"
+      >
         {destinationName ?? destinationCode}
       </p>
 
       {/* Month · Year */}
-      <p className="text-[10px] text-white/25 font-semibold uppercase tracking-wider">
+      <p
+        className="text-[10px] text-white/25 font-semibold uppercase tracking-wider"
+        title={`${monthLabel} · ${year}`}
+      >
         {monthLabel} · {year}
       </p>
 
@@ -51,7 +66,10 @@ export function TripStamp({
             >
               {emoji}
               {count > 1 && (
-                <span className="text-white/40 text-[10px] tabular-nums ml-0.5">
+                <span
+                  className="text-white/40 text-[10px] tabular-nums ml-0.5"
+                  title={`Reaction Count: ${count}`}
+                >
                   {count}
                 </span>
               )}
@@ -62,7 +80,9 @@ export function TripStamp({
 
       {/* Empty state for no reactions */}
       {reactions?.length === 0 && (
-        <p className="text-[12px] text-white/40 mt-2">No reactions yet.</p>
+        <p className="text-[12px] text-white/40 mt-2" title="No reactions yet.">
+          No reactions yet.
+        </p>
       )}
     </div>
   );
