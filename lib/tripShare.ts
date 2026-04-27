@@ -85,7 +85,7 @@ export function buildWhatsAppMessage(
     ? [sorted[0].originCode, ...sorted.map((f) => f.destinationCode)].join(" \u2192 ")
     : "";
 
-  const lines: string[] = [
+  let lines: string[] = [
     `${E.plane} *${routeCodes}* \u2014 ${tripName}`,
     "",
   ];
