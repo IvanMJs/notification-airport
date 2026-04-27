@@ -8,8 +8,8 @@ import {
   Plane, Bell, Trash2, Pencil, Copy, Check,
   Save, ChevronRight,
   Sparkles, Loader2, List, GitBranch,
-  Eye, Users, Lock, Download,
-  Info, Receipt, StickyNote,
+  Eye, Users, Download,
+  Receipt, StickyNote,
 } from "lucide-react";
 import { AirportStatusMap, TripFlight, TripTab, Accommodation, Passenger } from "@/lib/types";
 import { haptics } from "@/lib/haptics";
@@ -150,7 +150,7 @@ export function TripPanel({
   const [renamingTripName, setRenamingTripName] = useState("");
   const [saving, setSaving]             = useState(false);
   const [viewMode, setViewMode]         = useState<"list" | "timeline">("list");
-  const [activeSection, setActiveSection] = useState<"flights" | "info" | "expenses" | "notes">("flights");
+  const [activeSection, setActiveSection] = useState<"flights" | "expenses" | "notes">("flights");
   const [showQuickExpense, setShowQuickExpense] = useState(false);
   const [tripCardLoading, setTripCardLoading] = useState(false);
   const [arcAnimation, setArcAnimation] = useState<{ origin: string; dest: string } | null>(null);
@@ -552,7 +552,7 @@ export function TripPanel({
         );
       })()}
 
-      {/* Tab bar — 4 tabs: Vuelos, Info, Gastos, Notas */}
+      {/* Tab bar — 3 tabs: Vuelos, Gastos, Notas (Info merged into Vuelos) */}
       {!isDraft && (
         <div
           role="tablist"
@@ -562,7 +562,6 @@ export function TripPanel({
           {(
             [
               { id: "flights",  labelEs: "Vuelos",  labelEn: "Flights",  Icon: Plane },
-              { id: "info",     labelEs: "Info",    labelEn: "Info",     Icon: Info },
               { id: "expenses", labelEs: "Gastos",  labelEn: "Expenses", Icon: Receipt },
               { id: "notes",    labelEs: "Notas",   labelEn: "Notes",    Icon: StickyNote },
             ] as const
@@ -1116,22 +1115,13 @@ export function TripPanel({
         </div>
       )}
 
-      {/* ── Tab: Info ────────────────────────────────────────────── */}
+      {/* ── Info summary — shown at bottom of Vuelos tab ───────────── */}
 
-      {activeSection === "info" && !isDraft && (
+      {activeSection === "flights" && !isDraft && sorted.length > 0 && (
         <>
-          {/* Trip stats */}
           {trip.flights.length > 0 && <TripStatsCard trip={trip} locale={locale} />}
-
-          {/* Weather summary */}
-          {sorted.length >= 2 && (
-            <TripWeatherSummary flights={sorted} locale={locale} />
-          )}
-
-          {/* Currency converter */}
+          {sorted.length >= 2 && <TripWeatherSummary flights={sorted} locale={locale} />}
           <CurrencyConverter locale={locale} tripFlights={trip.flights} />
-
-          {/* Flight price alert teaser */}
           {sorted.length > 0 && (() => {
             const firstFlight = sorted[0];
             const lastFlight = sorted[sorted.length - 1];
@@ -1145,57 +1135,6 @@ export function TripPanel({
               />
             );
           })()}
-
-          {/* Premium teaser cards — free users only */}
-          {sorted.length > 0 && userPlan === "free" && (
-            <div className="space-y-3">
-              {/* Teaser 1: AI Health Check */}
-              <div className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 overflow-hidden">
-                <div className="absolute inset-0 backdrop-blur-[2px] bg-black/40 z-10 flex flex-col items-center justify-center">
-                  <Lock className="h-5 w-5 text-[#FFB800] mb-2" />
-                  <p className="text-sm font-bold text-white">AI Health Check</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {locale === "es" ? "Disponible en Explorer" : "Available in Explorer"}
-                  </p>
-                  <button
-                    onClick={onUpgrade}
-                    className="mt-3 px-4 py-1.5 rounded-lg bg-[#FFB800] hover:bg-[#FFC933] text-xs font-bold text-[#07070d] transition-colors"
-                  >
-                    {locale === "es" ? "Mejorar plan →" : "Upgrade plan →"}
-                  </button>
-                </div>
-                <div className="space-y-2" aria-hidden>
-                  <div className="h-4 w-3/4 rounded bg-white/[0.05]" />
-                  <div className="h-4 w-1/2 rounded bg-white/[0.05]" />
-                  <div className="h-8 w-full rounded bg-white/[0.05]" />
-                </div>
-              </div>
-
-              {/* Teaser 2: Price Alerts */}
-              <div className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 overflow-hidden">
-                <div className="absolute inset-0 backdrop-blur-[2px] bg-black/40 z-10 flex flex-col items-center justify-center">
-                  <Lock className="h-5 w-5 text-[#FFB800] mb-2" />
-                  <p className="text-sm font-bold text-white">
-                    {locale === "es" ? "Alertas de precio" : "Price alerts"}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {locale === "es" ? "Disponible en Explorer" : "Available in Explorer"}
-                  </p>
-                  <button
-                    onClick={onUpgrade}
-                    className="mt-3 px-4 py-1.5 rounded-lg bg-[#FFB800] hover:bg-[#FFC933] text-xs font-bold text-[#07070d] transition-colors"
-                  >
-                    {locale === "es" ? "Mejorar plan →" : "Upgrade plan →"}
-                  </button>
-                </div>
-                <div className="space-y-2" aria-hidden>
-                  <div className="h-4 w-2/3 rounded bg-white/[0.05]" />
-                  <div className="h-4 w-5/6 rounded bg-white/[0.05]" />
-                  <div className="h-6 w-1/3 rounded bg-white/[0.05]" />
-                </div>
-              </div>
-            </div>
-          )}
         </>
       )}
 

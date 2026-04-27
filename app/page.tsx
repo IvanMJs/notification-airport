@@ -397,24 +397,6 @@ export default function LandingPage() {
     },
   ];
 
-  const painPoints = [
-    {
-      emoji: "😰",
-      problem: lang === "en" ? "You find out about delays too late" : "Te enterás tarde de las demoras",
-      solution: lang === "en" ? "TripCopilot notifies you before the airport display does" : "TripCopilot te avisa antes que el panel del aeropuerto",
-    },
-    {
-      emoji: "😓",
-      problem: lang === "en" ? "You don't know if you'll miss your connection" : "No sabés si vas a perder la conexión",
-      solution: lang === "en" ? "Automatic connection risk analysis at every layover" : "Análisis automático de riesgo de conexión en cada escala",
-    },
-    {
-      emoji: "🤯",
-      problem: lang === "en" ? "Multi-destination travel is chaos" : "Viajar a múltiples destinos es un caos",
-      solution: lang === "en" ? "AI that understands your full itinerary and gives you a clear plan" : "IA que entiende todo tu itinerario y te da un plan claro",
-    },
-  ];
-
   const steps = [
     {
       num: "01",
@@ -843,30 +825,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── PAIN POINTS ────────────────────────────────────────────────────── */}
-      <section className="py-16 px-4">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-center text-[11px] font-bold uppercase tracking-widest text-gray-600 mb-10">
-            {lang === "en" ? "Has this ever happened to you?" : "¿Te pasó alguna vez?"}
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {painPoints.map((p, i) => (
-              <div key={i} className="rounded-2xl border border-white/[0.06] p-5 space-y-3"
-                style={{ background: "linear-gradient(160deg, rgba(14,14,24,0.9) 0%, rgba(8,8,16,0.95) 100%)" }}>
-                <div className="flex justify-center">
-                  <span className="text-4xl">{p.emoji}</span>
-                </div>
-                <p className="text-sm font-semibold text-gray-300 leading-snug text-center">{p.problem}</p>
-                <div className="h-px bg-white/[0.06]" />
-                <p className="text-xs text-[#FFB800] leading-relaxed text-center">
-                  <span className="font-bold text-[#FFB800]">TripCopilot:</span> {p.solution}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── CONNECTION RISK ────────────────────────────────────────────────── */}
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
@@ -1130,29 +1088,6 @@ export default function LandingPage() {
             </h2>
           </div>
 
-          {/* War Room featured highlight */}
-          <div className="mb-6 rounded-2xl border border-[rgba(255,184,0,0.25)] overflow-hidden"
-            style={{ background: "linear-gradient(135deg, rgba(255,184,0,0.08) 0%, rgba(14,14,28,0.97) 60%, rgba(255,184,0,0.04) 100%)" }}>
-            <div className="p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6">
-              <div className="flex-shrink-0 flex items-center justify-center h-16 w-16 rounded-2xl bg-[rgba(255,184,0,0.08)] border border-[rgba(255,184,0,0.2)]">
-                <MonitorPlay className="h-8 w-8 text-[#FFB800]" />
-              </div>
-              <div className="text-center sm:text-left">
-                <div className="inline-flex items-center gap-1.5 rounded-full bg-[rgba(255,184,0,0.12)] border border-[rgba(255,184,0,0.25)] px-3 py-0.5 text-[11px] font-bold text-[#FFB800] uppercase tracking-wider mb-2">
-                  {lang === "en" ? "Featured" : "Destacado"}
-                </div>
-                <h3 className="text-lg font-black text-white mb-1">
-                  {lang === "en" ? "War Room mode" : "Modo War Room"}
-                </h3>
-                <p className="text-sm text-gray-400 leading-relaxed max-w-xl">
-                  {lang === "en"
-                    ? "Everything you need on flight day in one screen — departure time, airport status, connection risk, checklist and alerts. No more switching between apps."
-                    : "Todo lo que necesitás el día del vuelo en una sola pantalla — horario de salida, estado del aeropuerto, riesgo de conexión, checklist y alertas. Sin cambiar de app."}
-                </p>
-              </div>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {features.slice(0, 4).map((f) => {
               const Icon = f.icon;
@@ -1212,8 +1147,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── TRIPSOCIAL ──────────────────────────────────────────────────── */}
-      <section className="py-16 px-4">
+      {/* ── TRIPSOCIAL — hidden in landing, feature accessible from app ── */}
+      {false && <section className="py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <p className="text-[11px] font-bold uppercase tracking-widest text-gray-600 mb-3">
@@ -1518,6 +1453,8 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      </section>}
 
       {/* ── PRICING ──────────────────────────────────────────────────────── */}
       <section id="planes" className="py-16 px-4">
