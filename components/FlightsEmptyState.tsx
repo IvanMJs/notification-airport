@@ -7,13 +7,15 @@ import { motion } from "framer-motion";
 interface FlightsEmptyStateProps {
   locale: "es" | "en";
   onCreateTrip: () => void;
+  onImport?: () => void;
 }
 
 const LABELS = {
   es: {
     ghostLabel: "Así se verá tu vuelo",
     ghostSub: "Delay en vivo · boarding pass · countdown",
-    cta: "Agregar mi primer vuelo",
+    cta: "📷 Importar con IA",
+    ctaManual: "Agregar manualmente",
     socialProofSuffix: "vuelos rastreados hoy",
     features: [
       { label: "Delays FAA", sub: "En vivo" },
@@ -24,7 +26,8 @@ const LABELS = {
   en: {
     ghostLabel: "This is how your flight will look",
     ghostSub: "Live delay · boarding pass · countdown",
-    cta: "Add my first flight",
+    cta: "📷 Import with AI",
+    ctaManual: "Add manually",
     socialProofSuffix: "flights tracked today",
     features: [
       { label: "FAA Delays", sub: "Live" },
@@ -57,7 +60,7 @@ function useCountUp(target: number, durationMs = 1200): number {
   return current;
 }
 
-export function FlightsEmptyState({ locale, onCreateTrip }: FlightsEmptyStateProps) {
+export function FlightsEmptyState({ locale, onCreateTrip, onImport }: FlightsEmptyStateProps) {
   const L = LABELS[locale];
   const BASE_COUNT = 3241;
   const [trackedCount, setTrackedCount] = useState(BASE_COUNT);
@@ -213,14 +216,22 @@ export function FlightsEmptyState({ locale, onCreateTrip }: FlightsEmptyStatePro
 
       {/* CTA */}
       <button
-        onClick={onCreateTrip}
+        onClick={onImport ?? onCreateTrip}
         className="animate-glow-pulse relative overflow-hidden w-full rounded-2xl bg-gradient-to-r from-[#FFB800] to-[#E6A500] text-white font-black py-4 text-[15px] active:scale-[0.98] transition-transform shimmer-btn"
       >
         <span className="relative z-10 flex items-center justify-center gap-2">
-          <Plus size={20} strokeWidth={2.5} />
+          {!onImport && <Plus size={20} strokeWidth={2.5} />}
           {L.cta}
         </span>
       </button>
+      {onImport && (
+        <button
+          onClick={onCreateTrip}
+          className="w-full text-center text-xs text-gray-500 hover:text-gray-300 transition-colors py-1"
+        >
+          {L.ctaManual}
+        </button>
+      )}
 
       {/* Feature pills */}
       <div className="flex gap-2">

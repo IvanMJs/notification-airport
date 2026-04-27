@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { analytics } from "@/lib/analytics";
 
 interface OnboardingTourProps {
   onDone: () => void;
+  onStartImport?: () => void;
   locale?: "es" | "en";
 }
 
@@ -28,7 +30,7 @@ const STEPS_ES = [
     tag: "03 · TABLERO",
     title: "Tu vuelo como en el aeropuerto",
     desc: "Abrí /board y ves todos tus vuelos en tiempo real con animaciones estilo cartel de aeropuerto. Mandále el link a tu familia — ven exactamente en qué vuelo estás.",
-    cta: "¡Empezar!",
+    cta: "📷 Importar mi primer vuelo",
     highlight: true,
   },
 ];
@@ -53,20 +55,29 @@ const STEPS_EN = [
     tag: "03 · BOARD",
     title: "Your flight like at the airport",
     desc: "Open /board and see all your flights in real time with airport-style flip animations. Share the link with your family — they see exactly which flight you're on.",
-    cta: "Let's go!",
+    cta: "📷 Import my first flight",
     highlight: true,
   },
 ];
 
-export function OnboardingTour({ onDone, locale = "es" }: OnboardingTourProps) {
+export function OnboardingTour({ onDone, onStartImport, locale = "es" }: OnboardingTourProps) {
   const [step, setStep] = useState(0);
   const steps = locale === "en" ? STEPS_EN : STEPS_ES;
   const current = steps[step];
   const isLast = step === steps.length - 1;
 
+  useEffect(() => {
+    analytics.onboardingTourStarted();
+  }, []);
+
   function next() {
-    if (isLast) onDone();
-    else setStep((s) => s + 1);
+    if (isLast) {
+      analytics.onboardingTourCompleted();
+      onDone();
+      onStartImport?.();
+    } else {
+      setStep((s) => s + 1);
+    }
   }
 
   return (

@@ -622,6 +622,12 @@ export default function LandingPage() {
                 <img src="/tripcopliot-avatar.svg" alt="TripCopilot" className="h-24 w-auto sm:h-32 lg:h-36 drop-shadow-2xl" />
               </div>
 
+              {/* Beta badge */}
+              <div className="inline-flex items-center gap-2 rounded-full border border-amber-700/50 bg-amber-950/30 px-3 py-1 text-[11px] text-amber-400 font-bold mb-3">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                {lang === "en" ? "Private beta · Limited access" : "Beta privada · Acceso limitado"}
+              </div>
+
               {/* AI import badge — the hook */}
               <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(255,184,0,0.3)] bg-[rgba(255,184,0,0.07)] px-4 py-1.5 text-xs text-[#FFB800] font-semibold mb-5">
                 <Brain className="h-3.5 w-3.5 text-[#FFB800]" />
@@ -640,15 +646,15 @@ export default function LandingPage() {
               {/* Subheadline */}
               <p className="text-base sm:text-lg text-gray-400 leading-relaxed mb-3 max-w-lg">
                 {lang === "en" ? (
-                  <>Paste your flight confirmation screenshot. <span className="text-white font-semibold">TripCopilot reads your itinerary and loads all flights in seconds</span> — no typing needed.</>
+                  <>Never find out about a gate change from the airport display.{" "}<span className="text-white font-semibold">TripCopilot notifies you before anyone else</span>{" "}— gate changes, delays, cancellations, connection risk.</>
                 ) : (
-                  <>Pegá el screenshot de tu confirmación de vuelo.{" "}<span className="text-white font-semibold">TripCopilot lee tu itinerario y carga todos los vuelos en segundos</span>{" "}— sin tipear nada.</>
+                  <>Nunca más te enterás de un cambio de puerta por el cartel del aeropuerto.{" "}<span className="text-white font-semibold">TripCopilot te avisa antes que nadie</span>{" "}— puertas, demoras, cancelaciones, riesgo de conexión.</>
                 )}
               </p>
               <p className="text-sm text-gray-500 leading-relaxed mb-8 max-w-lg">
                 {lang === "en"
-                  ? "Then it monitors FAA in real time, calculates connection risk, detects timezone changes on landing and alerts you about gate changes, delays and more."
-                  : "Después monitorea la FAA en tiempo real, calcula el riesgo de conexión, detecta cambios de timezone al aterrizar y te avisa de cambios de puerta, demoras y más."}
+                  ? "Paste your confirmation or take a photo — TripCopilot loads everything automatically and starts monitoring 24 hours before departure."
+                  : "Pegá tu confirmación o sacá una foto — TripCopilot carga todo solo y empieza a monitorear 24 horas antes de que salgas."}
               </p>
 
               {/* CTAs */}
@@ -864,6 +870,139 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── CONNECTION RISK ────────────────────────────────────────────────── */}
+      <section className="py-20 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 rounded-full border border-orange-700/40 bg-orange-950/30 px-3 py-1 text-[11px] text-orange-400 font-bold uppercase tracking-wider mb-5">
+              <Zap className="h-3 w-3" />
+              {lang === "en" ? "Connection risk analysis" : "Análisis de riesgo de conexión"}
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight mb-4">
+              {lang === "en" ? (
+                <>Your connection is at risk.<br /><span className="text-orange-400">You find out first.</span></>
+              ) : (
+                <>Tu conexión está en riesgo.<br /><span className="text-orange-400">Vos te enterás primero.</span></>
+              )}
+            </h2>
+            <p className="text-sm text-gray-400 max-w-xl mx-auto leading-relaxed">
+              {lang === "en"
+                ? "TripCopilot knows the minimum connection time at each airport and calculates in real time whether a delay puts your next flight at risk — before you even land."
+                : "TripCopilot conoce el tiempo mínimo de conexión de cada aeropuerto y calcula en tiempo real si una demora pone en riesgo tu próximo vuelo — antes de que aterrizás."}
+            </p>
+          </div>
+
+          {/* Timeline scenario */}
+          <div
+            className="rounded-2xl border border-orange-900/40 overflow-hidden"
+            style={{ background: "linear-gradient(160deg, rgba(12,7,3,0.98) 0%, rgba(9,6,3,0.99) 100%)" }}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-white/[0.05] bg-white/[0.02]">
+              <div className="flex gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+                <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
+                <span className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
+              </div>
+              <span className="text-[11px] text-gray-600 font-mono">
+                {lang === "en" ? "Live alert · EZE → MIA → JFK" : "Alerta en vivo · EZE → MIA → JFK"}
+              </span>
+            </div>
+
+            <div className="p-5 sm:p-8 space-y-5">
+              {/* Flight 1 */}
+              <div className="flex items-start gap-4">
+                <div className="flex flex-col items-center gap-1 mt-1">
+                  <div className="w-8 h-8 rounded-lg bg-orange-950/60 border border-orange-800/40 flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4 text-orange-400" />
+                  </div>
+                  <div className="w-px flex-1 bg-white/[0.06]" style={{ minHeight: 32 }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-sm font-bold text-white">LA 501  EZE → MIA</span>
+                    <span className="text-xs text-gray-500 line-through">23:55</span>
+                    <span className="text-xs font-semibold text-orange-400">+47 min demora</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {lang === "en" ? "New arrival: 07:32 · Gate D21" : "Arribo nuevo: 07:32 · Puerta D21"}
+                  </p>
+                </div>
+              </div>
+
+              {/* MCT warning */}
+              <div className="flex items-start gap-4">
+                <div className="flex flex-col items-center gap-1 mt-1">
+                  <div className="w-8 h-8 rounded-lg bg-red-950/60 border border-red-800/40 flex items-center justify-center shrink-0">
+                    <Shield className="w-4 h-4 text-red-400" />
+                  </div>
+                  <div className="w-px flex-1 bg-white/[0.06]" style={{ minHeight: 32 }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-red-400">
+                      {lang === "en" ? "Connection at risk" : "Conexión en riesgo"}
+                    </span>
+                    <span className="text-[10px] rounded-full border border-red-800/50 bg-red-950/40 px-2 py-0.5 text-red-400 font-bold uppercase tracking-wide">MCT</span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+                    {lang === "en"
+                      ? "MIA requires 75 min minimum for international → domestic connections. You'd arrive with only 28 min."
+                      : "MIA requiere 75 min mínimos para conexiones internacional → doméstico. Llegarías con solo 28 min."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Flight 2 */}
+              <div className="flex items-start gap-4">
+                <div className="flex flex-col items-center gap-1 mt-1">
+                  <div className="w-8 h-8 rounded-lg bg-surface-2/60 border border-white/[0.07] flex items-center justify-center shrink-0 opacity-50">
+                    <Zap className="w-4 h-4 text-gray-500" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <span className="text-sm font-bold text-gray-500">AA 1234  MIA → JFK</span>
+                    <span className="text-xs text-gray-600">08:00</span>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    {lang === "en" ? "You might not make it in time" : "Es posible que no llegués a tiempo"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Push notification preview */}
+              <div className="mt-2 rounded-xl border border-orange-800/30 bg-orange-950/20 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#07070d] border border-white/[0.07] flex items-center justify-center shrink-0">
+                    <Bell className="w-4 h-4 text-orange-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-white uppercase tracking-wide">TripCopilot</span>
+                      <span className="text-[10px] text-gray-600">
+                        {lang === "en" ? "just now" : "ahora mismo"}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-300 mt-0.5 leading-snug">
+                      {lang === "en"
+                        ? "⚠️ LA 501 is delayed 47 min. You'll have only 28 min at MIA — MCT is 75 min. Rebooking options available."
+                        : "⚠️ LA 501 tiene 47 min de demora. Llegarías con 28 min en MIA — el MCT es 75 min. Hay opciones de rebooking disponibles."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-gray-600 mt-4">
+            {lang === "en"
+              ? "TripCopilot has MCT data for 30+ major airports — so you know before you land."
+              : "TripCopilot tiene datos de MCT para más de 30 aeropuertos principales — para que sepas antes de aterrizar."}
+          </p>
         </div>
       </section>
 
