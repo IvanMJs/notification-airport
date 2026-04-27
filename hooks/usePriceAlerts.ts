@@ -47,83 +47,103 @@ export function usePriceAlerts() {
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      try {
+        const supabase = createClient();
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          setLoading(false);
+          return;
+        }
+        const { data, error: fetchError } = await supabase
+          .from("price_alerts")
+          .select("*")
+          .order("created_at", { ascending: false });
+        if (fetchError) {
+          setLoading(false);
+          throw new Error(fetchError.message);
+        }
+        if (data) setAlerts(data.map(toAlert));
+      } catch (error) {
+        console.error(error);
         setLoading(false);
-        return;
       }
-      const { data, error: fetchError } = await supabase
-        .from("price_alerts")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (fetchError) {
-        setLoading(false);
-        return;
-      }
-      if (data) setAlerts((data as DbPriceAlert[]).map(toAlert));
-      setLoading(false);
     }
 
     load();
   }, []);
 
   const addAlert = useCallback(async (
-    alert: Omit<PriceAlert, "id" | "userId" | "createdAt" | "isActive">,
+    alert: Omit<PriceAlert, "id" | "userId" | "createdAt" | "isActive">
   ) => {
-    const supabase = createClient();
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
+    try {
+      const supabase = createClient();
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
 
-    const { data, error } = await supabase
-      .from("price_alerts")
-      .insert({
-        origin_code:      alert.originCode.toUpperCase().trim(),
-        destination_code: alert.destinationCode.toUpperCase().trim(),
-        target_date:      alert.targetDate,
-        max_price:        alert.maxPrice ?? null,
-        currency:         alert.currency,
-        is_active:        true,
-      })
-      .select("*")
-      .single();
+      const { data, error } = await supabase
+        .from("price_alerts")
+        .insert({
+          origin_code:      alert.originCode.toUpperCase().trim(),
+          destination_code: alert.destinationCode.toUpperCase().trim(),
+          target_date:      alert.targetDate,
+          max_price:        alert.maxPrice ?? null,
+          currency:         alert.currency,
+          is_active:        true,
+        })
+        .select("*")
+        .single();
 
-    if (!error && data) {
-      setAlerts((prev) => [toAlert(data as DbPriceAlert), ...prev]);
+      if (!error && data) {
+        setAlerts((prev) => [toAlert(data as DbPriceAlert), ...prev]);
+      }
+    } catch (error) {
+      console.error(error);
     }
   }, []);
 
   const removeAlert = useCallback(async (id: string) => {
-    const snapshot = alerts;
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
+    try {
+      const snapshot = alerts;
+      setAlerts((prev) => prev.filter((a) => a.id !== id));
 
-    const supabase = createClient();
-    const { error } = await supabase.from("price_alerts").delete().eq("id", id);
-    if (error) {
-      setAlerts(snapshot);
+      const supabase = createClient();
+      const { error } = await supabase.from("price_alerts").delete().eq("id", id);
+      if (error) {
+        setAlerts(snapshot);
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.error(error);
     }
   }, [alerts]);
 
   const toggleAlert = useCallback(async (id: string) => {
-    let nextValue: boolean | undefined;
-    setAlerts((prev) => {
-      const updated = prev.map((a) => {
-        if (a.id !== id) return a;
-        nextValue = !a.isActive;
-        return { ...a, isActive: nextValue };
+    try {
+      let nextValue: boolean | undefined;
+      setAlerts((prev) => {
+        const updated = prev.map((a) => {
+          if (a.id !== id) return a;
+          nextValue = !a.isActive;
+          return { ...a, isActive: nextValue };
+        });
+        return updated;
       });
-      return updated;
-    });
-    if (nextValue === undefined) return;
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("price_alerts")
-      .update({ is_active: nextValue })
-      .eq("id", id);
-    if (error) {
-      setAlerts((prev) =>
-        prev.map((a) => (a.id === id ? { ...a, isActive: !nextValue } : a))
-      );
+
+      if (nextValue === undefined) return;
+
+      const supabase = createClient();
+      const { error } = await supabase
+        .from("price_alerts")
+        .update({ is_active: nextValue })
+        .eq("id", id);
+      if (error) {
+        setAlerts((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, isActive: !nextValue } : a))
+        );
+        throw new Error(error.message);
+      }
+    } catch (error) {
+      console.error(error);
     }
   }, []);
 
