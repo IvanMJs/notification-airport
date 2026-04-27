@@ -19,10 +19,11 @@ export async function POST() {
     return NextResponse.json({ already_sent: true });
   }
 
-  // Mark as sent FIRST to prevent race conditions
+  // Mark as sent FIRST to prevent race conditions.
+  // IMPORTANT: include user_id so the column is never left NULL.
   const { error: upsertErr } = await supabase
     .from("user_profiles")
-    .upsert({ id: user.id, welcome_sent: true });
+    .upsert({ id: user.id, user_id: user.id, welcome_sent: true });
   if (upsertErr) return NextResponse.json({ error: "DB error" }, { status: 500 });
 
   // Send email

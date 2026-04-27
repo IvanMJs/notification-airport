@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
 
   const { error } = await supabase.from("user_profiles").upsert({
     id: user.id,
+    user_id: user.id,
     username: username.toLowerCase(),
     display_name: displayName.trim() || null,
   });

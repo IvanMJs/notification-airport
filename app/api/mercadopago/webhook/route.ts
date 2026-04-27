@@ -94,17 +94,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   const plan = status === "authorized" ? purchasedPlanId : "free";
 
-  const { error } = await supabase
+  // Skip plan update if an admin has manually overridden this user's plan
+  const { data: profile } = await supabase
     .from("user_profiles")
-    .update({
-      plan,
-      ...(preapproval.payer_id ? { mp_payer_id: String(preapproval.payer_id) } : {}),
-    })
-    .eq("user_id", userId);
+    .select("admin_override")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  if (error) {
-    // Log server-side only — do not expose to caller
-    void error;
+  if (!profile?.admin_override) {
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({
+        plan,
+        ...(preapproval.payer_id ? { mp_payer_id: String(preapproval.payer_id) } : {}),
+      })
+      .eq("user_id", userId);
+
+    if (error) {
+      void error;
+    }
   }
 
   return NextResponse.json({ received: true });

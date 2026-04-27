@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { FunnelChart } from "./components/FunnelChart";
 import { EventsTimeline } from "./components/EventsTimeline";
 import { UsersTable } from "./components/UsersTable";
+import { AdminUsersSection } from "./components/AdminUsersSection";
 
 const ADMIN_EMAIL = "ivanmeyer1991@gmail.com";
 
@@ -41,6 +42,11 @@ export default async function AdminPage() {
   if (!user || user.email !== ADMIN_EMAIL) redirect("/app");
 
   const admin = await getAdminClient();
+
+  // Total registered users
+  const { count: totalRegistered } = await admin
+    .from("user_profiles")
+    .select("*", { count: "exact", head: true });
 
   // Funnel: unique users per event
   const { data: funnelRaw } = await admin
@@ -112,9 +118,10 @@ export default async function AdminPage() {
         </div>
 
         {/* Top stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
-            { label: "Usuarios activos", value: totalUsers },
+            { label: "Registrados", value: totalRegistered ?? 0 },
+            { label: "Con actividad", value: totalUsers },
             { label: "Eventos totales", value: totalEvents },
             { label: "Tour completado", value: funnelData[1]?.users ?? 0 },
             { label: "Notif otorgadas", value: funnelData[4]?.users ?? 0 },
@@ -148,13 +155,27 @@ export default async function AdminPage() {
           <EventsTimeline data={timelineData} events={FUNNEL_EVENTS} />
         </div>
 
-        {/* Users */}
+        {/* Users funnel table */}
         <div
           className="rounded-2xl border border-white/[0.06] p-6"
           style={{ background: "linear-gradient(160deg, #0e0e1c 0%, #09090f 100%)" }}
         >
-          <h2 className="text-sm font-bold text-gray-300 mb-6">Usuarios activos</h2>
+          <h2 className="text-sm font-bold text-gray-300 mb-6">Usuarios activos · funnel</h2>
           <UsersTable data={usersData} totalSteps={FUNNEL_EVENTS.length} />
+        </div>
+
+        {/* User management */}
+        <div
+          className="rounded-2xl border border-white/[0.06] p-6"
+          style={{ background: "linear-gradient(160deg, #0e0e1c 0%, #09090f 100%)" }}
+        >
+          <div className="mb-6">
+            <h2 className="text-sm font-bold text-gray-300">Gestión de usuarios</h2>
+            <p className="text-xs text-gray-600 mt-1">
+              Cambiar plan · Admin Override evita que MercadoPago sobreescriba el plan asignado manualmente.
+            </p>
+          </div>
+          <AdminUsersSection />
         </div>
 
       </div>
