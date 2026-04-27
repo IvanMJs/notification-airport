@@ -51,13 +51,22 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     admin.auth.admin.listUsers({ perPage: 1000, page: 1 }),
   ]);
 
-  const emailMap = Object.fromEntries(
-    (authData?.users ?? []).map((u) => [u.id, u.email ?? null]),
+  const authMap = Object.fromEntries(
+    (authData?.users ?? []).map((u) => [
+      u.id,
+      {
+        email: u.email ?? null,
+        auth_name: (u.user_metadata?.full_name as string | undefined)
+          || (u.user_metadata?.name as string | undefined)
+          || null,
+      },
+    ]),
   );
 
   let users = (profiles ?? []).map((p) => ({
     ...p,
-    email: emailMap[p.user_id] ?? null,
+    email: authMap[p.user_id ?? ""]?.email ?? null,
+    auth_name: authMap[p.user_id ?? ""]?.auth_name ?? null,
   }));
 
   if (search) {

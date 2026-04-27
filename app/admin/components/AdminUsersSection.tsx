@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 export type UserAdminRow = {
   user_id: string | null;
   email: string | null;
+  auth_name: string | null;
   plan: "free" | "explorer" | "pilot";
   admin_override: boolean;
   admin_notes: string | null;
@@ -247,7 +248,18 @@ export function AdminUsersSection() {
                     {/* Display name + username (editable) */}
                     <td className="px-4 py-3 min-w-[160px]">
                       <div className="space-y-1">
-                        <InlineInput field="display_name" placeholder="+ nombre" />
+                        {/* If display_name is null but auth_name exists, show it dimmed as fallback */}
+                        {!u.display_name && u.auth_name ? (
+                          <button
+                            onClick={() => u.user_id && startEdit(u.user_id, "display_name", u.auth_name)}
+                            className="text-left w-full truncate text-xs text-yellow-500/60 hover:text-yellow-500/90 transition-colors"
+                            title={`"${u.auth_name}" viene de Google/OAuth. Click para guardarlo en el perfil.`}
+                          >
+                            {u.auth_name} <span className="text-[9px] opacity-50">(oauth)</span>
+                          </button>
+                        ) : (
+                          <InlineInput field="display_name" placeholder="+ nombre" />
+                        )}
                         <InlineInput field="username" placeholder="+ username" mono />
                       </div>
                     </td>

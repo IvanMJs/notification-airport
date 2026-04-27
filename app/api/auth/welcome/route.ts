@@ -19,11 +19,23 @@ export async function POST() {
     return NextResponse.json({ already_sent: true });
   }
 
+  // Populate display_name from OAuth metadata (Google sets full_name / name).
+  // Only used as seed — the user can override it later in profile setup.
+  const authName: string | null =
+    (user.user_metadata?.full_name as string | undefined) ||
+    (user.user_metadata?.name as string | undefined) ||
+    null;
+
   // Mark as sent FIRST to prevent race conditions.
   // IMPORTANT: include user_id so the column is never left NULL.
   const { error: upsertErr } = await supabase
     .from("user_profiles")
-    .upsert({ id: user.id, user_id: user.id, welcome_sent: true });
+    .upsert({
+      id: user.id,
+      user_id: user.id,
+      welcome_sent: true,
+      ...(authName ? { display_name: authName } : {}),
+    });
   if (upsertErr) return NextResponse.json({ error: "DB error" }, { status: 500 });
 
   // Send email
