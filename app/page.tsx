@@ -651,12 +651,6 @@ export default function LandingPage() {
                   <>Nunca más te enterás de un cambio de puerta por el cartel del aeropuerto.{" "}<span className="text-white font-semibold">TripCopilot te avisa antes que nadie</span>{" "}— puertas, demoras, cancelaciones, riesgo de conexión.</>
                 )}
               </p>
-              <p className="text-sm text-gray-500 leading-relaxed mb-8 max-w-lg">
-                {lang === "en"
-                  ? "Paste your confirmation or take a photo — TripCopilot loads everything automatically and starts monitoring 24 hours before departure."
-                  : "Pegá tu confirmación o sacá una foto — TripCopilot carga todo solo y empieza a monitorear 24 horas antes de que salgas."}
-              </p>
-
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto mb-8">
                 <button

@@ -597,6 +597,17 @@ export function TripPanel({
 
       {/* ── Tab: Vuelos ─────────────────────────────────────────── */}
 
+      {/* Departure time widget — shown first when a flight departs within 24 hours (most urgent) */}
+      {(activeSection === "flights" || isDraft) && nextFlight && (
+        <DepartureTimeWidget
+          flight={nextFlight}
+          geoPosition={geoPosition}
+          locale={locale}
+          userPlan={userPlan ?? undefined}
+          onUpgrade={onUpgrade}
+        />
+      )}
+
       {/* Countdown Widget — shown when first flight is in the future */}
       {(activeSection === "flights" || isDraft) && countdownData && (
         <TripCountdownWidget
@@ -616,17 +627,6 @@ export function TripPanel({
       {/* Trip Risk Score */}
       {(activeSection === "flights" || isDraft) && sorted.length > 0 && (
         <TripRiskBadge risk={riskScore} locale={locale} />
-      )}
-
-      {/* Departure time widget — shown when a flight departs within 24 hours */}
-      {(activeSection === "flights" || isDraft) && nextFlight && (
-        <DepartureTimeWidget
-          flight={nextFlight}
-          geoPosition={geoPosition}
-          locale={locale}
-          userPlan={userPlan ?? undefined}
-          onUpgrade={onUpgrade}
-        />
       )}
 
       {/* Flight cards */}
