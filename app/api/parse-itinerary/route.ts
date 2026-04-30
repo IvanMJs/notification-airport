@@ -26,9 +26,17 @@ function getAnthropicClient() {
   return new Anthropic({ apiKey });
 }
 
-const SYSTEM_PROMPT = `You are a travel itinerary data extractor. Given an airline booking confirmation (email, screenshot, or travel document), extract ALL flight segments.
+const SYSTEM_PROMPT = `You are a universal travel document extractor. Process ALL segment types: flights, transfers, buses, trains, ferries, and car rentals.
 
-Return ONLY valid JSON in this exact format (no markdown, no explanation):
+STEP 1 — CLASSIFY the document type using these keyword rules:
+- flight: airline codes (AA, LA, AR, UA, DL), flight numbers (AA900), IATA airport codes, "boarding pass", "gate", "seat"
+- transfer: "Bono de Traslado", "Shuttle", "Sentido:", "Transfer", "traslado", "voucher transfer", provider names like "Jumbo Tours"
+- bus: "FlixBus", "Omnibus", "Terminal de buses", "andén", coach/seat number, "autobus"
+- train: "AVE", "Amtrak", "Renfe", "Tren", "rail", "Vagón", "Andén", "SNCF", "Eurostar"
+- ferry: "Ferry", "Grimaldi", "Baleària", "port", "Cubierta", "cabin", "embarque"
+- car_rental: "Hertz", "Avis", "Budget", "Alamo", "Rental Agreement", "Pick-up", "Drop-off", "recogida"
+
+STEP 2 — EXTRACT fields according to the rules below, then return ONLY valid JSON (no markdown, no explanation):
 {
   "flights": [
     {
@@ -46,34 +54,62 @@ Return ONLY valid JSON in this exact format (no markdown, no explanation):
       "cabinClass": "economy",
       "seatNumber": "12A",
       "bookingCode": "QDLHPV",
-      "confidence": "high",
+      "confidence": 0.95,
       "missing": []
     }
   ],
   "rawExtraction": "Brief reasoning: found 2 flights in a round-trip AA confirmation..."
 }
 
-Rules:
+Field rules:
+
+FOR FLIGHTS:
 - flightCode: airline IATA code + flight number, no spaces (e.g. "AA900", "UA456")
 - airlineCode: 2-letter IATA code (e.g. "AA", "UA", "DL", "LA", "AR")
 - airlineName: full airline name in English
 - flightNumber: just the digits (e.g. "900")
 - originCode: IATA airport code, 3 uppercase letters
 - destinationCode: IATA airport code, 3 uppercase letters
+
+FOR NON-FLIGHT SEGMENTS (transfer, bus, train, ferry, car_rental):
+- flightCode: use booking/localizador number prefixed with type — NEVER leave empty (e.g. "TRANSFER-8246238613", "BUS-16111266", "TRAIN-REN123456")
+- airlineCode: use "" for non-flight segments
+- airlineName: use the provider/company name (e.g. "Jumbo Tours", "FlixBus", "Renfe", "Hertz")
+- flightNumber: use "" for non-flight segments
+- originCode: nearest airport IATA code OR city abbreviation (e.g. "CUN" for Cancún airport, "MAD" for Madrid). Use hotel name first 3 chars if no IATA exists (e.g. "WYN" for Wyndham)
+- destinationCode: same logic as originCode
+
+COMMON FIELDS:
 - isoDate: departure date, format "YYYY-MM-DD"
 - departureTime: 24h format "HH:MM", or "" if not found. Convert 12h to 24h (e.g. "8:30 PM" → "20:30").
-- arrivalDate: arrival date, format "YYYY-MM-DD". May differ from isoDate for overnight flights. Leave "" if not found.
+- arrivalDate: arrival date, format "YYYY-MM-DD". Leave "" if not found.
 - arrivalTime: arrival time in local time at destination, 24h format "HH:MM". Leave "" if not found.
-- segmentType: one of "flight"|"bus"|"train"|"car_rental"|"ferry"|"transfer". Detect from context: plane/airline → flight, bus/coach/autobus → bus, train/rail/AVE/Amtrak → train, rental car/car hire → car_rental, ferry/boat/cruise → ferry, shuttle/transfer/taxi → transfer. Default to "flight" if not clear.
+- segmentType: one of "flight"|"bus"|"train"|"car_rental"|"ferry"|"transfer"
 - cabinClass: one of "economy", "premium_economy", "business", "first". Leave "" if not found.
-- seatNumber: assigned seat, row + letter (e.g. "12A", "23F", "4C"). Leave "" if not assigned.
-- bookingCode: PNR/confirmation/reservation code. Formats: 6-char alphanumeric (e.g. "QDLHPV") OR 6-10 digit numeric. Shared across all flights in the same booking. Leave "" if not found.
-- confidence: "high" if all required fields found, "medium" if 1-2 minor fields missing, "low" if key fields like airports or date are missing
-- missing: array of field names that could not be found, e.g. ["departureTime"] or []
+- seatNumber: assigned seat (e.g. "12A"). Leave "" if not assigned.
+- bookingCode: PNR/confirmation/reservation code (e.g. "QDLHPV" or "8246238613"). Leave "" if not found.
+- confidence: numeric 0.0–1.0
+  - 1.0: all key fields present (originCode, destinationCode, isoDate, departureTime)
+  - 0.8: missing departureTime only
+  - 0.6: missing 1-2 fields but type is clear
+  - 0.4: type detected but most fields uncertain
+  - 0.2: document unclear, best guess
+- missing: array of field names that could not be determined, e.g. ["departureTime"] or []
 - rawExtraction: 1-2 sentence summary of what you found and any ambiguities
 
+FEW-SHOT EXAMPLES:
+
+Input: "BOARDING PASS · American Airlines AA900 · JFK → MIA · April 11 2026 · Dep 11:10 · Seat 12A"
+Output: {"segmentType":"flight","flightCode":"AA900","airlineCode":"AA","airlineName":"American Airlines","flightNumber":"900","originCode":"JFK","destinationCode":"MIA","isoDate":"2026-04-11","departureTime":"11:10","arrivalDate":"","arrivalTime":"","cabinClass":"","seatNumber":"12A","bookingCode":"","confidence":0.95,"missing":[]}
+
+Input: "Bono de Traslado · Jumbo Tours · Cancún Aeropuerto → Wyndham Grand · 01/05/2026 14:15 · Localizador: 8246238613"
+Output: {"segmentType":"transfer","flightCode":"TRANSFER-8246238613","airlineCode":"","airlineName":"Jumbo Tours","flightNumber":"","originCode":"CUN","destinationCode":"WYN","isoDate":"2026-05-01","departureTime":"14:15","arrivalDate":"","arrivalTime":"","cabinClass":"","seatNumber":"","bookingCode":"8246238613","confidence":0.85,"missing":[]}
+
+Input: "AVE Madrid→Barcelona · 08:30 · 20/06/2026 · Vagón 3 Asiento 12A · Renfe · Reserva: REN123456"
+Output: {"segmentType":"train","flightCode":"TRAIN-REN123456","airlineCode":"","airlineName":"Renfe","flightNumber":"","originCode":"MAD","destinationCode":"BCN","isoDate":"2026-06-20","departureTime":"08:30","arrivalDate":"","arrivalTime":"","cabinClass":"","seatNumber":"12A","bookingCode":"REN123456","confidence":0.9,"missing":[]}
+
 Handle Spanish, English, and Portuguese input naturally.
-Extract ALL flight segments in chronological order.
+Extract ALL travel segments in chronological order.
 If a field is missing or uncertain, leave it as empty string "" and add the field name to "missing".
 `;
 
@@ -113,12 +149,12 @@ export async function POST(req: NextRequest) {
       });
       userContent.push({
         type: "text",
-        text: "Extract all flight segments from this image. Return JSON only.",
+        text: "Extract ALL travel segments (flights, transfers, buses, trains, ferries, car rentals) from this image. Return JSON only.",
       });
     } else {
       userContent.push({
         type: "text",
-        text: `Extract all flight segments from this travel document:\n\n${text}\n\nReturn JSON only.`,
+        text: `Extract ALL travel segments (flights, transfers, buses, trains, ferries, car rentals) from this travel document:\n\n${text}\n\nReturn JSON only.`,
       });
     }
 
@@ -143,10 +179,10 @@ export async function POST(req: NextRequest) {
     };
 
     const FlightSchema = z.object({
-      flightCode:      z.string().regex(/^[A-Z0-9]{2,3}\d{1,4}$/).catch(""),
-      airlineCode:     z.string().regex(/^[A-Z]{2}$/).catch(""),
+      flightCode:      z.string().catch(""),
+      airlineCode:     z.string().max(3).catch(""),
       airlineName:     z.string().max(100).catch(""),
-      flightNumber:    z.string().regex(/^\d{1,4}$/).catch(""),
+      flightNumber:    z.string().max(6).catch(""),
       originCode:      z.string().regex(/^[A-Z]{3}$/).catch(""),
       destinationCode: z.string().regex(/^[A-Z]{3}$/).catch(""),
       isoDate:         z
@@ -175,7 +211,7 @@ export async function POST(req: NextRequest) {
         .catch(""),
       seatNumber:  z.string().max(10).catch(""),
       bookingCode: z.string().max(20).catch(""),
-      confidence:  z.enum(["high", "medium", "low"]).catch("medium"),
+      confidence:  z.number().min(0).max(1).catch(0.5),
       missing:     z.array(z.string()).catch([]),
     });
 

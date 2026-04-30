@@ -17,7 +17,7 @@ export interface ParsedFlight {
   arrivalBuffer: number;
   bookingCode?:  string;
   segmentType?:  SegmentType;
-  confidence:    "high" | "medium" | "low";
+  confidence:    number | "high" | "medium" | "low";
 }
 
 export interface ParseResult {

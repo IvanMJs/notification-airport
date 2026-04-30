@@ -126,7 +126,7 @@ interface ParsedFlightRaw {
   cabinClass?:     string;
   seatNumber?:     string;
   bookingCode?:    string;
-  confidence:      "high" | "medium" | "low";
+  confidence:      number | "high" | "medium" | "low";
   missing:         string[];
 }
 
@@ -138,6 +138,10 @@ interface EditableFlight extends ParsedFlight {
 
 function buildEditableFlight(raw: ParsedFlightRaw): EditableFlight {
   const airline = AIRLINES[raw.airlineCode.toUpperCase()];
+  const normalizedConfidence: "high" | "medium" | "low" =
+    typeof raw.confidence === "number"
+      ? raw.confidence >= 0.8 ? "high" : raw.confidence >= 0.5 ? "medium" : "low"
+      : raw.confidence ?? "medium";
   return {
     flightCode:      raw.flightCode,
     airlineCode:     raw.airlineCode.toUpperCase(),
@@ -153,7 +157,7 @@ function buildEditableFlight(raw: ParsedFlightRaw): EditableFlight {
     arrivalBuffer:   2,
     segmentType:     raw.segmentType  ?? 'flight',
     bookingCode:     raw.bookingCode  || undefined,
-    confidence:      raw.confidence   ?? "medium",
+    confidence:      normalizedConfidence,
     missing:         raw.missing,
   };
 }
@@ -301,7 +305,7 @@ export function ItineraryImportModal({
 
   const hasMissingRequired = flights.some((f) =>
     f.missing.some((m) =>
-      ["originCode", "destinationCode", "isoDate", "flightCode"].includes(m),
+      ["originCode", "destinationCode", "isoDate"].includes(m),
     ),
   );
 
@@ -807,6 +811,9 @@ function FlightReviewCard({
             >
               {flight.confidence}
             </span>
+          )}
+          {flight.confidence === "low" && (
+            <span className="text-xs text-amber-400 font-medium">⚠ Verificar</span>
           )}
           <button
             onClick={(e) => {
