@@ -66,6 +66,9 @@ export interface TripFlight {
   seatNumber?: string;     // seat assignment, e.g. "12A", "23F"
   terminal?: string;       // departure terminal, e.g. "T2", "International"
   segmentType?: SegmentType;
+  // Pilot mode extras (optional enriched fields)
+  aircraftType?: string;    // e.g. "Boeing 737-800", "Airbus A320"
+  otpPercent?: number;      // on-time performance 0–100, e.g. 72
 }
 
 export interface Accommodation {

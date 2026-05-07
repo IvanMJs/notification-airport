@@ -503,6 +503,31 @@ export function FlightCardBody({
               </motion.button>
             )}
 
+            {/* Pilot mode: aircraft type + OTP */}
+            <ModeGate mode="pilot">
+              {(flight.aircraftType || flight.otpPercent != null) && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {flight.aircraftType && (
+                    <span className="flex items-center gap-1 text-[11px] text-gray-400 bg-white/[0.04] border border-white/[0.08] rounded-full px-2 py-0.5">
+                      <Plane className="h-3 w-3 text-gray-600" />
+                      {flight.aircraftType}
+                    </span>
+                  )}
+                  {flight.otpPercent != null && (
+                    <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 ${
+                      flight.otpPercent >= 75
+                        ? "text-emerald-400 bg-emerald-950/40 border border-emerald-700/30"
+                        : flight.otpPercent >= 50
+                        ? "text-yellow-400 bg-yellow-950/40 border border-yellow-700/30"
+                        : "text-red-400 bg-red-950/40 border border-red-700/30"
+                    }`}>
+                      OTP: {flight.otpPercent}%
+                    </span>
+                  )}
+                </div>
+              )}
+            </ModeGate>
+
             {/* Upgrade indicator */}
             {wantsUpgrade && (
               <div className="flex items-center justify-between gap-3 flex-wrap pt-1">

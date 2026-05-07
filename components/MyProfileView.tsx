@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, type Easing } from "framer-motion";
 import { TrendingUp, Globe, Plane, MapPin, Zap, Award, X, BarChart3, Trophy, Gift, Users, Share2, Share, Camera, Settings, Pencil } from "lucide-react";
+import { haptics } from "@/lib/haptics";
 import { TripTab } from "@/lib/types";
 import { computeTripStats } from "@/lib/tripStats";
 import { PLANS } from "@/lib/mercadopago";
@@ -19,6 +20,8 @@ import { PlacesTab } from "@/components/PlacesTab";
 import { useVisitedCountries } from "@/lib/visited-countries";
 import { WorldMap } from "@/components/WorldMap";
 import { MapFullscreenModal } from "@/components/MapFullscreenModal";
+import { PersonalRecords } from "@/components/PersonalRecords";
+import { ModeGate } from "@/components/ModeGate";
 
 interface MyProfileViewProps {
   trips: TripTab[];
@@ -189,15 +192,23 @@ function StampCard({ data, locale, onClose }: StampCardProps) {
   const L = LABELS[locale];
   const flag = countryFlag(data.country);
   const dateStr = formatStampDate(data.firstVisitDate, locale);
+  const hasLanded = useRef(false);
 
   return (
     <motion.div
       key={data.iata}
-      initial={{ opacity: 0, scale: 0.85, rotate: -4 }}
-      animate={{ opacity: 1, scale: 1, rotate: -1.5 }}
+      initial={{ opacity: 0, scale: 0.3, rotate: -15, y: -40 }}
+      animate={{ opacity: 1, scale: 1, rotate: -1.5, y: 0 }}
       exit={{ opacity: 0, scale: 0.80, rotate: 3 }}
-      transition={{ type: "spring", stiffness: 360, damping: 22 }}
+      transition={{ type: "spring", stiffness: 280, damping: 22 }}
+      onAnimationComplete={() => {
+        if (!hasLanded.current) {
+          hasLanded.current = true;
+          haptics.impact();
+        }
+      }}
       className="relative w-full"
+      style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.3)" }}
     >
       {/* Stamp-style visual */}
       <div
@@ -339,6 +350,7 @@ export function MyProfileView({ trips, locale, userPlan, userId, userName, userA
   const L = LABELS[locale];
   const [selectedIata, setSelectedIata] = useState<string | null>(null);
   const [mapModalOpen, setMapModalOpen] = useState(false);
+  const [stampGridOpen, setStampGridOpen] = useState(false);
   const visitedCountries = useVisitedCountries(trips);
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTabId>("stats");
 
@@ -862,6 +874,13 @@ export function MyProfileView({ trips, locale, userPlan, userId, userName, userA
               </motion.div>
             )}
 
+            {/* Personal records — Pilot mode only */}
+            <ModeGate mode="pilot">
+              <motion.div {...fadeUp(0.22)}>
+                <PersonalRecords trips={trips} locale={locale} />
+              </motion.div>
+            </ModeGate>
+
             {/* Plan status */}
             <motion.div {...fadeUp(0.25)} className="px-4 pb-6">
               {(userPlan === "explorer" || userPlan === "pilot") ? (
@@ -981,6 +1000,19 @@ export function MyProfileView({ trips, locale, userPlan, userId, userName, userA
             <motion.div {...fadeUp(0.1)}>
               <AchievementBadges trips={trips} locale={locale} />
             </motion.div>
+
+            {/* Stamp collection share button */}
+            {Object.keys(stampDataMap).length > 0 && (
+              <motion.div {...fadeUp(0.13)} className="px-4 pb-4">
+                <button
+                  onClick={() => setStampGridOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl border border-[rgba(255,184,0,0.25)] bg-[rgba(255,184,0,0.06)] hover:bg-[rgba(255,184,0,0.10)] active:scale-95 px-4 py-3 text-sm font-bold text-[#FFB800] transition-all"
+                >
+                  <Share2 className="h-4 w-4" />
+                  {locale === "es" ? "Compartí tu colección de stamps" : "Share your stamp collection"}
+                </button>
+              </motion.div>
+            )}
 
             {/* Travel Streaks */}
             <motion.div {...fadeUp(0.15)}>
@@ -1112,6 +1144,83 @@ export function MyProfileView({ trips, locale, userPlan, userId, userName, userA
         onClose={() => setMapModalOpen(false)}
         locale={locale}
       />
+
+      {/* Stamp collection grid sheet */}
+      <AnimatePresence>
+        {stampGridOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-end justify-center"
+            style={{ background: "rgba(0,0,0,0.80)", backdropFilter: "blur(6px)" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={(e) => { if (e.target === e.currentTarget) setStampGridOpen(false); }}
+          >
+            <motion.div
+              className="w-full max-w-2xl rounded-t-2xl border border-white/[0.07] bg-surface-card flex flex-col max-h-[80dvh]"
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            >
+              {/* Sheet header */}
+              <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-white/[0.06] shrink-0">
+                <div>
+                  <p className="text-sm font-bold text-white">
+                    {locale === "es" ? "Mi colección de stamps" : "My stamp collection"}
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    {Object.keys(stampDataMap).length} {locale === "es" ? "aeropuertos visitados" : "airports visited"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setStampGridOpen(false)}
+                  className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/8 transition-colors"
+                  aria-label={locale === "es" ? "Cerrar" : "Close"}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Stamp grid */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {Object.values(stampDataMap).map((stamp) => (
+                    <div
+                      key={stamp.iata}
+                      className="relative overflow-hidden rounded-xl border border-dashed border-white/[0.15] p-2.5 flex flex-col gap-1 min-h-[90px]"
+                      style={{
+                        background: "linear-gradient(135deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.01) 100%)",
+                      }}
+                    >
+                      <div className="absolute -right-4 -top-4 w-14 h-14 rounded-full border-2 border-white/[0.05] pointer-events-none" />
+                      <p className="text-[8px] font-mono font-bold text-white/20 tracking-[0.2em] uppercase">
+                        {stamp.iata}
+                      </p>
+                      <p className="text-[11px] font-black text-white leading-tight line-clamp-2 flex-1">
+                        {stamp.airportName.length > 22 ? stamp.airportName.slice(0, 20) + "…" : stamp.airportName}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        <span className="text-base leading-none">{countryFlag(stamp.country)}</span>
+                        <p className="text-[9px] text-white/25 font-semibold uppercase tracking-wider">
+                          {stamp.visitCount}×
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer branding */}
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <p className="text-[10px] text-gray-600 font-medium">
+                    TripCopilot · tripcopilot.app
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

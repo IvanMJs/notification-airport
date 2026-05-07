@@ -541,14 +541,22 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
 
         {metar && (
           <ModeGate mode="pilot">
-            <button
-              onClick={() => setShowTechnical((v) => !v)}
-              className="mt-2 text-xs text-gray-500 underline underline-offset-2 hover:text-gray-300 transition-colors"
-            >
-              {showTechnical
-                ? (locale === "es" ? "Ocultar detalles ↑" : "Hide details ↑")
-                : (locale === "es" ? "Ver detalles técnicos ↓" : "Show technical details ↓")}
-            </button>
+            <div className="mt-2 flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setShowTechnical((v) => !v)}
+                className="text-xs text-gray-500 underline underline-offset-2 hover:text-gray-300 transition-colors"
+              >
+                {showTechnical
+                  ? (locale === "es" ? "Ocultar detalles ↑" : "Hide details ↑")
+                  : (locale === "es" ? "Ver detalles técnicos ↓" : "Show technical details ↓")}
+              </button>
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-gray-600 border border-dashed border-gray-700/50 rounded-full px-2 py-0.5 opacity-50"
+                title={locale === "es" ? "NOTAMs — próximamente" : "NOTAMs — coming soon"}
+              >
+                📋 NOTAMs
+              </span>
+            </div>
           </ModeGate>
         )}
 

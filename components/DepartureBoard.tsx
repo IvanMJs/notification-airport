@@ -13,6 +13,9 @@ import { useDepartureTime } from "@/hooks/useDepartureTime";
 import { GeoPosition } from "@/hooks/useGeolocation";
 import { WarRoomMode } from "@/components/WarRoomMode";
 import { useUIModeContext } from "@/contexts/UIModeContext";
+import { ModeGate } from "@/components/ModeGate";
+import { MetarData } from "@/hooks/useMetar";
+import { SigmetFeature } from "@/hooks/useSigmet";
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -24,6 +27,8 @@ interface DepartureBoardProps {
   userPlan?: string | null;
   onUpgrade?: () => void;
   onCreateTrip?: () => void;
+  metarMap?: Record<string, MetarData>;
+  activeSigmets?: SigmetFeature[];
 }
 
 // ── Internal types ─────────────────────────────────────────────────────────
@@ -137,9 +142,12 @@ interface HeroCardProps {
   flight: BoardFlight;
   locale: "es" | "en";
   geoPosition: GeoPosition | null | undefined;
+  metar?: MetarData | null;
+  activeSigmets?: SigmetFeature[];
+  connectionRiskPercent?: number | null;
 }
 
-function HeroCard({ flight, locale, geoPosition }: HeroCardProps) {
+function HeroCard({ flight, locale, geoPosition, metar, activeSigmets, connectionRiskPercent }: HeroCardProps) {
   const depISO = flightDepartureISO(flight);
   const liveMinutes = useLiveMinutes(depISO);
   const urgency = liveMinutes === Infinity ? "relaxed" : getUrgency(liveMinutes);
@@ -281,6 +289,34 @@ function HeroCard({ flight, locale, geoPosition }: HeroCardProps) {
           )}
         </div>
       )}
+
+      {/* Pilot mode extras — METAR strip, SIGMET count, connection risk */}
+      <ModeGate mode="pilot">
+        {(metar || (activeSigmets && activeSigmets.length > 0) || connectionRiskPercent != null) && (
+          <div className="px-4 pb-2 flex items-center gap-3 flex-wrap">
+            {metar && (
+              <span className="text-[10px] font-mono text-white/40 truncate">
+                {metar.rawOb || `${metar.flightCategory} ${metar.windSpeedKt === 0 ? "CALM" : `${String(metar.windDirDeg).padStart(3, "0")}°/${metar.windSpeedKt}kt`}`}
+              </span>
+            )}
+            {activeSigmets && activeSigmets.length > 0 && (
+              <span className="shrink-0 text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-700/30 rounded-full px-2 py-0.5">
+                ⚠ {activeSigmets.length} SIGMET{activeSigmets.length !== 1 ? "s" : ""}
+              </span>
+            )}
+            {connectionRiskPercent != null && (
+              <span className={`shrink-0 text-[10px] font-bold rounded-full px-2 py-0.5 ${
+                connectionRiskPercent >= 70
+                  ? "text-emerald-400 bg-emerald-950/40 border border-emerald-700/30"
+                  : "text-amber-400 bg-amber-950/40 border border-amber-700/30"
+              }`}>
+                {locale === "es" ? "Conexión:" : "Connection:"} {connectionRiskPercent}%{" "}
+                {connectionRiskPercent >= 70 ? "✓" : "⚠️"}
+              </span>
+            )}
+          </div>
+        )}
+      </ModeGate>
 
       {/* Departure time widget — "when to leave" info */}
       {departureResult && departureResult.urgencyLevel !== "past" && (
@@ -445,6 +481,8 @@ export function DepartureBoard({
   userPlan,
   onUpgrade,
   onCreateTrip,
+  metarMap,
+  activeSigmets,
 }: DepartureBoardProps) {
   const today = new Date().toISOString().slice(0, 10);
   const [warRoomDismissed, setWarRoomDismissed] = useState(false);
@@ -603,14 +641,44 @@ export function DepartureBoard({
 
           {/* Hero card for the next flight */}
           <AnimatePresence>
-            {heroFlight && (
-              <HeroCard
-                key={heroFlight.id}
-                flight={heroFlight}
-                locale={locale}
-                geoPosition={geoPosition}
-              />
-            )}
+            {heroFlight && (() => {
+              // Compute connection risk percentage for the hero flight's next leg
+              const heroParentTrip = trips.find((t) => t.id === heroFlight.tripId);
+              const heroConnectionRiskPercent: number | null = (() => {
+                if (!heroParentTrip) return null;
+                const sorted = [...heroParentTrip.flights].sort((a, b) =>
+                  a.isoDate.localeCompare(b.isoDate) ||
+                  (a.departureTime ?? "").localeCompare(b.departureTime ?? ""),
+                );
+                const idx = sorted.findIndex((f) => f.id === heroFlight.id);
+                if (idx === -1 || idx >= sorted.length - 1) return null;
+                const nextF = sorted[idx + 1];
+                if (!nextF || heroFlight.destinationCode !== nextF.originCode) return null;
+                if (!heroFlight.departureTime || !nextF.departureTime) return null;
+                // Derive a 0-100 safety score from effective buffer vs MCT
+                const mct = 75; // conservative default MCT in minutes
+                const estDuration = 240; // conservative flight duration estimate
+                const [dh, dm] = heroFlight.departureTime.split(":").map(Number);
+                const [nh, nm] = nextF.departureTime.split(":").map(Number);
+                const depMin = dh * 60 + dm;
+                const nextDepMin = nh * 60 + nm;
+                const buffer = nextDepMin - (depMin + estDuration);
+                if (buffer < 0) return 5;
+                const pct = Math.min(100, Math.round((buffer / (mct * 2)) * 100));
+                return Math.max(5, pct);
+              })();
+              return (
+                <HeroCard
+                  key={heroFlight.id}
+                  flight={heroFlight}
+                  locale={locale}
+                  geoPosition={geoPosition}
+                  metar={metarMap ? (metarMap[heroFlight.originCode] ?? null) : null}
+                  activeSigmets={activeSigmets}
+                  connectionRiskPercent={heroConnectionRiskPercent}
+                />
+              );
+            })()}
           </AnimatePresence>
 
           {/* Other today flights */}
