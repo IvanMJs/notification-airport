@@ -36,13 +36,14 @@ Meta: App Store + Play Store con reviews reales
 
 ---
 
-## Bloque B: Decomposición del God Component
+## Bloque B: Decomposición del God Component (Completado)
 
-- [ ] **B1** — Extraer TripManagementProvider
-- [ ] **B2** — Extraer NotificationSetupProvider
-- [ ] **B3** — Extraer UserSessionProvider
-- [ ] **B4** — Extraer AppShell component
-- [ ] **B5** — page.tsx como orquestador (<200 líneas)
+- [x] **B0** — Extraer constantes a `lib/constants.ts`
+- [x] **B3** — Extraer UserSessionProvider (auth, perfil, logout)
+- [x] **B1** — Extraer TripManagementProvider (CRUD, draft, 14 handlers)
+- [x] **B2** — Extraer NotificationSetupProvider (push, SW, sheets)
+- [x] **B4** — Extraer AppShell + AppHeader + TabContent + AppModals
+- [x] **B5** — page.tsx como orquestador (1,400 → 144 líneas)
 
 ---
 
