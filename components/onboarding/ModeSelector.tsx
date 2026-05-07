@@ -65,8 +65,10 @@ export function ModeSelector({ onSelect }: ModeSelectorProps) {
                 scale: { type: "spring", stiffness: 400, damping: 30 },
               }}
               onClick={() => handleSelect(card.mode)}
+              aria-pressed={isSelected}
+              aria-label={`${card.label}: ${card.tagline}`}
               className={[
-                "relative flex-1 text-left rounded-2xl p-5 transition-colors duration-200",
+                "relative flex-1 text-left rounded-2xl p-5 transition-colors duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FFB800]",
                 isSelected
                   ? "bg-amber-500/[0.07] border-[1.5px] border-[#FFB800]"
                   : "bg-white/[0.03] border border-white/[0.08]",
@@ -76,7 +78,6 @@ export function ModeSelector({ onSelect }: ModeSelectorProps) {
                   ? { boxShadow: "0 0 24px rgba(255,184,0,0.18)" }
                   : undefined
               }
-              aria-pressed={isSelected}
             >
               {/* Checkmark badge */}
               <AnimatePresence>

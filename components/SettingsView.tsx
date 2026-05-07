@@ -17,12 +17,15 @@ import {
   Info,
   Gem,
   Download,
+  Layers,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { getNotificationPrefs, DEFAULT_PREFS } from "@/lib/notificationPreferences";
 import { SocialPrivacySettings } from "@/components/SocialPrivacySettings";
+import { ModeToggle } from "@/components/onboarding/ModeToggle";
+import { useUIModeContext } from "@/contexts/UIModeContext";
 import type { ThemePreference } from "@/contexts/ThemeContext";
 import type { Locale } from "@/lib/i18n";
 
@@ -85,6 +88,8 @@ const LABELS = {
     exportData: "Exportar mis datos",
     exportComingSoon: "Próximamente",
     appVersion: "Versión de la app",
+    // Mode
+    sectionMode: "Modo de uso",
     // About
     sectionAbout: "Acerca de",
     privacy: "Política de privacidad",
@@ -130,6 +135,8 @@ const LABELS = {
     exportData: "Export my data",
     exportComingSoon: "Coming soon",
     appVersion: "App version",
+    // Mode
+    sectionMode: "Usage mode",
     // About
     sectionAbout: "About",
     privacy: "Privacy Policy",
@@ -205,6 +212,7 @@ export function SettingsView({
   const L = LABELS[locale];
   const { theme, setTheme } = useTheme();
   const { setLocale } = useLanguage();
+  const { mode, setMode } = useUIModeContext();
 
   // Auth state
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -457,6 +465,20 @@ export function SettingsView({
             </button>
           </SettingsRow>
         </SettingsCard>
+
+        {/* ── Section: Usage Mode ──────────────────────────────────────────── */}
+        <SectionHeader label={L.sectionMode} />
+        <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] overflow-hidden px-4 py-4">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-8 w-8 rounded-xl bg-[rgba(255,184,0,0.06)] border border-[rgba(255,184,0,0.25)] flex items-center justify-center shrink-0">
+              <Layers className="h-4 w-4 text-[#FFB800]" />
+            </div>
+            <span className="text-sm text-gray-300">
+              {locale === "es" ? "Estilo de interfaz" : "Interface style"}
+            </span>
+          </div>
+          <ModeToggle value={mode} onChange={(m) => void setMode(m)} />
+        </div>
 
         {/* ── Section: Appearance ──────────────────────────────────────────── */}
         <SectionHeader label={L.sectionAppearance} />

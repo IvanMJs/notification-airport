@@ -20,8 +20,13 @@ import { PlacesTab } from "@/components/PlacesTab";
 import { useVisitedCountries } from "@/lib/visited-countries";
 import { WorldMap } from "@/components/WorldMap";
 import { MapFullscreenModal } from "@/components/MapFullscreenModal";
-import { PersonalRecords } from "@/components/PersonalRecords";
+import dynamic from "next/dynamic";
 import { ModeGate } from "@/components/ModeGate";
+
+const PersonalRecords = dynamic(
+  () => import("@/components/PersonalRecords").then((m) => ({ default: m.PersonalRecords })),
+  { ssr: false },
+);
 
 interface MyProfileViewProps {
   trips: TripTab[];

@@ -8,8 +8,8 @@ interface ModeToggleProps {
 }
 
 const DESCRIPTIONS: Record<"relax" | "pilot", string> = {
-  relax: "Solo lo esencial. Alertas inteligentes cuando importa.",
-  pilot: "Dashboard completo. METAR, conexiones, datos en tiempo real.",
+  relax: "Interfaz simplificada con alertas inteligentes. Sin datos técnicos de aviación.",
+  pilot: "Dashboard completo con METAR, SIGMET, conexiones, datos en tiempo real.",
 };
 
 export function ModeToggle({ value, onChange }: ModeToggleProps) {
@@ -32,11 +32,12 @@ export function ModeToggle({ value, onChange }: ModeToggleProps) {
         {/* Relax button */}
         <button
           onClick={() => onChange("relax")}
+          aria-pressed={value === "relax"}
+          aria-label="Modo Relax: interfaz simplificada con alertas inteligentes"
           className={[
-            "relative z-10 flex-1 min-h-[48px] rounded-[9px] text-sm font-bold transition-colors duration-150",
+            "relative z-10 flex-1 min-h-[48px] rounded-[9px] text-sm font-bold transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#FFB800]",
             value === "relax" ? "text-[#080810]" : "text-white/[0.42]",
           ].join(" ")}
-          aria-pressed={value === "relax"}
         >
           😌 Relax
         </button>
@@ -44,11 +45,12 @@ export function ModeToggle({ value, onChange }: ModeToggleProps) {
         {/* Pilot button */}
         <button
           onClick={() => onChange("pilot")}
+          aria-pressed={value === "pilot"}
+          aria-label="Modo Pilot: dashboard completo con datos de aviación en tiempo real"
           className={[
-            "relative z-10 flex-1 min-h-[48px] rounded-[9px] text-sm font-bold transition-colors duration-150",
+            "relative z-10 flex-1 min-h-[48px] rounded-[9px] text-sm font-bold transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#FFB800]",
             value === "pilot" ? "text-[#080810]" : "text-white/[0.42]",
           ].join(" ")}
-          aria-pressed={value === "pilot"}
         >
           🧑‍✈️ Pilot
         </button>
