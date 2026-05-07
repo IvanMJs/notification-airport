@@ -67,6 +67,7 @@ import { TripCountdownWidget } from "./TripCountdownWidget";
 import { TripChatPanel } from "./TripChatPanel";
 import { TripDiary } from "./TripDiary";
 import { FlightPriceAlertTeaser } from "./FlightPriceAlertTeaser";
+import { ModeGate } from "./ModeGate";
 
 // ── Connection Separator ──────────────────────────────────────────────────────
 
@@ -728,16 +729,39 @@ export function TripPanel({
                       />
                     </motion.div>
                     {airportToCountry(flight.originCode) !== airportToCountry(flight.destinationCode) && (
-                      <VisaInfo
-                        originAirport={flight.originCode}
-                        destinationAirport={flight.destinationCode}
-                        locale={locale}
-                      />
+                      <ModeGate mode="pilot">
+                        <VisaInfo
+                          originAirport={flight.originCode}
+                          destinationAirport={flight.destinationCode}
+                          locale={locale}
+                        />
+                      </ModeGate>
                     )}
                     {globalIdx < sorted.length - 1 && (() => {
                       const nextFlight = sorted[globalIdx + 1];
                       if (connAnalysis) {
-                        return <ConnectionRiskBar analysis={connAnalysis} locale={locale} />;
+                        return (
+                          <>
+                            <ModeGate mode="pilot">
+                              <ConnectionRiskBar analysis={connAnalysis} locale={locale} />
+                            </ModeGate>
+                            <ModeGate mode="relax">
+                              <div className={`mx-1 my-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${
+                                connAnalysis.risk === "missed"
+                                  ? "bg-red-950/30 border-red-800/40 text-red-300"
+                                  : connAnalysis.risk === "at_risk" || connAnalysis.risk === "tight"
+                                  ? "bg-orange-950/30 border-orange-800/40 text-orange-300"
+                                  : "bg-emerald-950/30 border-emerald-800/40 text-emerald-300"
+                              }`}>
+                                {connAnalysis.risk === "missed"
+                                  ? locale === "es" ? "Conexión perdida 🚨" : "Missed connection 🚨"
+                                  : connAnalysis.risk === "at_risk" || connAnalysis.risk === "tight"
+                                  ? locale === "es" ? "Conexión ajustada ⚠️" : "Tight connection ⚠️"
+                                  : locale === "es" ? "Conexión OK ✓" : "Connection OK ✓"}
+                              </div>
+                            </ModeGate>
+                          </>
+                        );
                       }
                       // No connection analysis → check if it's an intentional stopover
                       // (same route, but gap ≥ 24h so analyzeConnection returned null)
@@ -822,9 +846,11 @@ export function TripPanel({
         </div>
       ))}
 
-      {/* Carbon footprint — shown in flights tab when there are flights */}
+      {/* Carbon footprint — shown in flights tab when there are flights (Pilot mode only) */}
       {(activeSection === "flights" || isDraft) && sorted.length > 0 && (
-        <CarbonFootprint flights={sorted} locale={locale} />
+        <ModeGate mode="pilot">
+          <CarbonFootprint flights={sorted} locale={locale} />
+        </ModeGate>
       )}
 
       {/* Action bar */}
@@ -1147,55 +1173,57 @@ export function TripPanel({
             );
           })()}
 
-          {/* Premium teaser cards — free users only */}
+          {/* Premium teaser cards — free users only, Pilot mode only */}
           {sorted.length > 0 && userPlan === "free" && (
-            <div className="space-y-3">
-              {/* Teaser 1: AI Health Check */}
-              <div className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 overflow-hidden">
-                <div className="absolute inset-0 backdrop-blur-[2px] bg-black/40 z-10 flex flex-col items-center justify-center">
-                  <Lock className="h-5 w-5 text-[#FFB800] mb-2" />
-                  <p className="text-sm font-bold text-white">AI Health Check</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {locale === "es" ? "Disponible en Explorer" : "Available in Explorer"}
-                  </p>
-                  <button
-                    onClick={onUpgrade}
-                    className="mt-3 px-4 py-1.5 rounded-lg bg-[#FFB800] hover:bg-[#FFC933] text-xs font-bold text-[#07070d] transition-colors"
-                  >
-                    {locale === "es" ? "Mejorar plan →" : "Upgrade plan →"}
-                  </button>
+            <ModeGate mode="pilot">
+              <div className="space-y-3">
+                {/* Teaser 1: AI Health Check */}
+                <div className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 overflow-hidden">
+                  <div className="absolute inset-0 backdrop-blur-[2px] bg-black/40 z-10 flex flex-col items-center justify-center">
+                    <Lock className="h-5 w-5 text-[#FFB800] mb-2" />
+                    <p className="text-sm font-bold text-white">AI Health Check</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {locale === "es" ? "Disponible en Explorer" : "Available in Explorer"}
+                    </p>
+                    <button
+                      onClick={onUpgrade}
+                      className="mt-3 px-4 py-1.5 rounded-lg bg-[#FFB800] hover:bg-[#FFC933] text-xs font-bold text-[#07070d] transition-colors"
+                    >
+                      {locale === "es" ? "Mejorar plan →" : "Upgrade plan →"}
+                    </button>
+                  </div>
+                  <div className="space-y-2" aria-hidden>
+                    <div className="h-4 w-3/4 rounded bg-white/[0.05]" />
+                    <div className="h-4 w-1/2 rounded bg-white/[0.05]" />
+                    <div className="h-8 w-full rounded bg-white/[0.05]" />
+                  </div>
                 </div>
-                <div className="space-y-2" aria-hidden>
-                  <div className="h-4 w-3/4 rounded bg-white/[0.05]" />
-                  <div className="h-4 w-1/2 rounded bg-white/[0.05]" />
-                  <div className="h-8 w-full rounded bg-white/[0.05]" />
-                </div>
-              </div>
 
-              {/* Teaser 2: Price Alerts */}
-              <div className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 overflow-hidden">
-                <div className="absolute inset-0 backdrop-blur-[2px] bg-black/40 z-10 flex flex-col items-center justify-center">
-                  <Lock className="h-5 w-5 text-[#FFB800] mb-2" />
-                  <p className="text-sm font-bold text-white">
-                    {locale === "es" ? "Alertas de precio" : "Price alerts"}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {locale === "es" ? "Disponible en Explorer" : "Available in Explorer"}
-                  </p>
-                  <button
-                    onClick={onUpgrade}
-                    className="mt-3 px-4 py-1.5 rounded-lg bg-[#FFB800] hover:bg-[#FFC933] text-xs font-bold text-[#07070d] transition-colors"
-                  >
-                    {locale === "es" ? "Mejorar plan →" : "Upgrade plan →"}
-                  </button>
-                </div>
-                <div className="space-y-2" aria-hidden>
-                  <div className="h-4 w-2/3 rounded bg-white/[0.05]" />
-                  <div className="h-4 w-5/6 rounded bg-white/[0.05]" />
-                  <div className="h-6 w-1/3 rounded bg-white/[0.05]" />
+                {/* Teaser 2: Price Alerts */}
+                <div className="relative rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 overflow-hidden">
+                  <div className="absolute inset-0 backdrop-blur-[2px] bg-black/40 z-10 flex flex-col items-center justify-center">
+                    <Lock className="h-5 w-5 text-[#FFB800] mb-2" />
+                    <p className="text-sm font-bold text-white">
+                      {locale === "es" ? "Alertas de precio" : "Price alerts"}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {locale === "es" ? "Disponible en Explorer" : "Available in Explorer"}
+                    </p>
+                    <button
+                      onClick={onUpgrade}
+                      className="mt-3 px-4 py-1.5 rounded-lg bg-[#FFB800] hover:bg-[#FFC933] text-xs font-bold text-[#07070d] transition-colors"
+                    >
+                      {locale === "es" ? "Mejorar plan →" : "Upgrade plan →"}
+                    </button>
+                  </div>
+                  <div className="space-y-2" aria-hidden>
+                    <div className="h-4 w-2/3 rounded bg-white/[0.05]" />
+                    <div className="h-4 w-5/6 rounded bg-white/[0.05]" />
+                    <div className="h-6 w-1/3 rounded bg-white/[0.05]" />
+                  </div>
                 </div>
               </div>
-            </div>
+            </ModeGate>
           )}
         </>
       )}

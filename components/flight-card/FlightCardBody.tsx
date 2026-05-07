@@ -29,6 +29,7 @@ import { AirportInfoCard } from "@/components/AirportInfoCard";
 import { LiveFlightTracker } from "@/components/LiveFlightTracker";
 import { AirportGuide } from "@/components/AirportGuide";
 import { DestinationTips } from "@/components/DestinationTips";
+import { ModeGate } from "@/components/ModeGate";
 
 export interface FlightCardBodyProps {
   flight: TripFlight;
@@ -276,67 +277,73 @@ export function FlightCardBody({
                 </div>
               )}
 
-              {/* TAF Forecast */}
-              {relevantTafPeriod && (() => {
-                const p = relevantTafPeriod;
-                const fcStyles: Record<string, string> = {
-                  VFR:  "bg-emerald-900/50 border-emerald-600/50 text-emerald-300",
-                  MVFR: "bg-blue-900/50 border-blue-600/50 text-blue-300",
-                  IFR:  "bg-orange-900/50 border-orange-600/50 text-orange-300",
-                  LIFR: "bg-red-900/60 border-red-600/60 text-red-300 animate-pulse",
-                };
-                const fcStyle = fcStyles[p.flightCategory] ?? fcStyles["VFR"];
-                let windStr = p.windSpeedKt === 0 ? "CALM" : p.isVRB ? `VRB/${p.windSpeedKt}kt` : `${String(p.windDirDeg).padStart(3, "0")}°/${p.windSpeedKt}kt`;
-                if (p.windGustKt) windStr += ` G${p.windGustKt}kt`;
-                const visStr  = p.visibilitySM < 5 ? `${p.visibilitySM} SM` : null;
-                const ceilStr = p.ceilingFt != null && p.ceilingFt < 3000 ? `ceil ${p.ceilingFt}ft` : null;
-                const nowSec  = Math.floor(Date.now() / 1000);
-                const agoHours = Math.round((nowSec - (tafData?.issueTime ?? nowSec)) / 3600);
-                const issuedAgo = locale === "es" ? `Emitido hace ${agoHours}h` : `Issued ${agoHours}h ago`;
-                const infoChunks = [windStr, visStr, ceilStr, p.weatherString].filter(Boolean) as string[];
-                return (
-                  <div className="rounded-lg bg-blue-950/20 border border-blue-900/30 px-3 py-2.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2">{L.sectionForecast}</p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${fcStyle}`}>{p.flightCategory}</span>
-                      <span className="text-xs text-gray-300 font-mono">{infoChunks.join("  ·  ")}</span>
-                      {p.changeType === "TEMPO" && (
-                        <span className="text-[11px] text-yellow-500/80 italic">
-                          {locale === "es" ? "(temporal)" : "(temporary)"}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-1.5">{issuedAgo}</p>
-                  </div>
-                );
-              })()}
-
-              {/* SIGMETs */}
-              {activeSigmets && activeSigmets.length > 0 && (
-                <div className="rounded-lg bg-purple-950/30 border border-purple-900/30 px-3 py-2.5">
-                  <p className="text-xs font-semibold text-purple-300 flex items-center gap-1.5 mb-1.5">
-                    <Zap className="h-3.5 w-3.5 text-purple-400" />
-                    {activeSigmets.length} {L.sectionSigmet}
-                  </p>
-                  <ul className="space-y-0.5">
-                    {activeSigmets.map((s, i) => {
-                      const validToDate = s.validTo ? new Date(s.validTo) : null;
-                      const validUntil = validToDate && !isNaN(validToDate.getTime())
-                        ? validToDate.toLocaleTimeString(locale === "en" ? "en-US" : "es-AR", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })
-                        : s.validTo;
-                      return (
-                        <li key={i} className="text-[11px] text-purple-200/70 leading-relaxed">
-                          &bull; {[s.hazard, s.severity].filter(Boolean).join(" ")}
-                          {validUntil && (
-                            <span className="text-purple-300/50">
-                              {" "}&middot; {locale === "en" ? "Valid until" : "Válido hasta"} {validUntil}
+              {/* TAF Forecast — Pilot mode only */}
+              {relevantTafPeriod && (
+                <ModeGate mode="pilot">
+                  {(() => {
+                    const p = relevantTafPeriod;
+                    const fcStyles: Record<string, string> = {
+                      VFR:  "bg-emerald-900/50 border-emerald-600/50 text-emerald-300",
+                      MVFR: "bg-blue-900/50 border-blue-600/50 text-blue-300",
+                      IFR:  "bg-orange-900/50 border-orange-600/50 text-orange-300",
+                      LIFR: "bg-red-900/60 border-red-600/60 text-red-300 animate-pulse",
+                    };
+                    const fcStyle = fcStyles[p.flightCategory] ?? fcStyles["VFR"];
+                    let windStr = p.windSpeedKt === 0 ? "CALM" : p.isVRB ? `VRB/${p.windSpeedKt}kt` : `${String(p.windDirDeg).padStart(3, "0")}°/${p.windSpeedKt}kt`;
+                    if (p.windGustKt) windStr += ` G${p.windGustKt}kt`;
+                    const visStr  = p.visibilitySM < 5 ? `${p.visibilitySM} SM` : null;
+                    const ceilStr = p.ceilingFt != null && p.ceilingFt < 3000 ? `ceil ${p.ceilingFt}ft` : null;
+                    const nowSec  = Math.floor(Date.now() / 1000);
+                    const agoHours = Math.round((nowSec - (tafData?.issueTime ?? nowSec)) / 3600);
+                    const issuedAgo = locale === "es" ? `Emitido hace ${agoHours}h` : `Issued ${agoHours}h ago`;
+                    const infoChunks = [windStr, visStr, ceilStr, p.weatherString].filter(Boolean) as string[];
+                    return (
+                      <div className="rounded-lg bg-blue-950/20 border border-blue-900/30 px-3 py-2.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-widest text-gray-500 mb-2">{L.sectionForecast}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${fcStyle}`}>{p.flightCategory}</span>
+                          <span className="text-xs text-gray-300 font-mono">{infoChunks.join("  ·  ")}</span>
+                          {p.changeType === "TEMPO" && (
+                            <span className="text-[11px] text-yellow-500/80 italic">
+                              {locale === "es" ? "(temporal)" : "(temporary)"}
                             </span>
                           )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-1.5">{issuedAgo}</p>
+                      </div>
+                    );
+                  })()}
+                </ModeGate>
+              )}
+
+              {/* SIGMETs — Pilot mode only */}
+              {activeSigmets && activeSigmets.length > 0 && (
+                <ModeGate mode="pilot">
+                  <div className="rounded-lg bg-purple-950/30 border border-purple-900/30 px-3 py-2.5">
+                    <p className="text-xs font-semibold text-purple-300 flex items-center gap-1.5 mb-1.5">
+                      <Zap className="h-3.5 w-3.5 text-purple-400" />
+                      {activeSigmets.length} {L.sectionSigmet}
+                    </p>
+                    <ul className="space-y-0.5">
+                      {activeSigmets.map((s, i) => {
+                        const validToDate = s.validTo ? new Date(s.validTo) : null;
+                        const validUntil = validToDate && !isNaN(validToDate.getTime())
+                          ? validToDate.toLocaleTimeString(locale === "en" ? "en-US" : "es-AR", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })
+                          : s.validTo;
+                        return (
+                          <li key={i} className="text-[11px] text-purple-200/70 leading-relaxed">
+                            &bull; {[s.hazard, s.severity].filter(Boolean).join(" ")}
+                            {validUntil && (
+                              <span className="text-purple-300/50">
+                                {" "}&middot; {locale === "en" ? "Valid until" : "Válido hasta"} {validUntil}
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </ModeGate>
               )}
             </div>
           )}

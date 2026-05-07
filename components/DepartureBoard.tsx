@@ -12,6 +12,7 @@ import { useDestinationWeather } from "@/hooks/useDestinationWeather";
 import { useDepartureTime } from "@/hooks/useDepartureTime";
 import { GeoPosition } from "@/hooks/useGeolocation";
 import { WarRoomMode } from "@/components/WarRoomMode";
+import { useUIModeContext } from "@/contexts/UIModeContext";
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -143,6 +144,7 @@ function HeroCard({ flight, locale, geoPosition }: HeroCardProps) {
   const liveMinutes = useLiveMinutes(depISO);
   const urgency = liveMinutes === Infinity ? "relaxed" : getUrgency(liveMinutes);
   const accentClass = URGENCY_ACCENT[urgency];
+  const { isRelax } = useUIModeContext();
 
   const { forecast } = useDestinationWeather(
     flight.destinationCode,
@@ -160,6 +162,14 @@ function HeroCard({ flight, locale, geoPosition }: HeroCardProps) {
 
   const statusCfg = STATUS_STYLE[flight.status] ?? STATUS_STYLE.unknown;
   const isOnTime = flight.status === "ok";
+
+  // Relax mode: simplified status label
+  const relaxStatusLabel = (() => {
+    if (flight.status === "ok") return locale === "es" ? "OK ✓" : "OK ✓";
+    const s = STATUS_STYLE[flight.status];
+    if (!s) return locale === "es" ? "Desconocido" : "Unknown";
+    return s.label[locale];
+  })();
 
   return (
     <motion.div
@@ -190,12 +200,18 @@ function HeroCard({ flight, locale, geoPosition }: HeroCardProps) {
 
         {/* Status pill + live dot */}
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${statusCfg.pill} flex items-center gap-1.5`}>
-            {isOnTime && (
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            )}
-            {statusCfg.label[locale]}
-          </span>
+          {isRelax ? (
+            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${statusCfg.pill}`}>
+              {relaxStatusLabel}
+            </span>
+          ) : (
+            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${statusCfg.pill} flex items-center gap-1.5`}>
+              {isOnTime && (
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              )}
+              {statusCfg.label[locale]}
+            </span>
+          )}
         </div>
       </div>
 

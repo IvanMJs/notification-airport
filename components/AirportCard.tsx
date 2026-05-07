@@ -12,6 +12,8 @@ import { MetarData, FlightCategory } from "@/hooks/useMetar";
 import { getAirportTime, getAirportTzLabel } from "@/lib/airportTimezone";
 import { getCachedFaaExplanation, setCachedFaaExplanation } from "@/lib/faaExplainCache";
 import { RadarDot } from "./RadarDot";
+import { ModeGate } from "./ModeGate";
+import { useUIModeContext } from "@/contexts/UIModeContext";
 
 function formatMinutes(min: number | undefined): string {
   if (min == null) return "?";
@@ -298,6 +300,7 @@ const labelByTone: Record<Tone, string> = {
 
 export function AirportCard({ iata, status, onRemove, weather, metar, highlight, onRefresh }: AirportCardProps) {
   const { t, locale } = useLanguage();
+  const { isRelax } = useUIModeContext();
   const s = status?.status ?? "ok";
   const tone = toneFromStatus(s);
   const reason = severeReason(status);
@@ -438,73 +441,115 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
           </div>
         )}
 
-        {metar && showTechnical && <MetarRow metar={metar} />}
+        <ModeGate mode="pilot">
+          {metar && showTechnical && <MetarRow metar={metar} />}
+        </ModeGate>
 
         {status?.delays && (
-          <div className="mt-2 space-y-1 text-sm text-gray-300">
-            <p>
-              <span className="text-gray-500">{t.delay}:</span>{" "}
-              <span className="font-medium">
-                {formatMinutes(status.delays.minMinutes)}–{formatMinutes(status.delays.maxMinutes)}
-              </span>{" "}
-              <TrendIcon trend={status.delays.trend} />
-            </p>
-            <p><span className="text-gray-500">{t.cause}:</span> {status.delays.reason}</p>
-            <p>
-              <span className="text-gray-500">{t.affects}:</span>{" "}
-              {status.delays.type === "departure"
-                ? t.departures
-                : status.delays.type === "arrival"
-                ? t.arrivals
-                : (locale === "es" ? "salidas y llegadas" : "departing and arriving flights")}
-            </p>
-            {status.delays.trend && (
-              <p><span className="text-gray-500">{t.trend}:</span> {status.delays.trend}</p>
+          <>
+            {isRelax ? (
+              <div className="mt-2 text-sm font-semibold text-yellow-300">
+                {locale === "es"
+                  ? `Demora ${formatMinutes(status.delays.minMinutes)}–${formatMinutes(status.delays.maxMinutes)} ⚠️`
+                  : `Delay ${formatMinutes(status.delays.minMinutes)}–${formatMinutes(status.delays.maxMinutes)} ⚠️`}
+              </div>
+            ) : (
+              <div className="mt-2 space-y-1 text-sm text-gray-300">
+                <p>
+                  <span className="text-gray-500">{t.delay}:</span>{" "}
+                  <span className="font-medium">
+                    {formatMinutes(status.delays.minMinutes)}–{formatMinutes(status.delays.maxMinutes)}
+                  </span>{" "}
+                  <TrendIcon trend={status.delays.trend} />
+                </p>
+                <p><span className="text-gray-500">{t.cause}:</span> {status.delays.reason}</p>
+                <p>
+                  <span className="text-gray-500">{t.affects}:</span>{" "}
+                  {status.delays.type === "departure"
+                    ? t.departures
+                    : status.delays.type === "arrival"
+                    ? t.arrivals
+                    : (locale === "es" ? "salidas y llegadas" : "departing and arriving flights")}
+                </p>
+                {status.delays.trend && (
+                  <p><span className="text-gray-500">{t.trend}:</span> {status.delays.trend}</p>
+                )}
+              </div>
             )}
-          </div>
+          </>
         )}
 
         {status?.groundStop && (
-          <div className="mt-2 space-y-1 text-sm text-red-300">
-            <p>
-              <span className="font-bold">🛑 {t.groundStop}</span>{" "}
-              {t.until} {status.groundStop.endTime ?? t.indefinite}
-            </p>
-            <p><span className="text-red-400/70">{t.cause}:</span> {status.groundStop.reason}</p>
-          </div>
+          <>
+            {isRelax ? (
+              <div className="mt-2 text-sm font-semibold text-red-300">
+                🛑 {locale === "es" ? "Ground stop activo" : "Ground stop active"}
+              </div>
+            ) : (
+              <div className="mt-2 space-y-1 text-sm text-red-300">
+                <p>
+                  <span className="font-bold">🛑 {t.groundStop}</span>{" "}
+                  {t.until} {status.groundStop.endTime ?? t.indefinite}
+                </p>
+                <p><span className="text-red-400/70">{t.cause}:</span> {status.groundStop.reason}</p>
+              </div>
+            )}
+          </>
         )}
 
         {status?.groundDelay && (
-          <div className="mt-2 space-y-1 text-sm text-red-300">
-            <p className="font-bold">{t.groundDelayProgram}</p>
-            <p>
-              {t.average}: <span className="font-medium">{formatMinutes(status.groundDelay.avgMinutes)}</span>
-              {" · "}{t.max}: {status.groundDelay.maxTime}
-            </p>
-            <p><span className="text-red-400/70">{t.cause}:</span> {status.groundDelay.reason}</p>
-          </div>
+          <>
+            {isRelax ? (
+              <div className="mt-2 text-sm font-semibold text-red-300">
+                {locale === "es"
+                  ? `Demora promedio ${formatMinutes(status.groundDelay.avgMinutes)} ⚠️`
+                  : `Avg delay ${formatMinutes(status.groundDelay.avgMinutes)} ⚠️`}
+              </div>
+            ) : (
+              <div className="mt-2 space-y-1 text-sm text-red-300">
+                <p className="font-bold">{t.groundDelayProgram}</p>
+                <p>
+                  {t.average}: <span className="font-medium">{formatMinutes(status.groundDelay.avgMinutes)}</span>
+                  {" · "}{t.max}: {status.groundDelay.maxTime}
+                </p>
+                <p><span className="text-red-400/70">{t.cause}:</span> {status.groundDelay.reason}</p>
+              </div>
+            )}
+          </>
         )}
 
         {status?.closure && (
-          <div className="mt-2 space-y-1 text-sm text-gray-300">
-            <p className="font-bold text-gray-200">⛔ {t.airportClosed}</p>
-            <p><span className="text-gray-500">{t.cause}:</span> {status.closure.reason}</p>
-          </div>
+          <>
+            {isRelax ? (
+              <div className="mt-2 text-sm font-semibold text-gray-300">
+                ⛔ {locale === "es" ? "Aeropuerto cerrado" : "Airport closed"}
+              </div>
+            ) : (
+              <div className="mt-2 space-y-1 text-sm text-gray-300">
+                <p className="font-bold text-gray-200">⛔ {t.airportClosed}</p>
+                <p><span className="text-gray-500">{t.cause}:</span> {status.closure.reason}</p>
+              </div>
+            )}
+          </>
         )}
 
         {status && s !== "ok" && s !== "unknown" && (
-          <FaaExplainButton iata={iata} status={status} locale={locale} />
+          <ModeGate mode="pilot">
+            <FaaExplainButton iata={iata} status={status} locale={locale} />
+          </ModeGate>
         )}
 
         {metar && (
-          <button
-            onClick={() => setShowTechnical((v) => !v)}
-            className="mt-2 text-xs text-gray-500 underline underline-offset-2 hover:text-gray-300 transition-colors"
-          >
-            {showTechnical
-              ? (locale === "es" ? "Ocultar detalles ↑" : "Hide details ↑")
-              : (locale === "es" ? "Ver detalles técnicos ↓" : "Show technical details ↓")}
-          </button>
+          <ModeGate mode="pilot">
+            <button
+              onClick={() => setShowTechnical((v) => !v)}
+              className="mt-2 text-xs text-gray-500 underline underline-offset-2 hover:text-gray-300 transition-colors"
+            >
+              {showTechnical
+                ? (locale === "es" ? "Ocultar detalles ↑" : "Hide details ↑")
+                : (locale === "es" ? "Ver detalles técnicos ↓" : "Show technical details ↓")}
+            </button>
+          </ModeGate>
         )}
 
       </div>
