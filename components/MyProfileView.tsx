@@ -686,7 +686,7 @@ export function MyProfileView({ trips, locale, userPlan, userId, userName, userA
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => setActiveProfileTab(tab.id)}
-                className={`relative shrink-0 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
+                className={`relative shrink-0 flex items-center justify-center gap-1.5 py-2 px-3 min-h-[44px] rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
                   isActive ? "text-white" : "text-gray-500 hover:text-gray-300"
                 }`}
               >
@@ -1180,7 +1180,7 @@ export function MyProfileView({ trips, locale, userPlan, userId, userName, userA
                 </div>
                 <button
                   onClick={() => setStampGridOpen(false)}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/8 transition-colors"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/8 transition-colors"
                   aria-label={locale === "es" ? "Cerrar" : "Close"}
                 >
                   <X className="h-4 w-4" />

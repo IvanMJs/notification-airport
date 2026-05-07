@@ -86,7 +86,7 @@ function SectionHeader({
   return (
     <button
       onClick={onToggle}
-      className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-white/[0.02] transition-colors"
+      className="w-full flex items-center justify-between px-4 py-2.5 min-h-[44px] text-left hover:bg-white/[0.02] transition-colors"
     >
       <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-500">
         {icon}

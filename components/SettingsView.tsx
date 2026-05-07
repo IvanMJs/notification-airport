@@ -186,7 +186,7 @@ function SegmentControl<T extends string>({
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`px-3 py-1.5 transition-colors ${
+          className={`px-3 py-1.5 min-h-[44px] transition-colors ${
             value === opt.value
               ? "bg-[#FFB800] text-[#07070d]"
               : "bg-white/[0.04] text-gray-400 hover:text-gray-200"
@@ -370,7 +370,7 @@ export function SettingsView({
                 <button
                   key={l}
                   onClick={() => setLocale(l)}
-                  className={`px-3 py-1.5 transition-colors ${locale === l ? "bg-[#FFB800] text-[#07070d]" : "bg-transparent text-gray-400 hover:text-gray-200"}`}
+                  className={`px-3 py-1.5 min-h-[44px] transition-colors ${locale === l ? "bg-[#FFB800] text-[#07070d]" : "bg-transparent text-gray-400 hover:text-gray-200"}`}
                 >
                   {l === "es" ? "Español" : "English"}
                 </button>

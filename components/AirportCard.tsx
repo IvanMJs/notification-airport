@@ -236,7 +236,7 @@ function FaaExplainButton({
     <div className="mt-2">
       <button
         onClick={handleExplain}
-        className="flex items-center gap-1.5 text-xs bg-[rgba(255,184,0,0.08)] hover:bg-[rgba(255,184,0,0.10)] text-[#FFB800] hover:text-[#FFD566] border border-[rgba(255,184,0,0.25)] px-2.5 py-1 rounded-full transition-all"
+        className="flex items-center gap-1.5 text-xs bg-[rgba(255,184,0,0.08)] hover:bg-[rgba(255,184,0,0.10)] text-[#FFB800] hover:text-[#FFD566] border border-[rgba(255,184,0,0.25)] px-2.5 py-2 min-h-[44px] rounded-full transition-all"
       >
         {explainState === "loading" ? (
           <>
@@ -391,7 +391,7 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
             {onRemove && (
               <button
                 onClick={onRemove}
-                className="rounded-full p-1 text-gray-600 hover:bg-white/[0.08] hover:text-gray-300 transition-colors"
+                className="rounded-full min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-600 hover:bg-white/[0.08] hover:text-gray-300 transition-colors"
                 aria-label={locale === "es" ? "Eliminar" : "Delete"}
               >
                 <X className="h-3 w-3" />
@@ -544,7 +544,7 @@ export function AirportCard({ iata, status, onRemove, weather, metar, highlight,
             <div className="mt-2 flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setShowTechnical((v) => !v)}
-                className="text-xs text-gray-500 underline underline-offset-2 hover:text-gray-300 transition-colors"
+                className="text-xs text-gray-500 underline underline-offset-2 hover:text-gray-300 transition-colors min-h-[44px] flex items-center"
               >
                 {showTechnical
                   ? (locale === "es" ? "Ocultar detalles ↑" : "Hide details ↑")

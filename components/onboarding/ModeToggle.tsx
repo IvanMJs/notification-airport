@@ -19,14 +19,10 @@ export function ModeToggle({ value, onChange }: ModeToggleProps) {
       <div className="relative flex bg-white/[0.04] border border-white/[0.08] rounded-xl p-[3px]">
         {/* Animated pill */}
         <motion.div
-          className="absolute inset-[3px] rounded-[9px]"
-          animate={{ x: value === "pilot" ? "50%" : "0%" }}
+          className="absolute top-[3px] bottom-[3px] left-[3px] rounded-[9px] bg-[#FFB800] shadow-[0_2px_10px_rgba(255,184,0,0.32)]"
+          animate={{ x: value === "pilot" ? "100%" : "0%" }}
           transition={{ type: "spring", stiffness: 480, damping: 36 }}
-          style={{
-            width: "calc(50% - 0px)",
-            backgroundColor: "#FFB800",
-            boxShadow: "0 2px 10px rgba(255,184,0,0.32)",
-          }}
+          style={{ width: "calc(50% - 3px)" }}
         />
 
         {/* Relax button */}
